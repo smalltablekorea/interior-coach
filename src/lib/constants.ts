@@ -68,6 +68,22 @@ export const PHASE_STATUSES = ["대기", "진행중", "완료", "보류"] as con
 
 export const ORDER_STATUSES = ["발주", "배송중", "입고", "취소"] as const;
 
+export const CUSTOMER_STATUSES = [
+  "상담중",
+  "계약완료",
+  "시공중",
+  "시공완료",
+  "A/S",
+  "VIP",
+] as const;
+
+export const COMMUNICATION_TYPES = [
+  "전화",
+  "문자",
+  "방문",
+  "카톡",
+] as const;
+
 export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   // 현장 상태
   상담중: { bg: "bg-blue-500/10", text: "text-blue-400" },
@@ -94,6 +110,8 @@ export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   배송중: { bg: "bg-[var(--orange)]/10", text: "text-[var(--orange)]" },
   입고: { bg: "bg-[var(--green)]/10", text: "text-[var(--green)]" },
   취소: { bg: "bg-[var(--red)]/10", text: "text-[var(--red)]" },
+  // 고객 상태
+  VIP: { bg: "bg-yellow-500/10", text: "text-yellow-400" },
   // 마케팅 문의 상태
   신규: { bg: "bg-blue-500/10", text: "text-blue-400" },
   견적발송: { bg: "bg-purple-500/10", text: "text-purple-400" },

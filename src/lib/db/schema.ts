@@ -75,6 +75,8 @@ export const customers = pgTable("customers", {
   email: text("email"),
   address: text("address"),
   memo: text("memo"),
+  status: text("status").default("상담중"), // 상담중, 계약완료, 시공중, 시공완료, A/S, VIP
+  referredBy: uuid("referred_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -246,6 +248,24 @@ export const materialOrders = pgTable("material_orders", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// --- 지출 관리 ---
+export const expenses = pgTable("expenses", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  siteId: uuid("site_id").references(() => sites.id),
+  category: text("category").notNull(), // 자재비, 인건비, 운반비, 장비비, 기타
+  description: text("description"),
+  amount: integer("amount").notNull().default(0),
+  date: date("date"),
+  paymentMethod: text("payment_method"), // 카드, 계좌이체, 현금
+  vendor: text("vendor"),
+  receiptUrl: text("receipt_url"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const inventory = pgTable("inventory", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id")
@@ -257,4 +277,60 @@ export const inventory = pgTable("inventory", {
   currentStock: real("current_stock").notNull().default(0),
   location: text("location"),
   lastUpdated: timestamp("last_updated").notNull().defaultNow(),
+});
+
+// ─── 시공 사진 ───
+
+export const sitePhotos = pgTable("site_photos", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id")
+    .notNull()
+    .references(() => sites.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id),
+  url: text("url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  date: date("date").notNull(),
+  category: text("category"),
+  phase: text("phase").default("during"), // before, during, after
+  caption: text("caption"),
+  uploadedBy: text("uploaded_by"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const photoComments = pgTable("photo_comments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  photoId: uuid("photo_id")
+    .notNull()
+    .references(() => sitePhotos.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id),
+  authorName: text("author_name").notNull(),
+  text: text("text").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── 소통 기록 ───
+
+export const communicationLogs = pgTable("communication_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id),
+  date: date("date").notNull(),
+  type: text("type").notNull(), // 전화, 문자, 방문, 카톡
+  content: text("content"),
+  staffName: text("staff_name"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── 고객 포탈 토큰 ───
+
+export const customerPortalTokens = pgTable("customer_portal_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });

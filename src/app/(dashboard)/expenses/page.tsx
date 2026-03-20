@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, Search, Receipt, Filter, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
+import { Plus, Search, Receipt, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import { fmt, fmtDate, fmtShort } from "@/lib/utils";
@@ -15,12 +15,28 @@ interface Expense {
   siteId: string;
   siteName: string;
   paymentMethod: string;
+  vendor: string | null;
   receiptUrl: string | null;
 }
 
 interface Site {
   id: string;
   name: string;
+}
+
+interface BudgetCategory {
+  category: string;
+  budget: number;
+  spent: number;
+  rate: number;
+}
+
+interface BudgetData {
+  hasEstimate: boolean;
+  totalBudget: number;
+  totalSpent: number;
+  totalRate: number;
+  categories: BudgetCategory[];
 }
 
 const EXPENSE_CATEGORIES = ["자재비", "인건비", "운반비", "장비비", "기타"] as const;
@@ -43,6 +59,7 @@ export default function ExpensesPage() {
   const [filterCategory, setFilterCategory] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [budget, setBudget] = useState<BudgetData | null>(null);
 
   const [form, setForm] = useState({
     siteId: "",
@@ -51,19 +68,29 @@ export default function ExpensesPage() {
     amount: "",
     date: new Date().toISOString().split("T")[0],
     paymentMethod: "카드" as string,
+    vendor: "",
   });
 
   // Edit/Delete states
   const [editExpense, setEditExpense] = useState<Expense | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
+    siteId: "",
     category: "자재비",
     description: "",
     amount: "",
     date: "",
     paymentMethod: "카드",
+    vendor: "",
   });
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
+
+  const loadExpenses = useCallback(() => {
+    fetch("/api/expenses")
+      .then((r) => r.json())
+      .then((data) => setExpenses(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     Promise.all([
@@ -71,15 +98,31 @@ export default function ExpensesPage() {
       fetch("/api/sites").then((r) => r.json()),
     ])
       .then(([expData, siteData]) => {
-        setExpenses(expData);
-        setSites(siteData);
+        setExpenses(Array.isArray(expData) ? expData : []);
+        setSites(Array.isArray(siteData) ? siteData : []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, []);
 
+  // Load budget data when site filter changes
+  useEffect(() => {
+    if (filterSite) {
+      fetch(`/api/sites/${filterSite}/budget`)
+        .then((r) => r.json())
+        .then((data) => setBudget(data))
+        .catch(() => setBudget(null));
+    } else {
+      setBudget(null);
+    }
+  }, [filterSite]);
+
   const filtered = expenses.filter((e) => {
-    const matchSearch = !search || e.description.includes(search) || e.siteName.includes(search);
+    const matchSearch =
+      !search ||
+      (e.description && e.description.includes(search)) ||
+      (e.siteName && e.siteName.includes(search)) ||
+      (e.vendor && e.vendor.includes(search));
     const matchSite = !filterSite || e.siteId === filterSite;
     const matchCategory = !filterCategory || e.category === filterCategory;
     return matchSearch && matchSite && matchCategory;
@@ -96,57 +139,91 @@ export default function ExpensesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch("/api/expenses", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        amount: parseInt(form.amount) || 0,
-      }),
-    });
-    setSaving(false);
-    if (res.status === 503) {
-      setShowModal(false);
-      alert("데모 모드에서는 등록할 수 없습니다.");
+    try {
+      const res = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          amount: parseInt(form.amount) || 0,
+        }),
+      });
+      if (res.ok) {
+        setShowModal(false);
+        setForm({
+          siteId: "",
+          category: "자재비",
+          description: "",
+          amount: "",
+          date: new Date().toISOString().split("T")[0],
+          paymentMethod: "카드",
+          vendor: "",
+        });
+        loadExpenses();
+      }
+    } catch {
+      // ignore
     }
+    setSaving(false);
   };
 
   const openEditExpense = (expense: Expense) => {
     setEditExpense(expense);
     setEditForm({
+      siteId: expense.siteId || "",
       category: expense.category,
-      description: expense.description,
+      description: expense.description || "",
       amount: String(expense.amount),
-      date: expense.date,
-      paymentMethod: expense.paymentMethod,
+      date: expense.date || "",
+      paymentMethod: expense.paymentMethod || "카드",
+      vendor: expense.vendor || "",
     });
     setShowEditModal(true);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editExpense) return;
-    setExpenses((prev) =>
-      prev.map((exp) =>
-        exp.id === editExpense.id
-          ? {
-              ...exp,
-              category: editForm.category,
-              description: editForm.description,
-              amount: parseInt(editForm.amount) || 0,
-              date: editForm.date,
-              paymentMethod: editForm.paymentMethod,
-            }
-          : exp
-      )
-    );
-    setShowEditModal(false);
-    setEditExpense(null);
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/expenses/${editExpense.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...editForm,
+          amount: parseInt(editForm.amount) || 0,
+        }),
+      });
+      if (res.ok) {
+        setShowEditModal(false);
+        setEditExpense(null);
+        loadExpenses();
+      }
+    } catch {
+      // ignore
+    }
+    setSaving(false);
   };
 
-  const handleDeleteExpense = (expenseId: string) => {
-    setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
+  const handleDeleteExpense = async (expenseId: string) => {
+    try {
+      const res = await fetch(`/api/expenses/${expenseId}`, { method: "DELETE" });
+      if (res.ok) {
+        setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
+      }
+    } catch {
+      // ignore
+    }
     setDeleteExpenseId(null);
+  };
+
+  const getBudgetAlert = (cat: string) => {
+    if (!budget || !budget.hasEstimate) return null;
+    const bc = budget.categories.find((c) => c.category === cat);
+    if (!bc || bc.budget === 0) return null;
+    if (bc.rate >= 100) return { level: "danger" as const, rate: bc.rate, budget: bc.budget, spent: bc.spent };
+    if (bc.rate >= 80) return { level: "warning" as const, rate: bc.rate, budget: bc.budget, spent: bc.spent };
+    return { level: "ok" as const, rate: bc.rate, budget: bc.budget, spent: bc.spent };
   };
 
   return (
@@ -162,6 +239,32 @@ export default function ExpensesPage() {
         </button>
       </div>
 
+      {/* Budget Alert Banner */}
+      {budget && budget.hasEstimate && budget.totalRate >= 80 && (
+        <div
+          className={`flex items-center gap-3 p-4 rounded-2xl border ${
+            budget.totalRate >= 100
+              ? "border-[var(--red)]/30 bg-[var(--red)]/5"
+              : "border-[var(--orange)]/30 bg-[var(--orange)]/5"
+          }`}
+        >
+          <AlertTriangle
+            size={20}
+            className={budget.totalRate >= 100 ? "text-[var(--red)]" : "text-[var(--orange)]"}
+          />
+          <div>
+            <p className={`text-sm font-medium ${budget.totalRate >= 100 ? "text-[var(--red)]" : "text-[var(--orange)]"}`}>
+              {budget.totalRate >= 100
+                ? `예산 초과! (${budget.totalRate}%)`
+                : `예산 경고 (${budget.totalRate}%)`}
+            </p>
+            <p className="text-xs text-[var(--muted)] mt-0.5">
+              예산 {fmtShort(budget.totalBudget)} / 지출 {fmtShort(budget.totalSpent)}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
@@ -174,21 +277,65 @@ export default function ExpensesPage() {
           .slice(0, 3)
           .map(([cat, amount]) => {
             const colors = CATEGORY_COLORS[cat] || CATEGORY_COLORS["기타"];
+            const alert = getBudgetAlert(cat);
             return (
               <div key={cat} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
                 <div className="flex items-center gap-2">
                   <span className={`inline-block px-2 py-0.5 rounded-md text-xs font-medium ${colors.bg} ${colors.text}`}>
                     {cat}
                   </span>
+                  {alert && alert.level !== "ok" && (
+                    <AlertTriangle
+                      size={14}
+                      className={alert.level === "danger" ? "text-[var(--red)]" : "text-[var(--orange)]"}
+                    />
+                  )}
                 </div>
                 <p className="text-xl font-bold mt-2">{fmtShort(amount)}</p>
                 <p className="text-xs text-[var(--muted)] mt-0.5">
                   {Math.round((amount / totalAmount) * 100)}%
+                  {alert && ` · 예산 대비 ${alert.rate}%`}
                 </p>
               </div>
             );
           })}
       </div>
+
+      {/* Budget vs Spent per Category */}
+      {budget && budget.hasEstimate && budget.categories.length > 0 && (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <h3 className="text-sm font-semibold text-[var(--muted)] mb-3">공종별 예산 대비 지출</h3>
+          <div className="space-y-3">
+            {budget.categories
+              .filter((c) => c.budget > 0 || c.spent > 0)
+              .sort((a, b) => b.rate - a.rate)
+              .map((cat) => (
+                <div key={cat.category}>
+                  <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="font-medium">{cat.category}</span>
+                    <span className={
+                      cat.rate >= 100 ? "text-[var(--red)]" : cat.rate >= 80 ? "text-[var(--orange)]" : "text-[var(--muted)]"
+                    }>
+                      {fmtShort(cat.spent)} / {fmtShort(cat.budget)} ({cat.rate}%)
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        cat.rate >= 100
+                          ? "bg-[var(--red)]"
+                          : cat.rate >= 80
+                            ? "bg-[var(--orange)]"
+                            : "bg-[var(--green)]"
+                      }`}
+                      style={{ width: `${Math.min(cat.rate, 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -196,7 +343,7 @@ export default function ExpensesPage() {
           <Search size={18} className="text-[var(--muted)]" />
           <input
             type="text"
-            placeholder="내역 또는 현장명으로 검색..."
+            placeholder="내역, 현장명, 거래처로 검색..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="bg-transparent text-sm flex-1 focus:outline-none placeholder:text-[var(--muted)]"
@@ -310,13 +457,14 @@ export default function ExpensesPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <p className="text-sm font-medium">{expense.description}</p>
+                      <p className="text-sm font-medium">{expense.description || "(내역 없음)"}</p>
                       <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-medium ${colors.bg} ${colors.text}`}>
                         {expense.category}
                       </span>
                     </div>
                     <p className="text-xs text-[var(--muted)]">
-                      {expense.siteName} · {expense.paymentMethod} · {fmtDate(expense.date)}
+                      {expense.siteName || "미지정"} · {expense.paymentMethod} · {fmtDate(expense.date)}
+                      {expense.vendor && ` · ${expense.vendor}`}
                     </p>
                   </div>
                 </div>
@@ -418,6 +566,16 @@ export default function ExpensesPage() {
               />
             </div>
           </div>
+          <div>
+            <label className="block text-sm text-[var(--muted)] mb-1">거래처</label>
+            <input
+              type="text"
+              value={form.vendor}
+              onChange={(e) => setForm({ ...form, vendor: e.target.value })}
+              placeholder="거래처명"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm placeholder:text-[var(--muted)]"
+            />
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
@@ -440,6 +598,19 @@ export default function ExpensesPage() {
       {/* Edit Expense Modal */}
       <Modal open={showEditModal} onClose={() => setShowEditModal(false)} title="지출 수정">
         <form onSubmit={handleEditSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm text-[var(--muted)] mb-1">현장</label>
+            <select
+              value={editForm.siteId}
+              onChange={(e) => setEditForm({ ...editForm, siteId: e.target.value })}
+              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+            >
+              <option value="">선택</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">카테고리</label>
@@ -495,6 +666,16 @@ export default function ExpensesPage() {
               />
             </div>
           </div>
+          <div>
+            <label className="block text-sm text-[var(--muted)] mb-1">거래처</label>
+            <input
+              type="text"
+              value={editForm.vendor}
+              onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value })}
+              placeholder="거래처명"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+            />
+          </div>
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
@@ -505,9 +686,10 @@ export default function ExpensesPage() {
             </button>
             <button
               type="submit"
-              className="px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
+              disabled={saving}
+              className="px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium disabled:opacity-50"
             >
-              저장
+              {saving ? "저장 중..." : "저장"}
             </button>
           </div>
         </form>

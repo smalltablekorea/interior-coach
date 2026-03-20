@@ -13,9 +13,9 @@ export default function DashboardLayout({
     <AuthProvider>
       <div className="min-h-screen">
         <Sidebar />
-        <div className="md:ml-60 transition-all duration-200">
+        <div className="md:ml-60 min-h-screen flex flex-col transition-all duration-200">
           <Header />
-          <main className="p-6 pb-24 md:pb-6">{children}</main>
+          <main className="flex-1 p-6 pb-24 md:pb-6">{children}</main>
         </div>
       </div>
     </AuthProvider>

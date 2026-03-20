@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Plus, Search, Users, Phone, Mail } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
+import StatusBadge from "@/components/ui/StatusBadge";
+import { CUSTOMER_STATUSES } from "@/lib/constants";
 import { fmtDate } from "@/lib/utils";
 import Link from "next/link";
 
@@ -14,6 +16,8 @@ interface Customer {
   email: string | null;
   address: string | null;
   memo: string | null;
+  status: string | null;
+  referredBy: string | null;
   createdAt: string;
 }
 
@@ -21,12 +25,14 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("");
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", memo: "" });
+  const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", memo: "", status: "상담중" });
   const [saving, setSaving] = useState(false);
 
-  const fetchCustomers = () => {
-    fetch("/api/customers")
+  const fetchCustomers = (status?: string) => {
+    const url = status ? `/api/customers?status=${status}` : "/api/customers";
+    fetch(url)
       .then((r) => r.json())
       .then((data) => {
         setCustomers(data);
@@ -36,8 +42,8 @@ export default function CustomersPage() {
   };
 
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    fetchCustomers(statusFilter || undefined);
+  }, [statusFilter]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,8 +55,8 @@ export default function CustomersPage() {
     });
     if (res.ok) {
       setShowModal(false);
-      setForm({ name: "", phone: "", email: "", address: "", memo: "" });
-      fetchCustomers();
+      setForm({ name: "", phone: "", email: "", address: "", memo: "", status: "상담중" });
+      fetchCustomers(statusFilter || undefined);
     }
     setSaving(false);
   };
@@ -75,6 +81,29 @@ export default function CustomersPage() {
           <Plus size={18} />
           고객 등록
         </button>
+      </div>
+
+      {/* Status Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <button
+          onClick={() => setStatusFilter("")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+            statusFilter === "" ? "bg-white/10 text-white" : "text-[var(--muted)] hover:text-white hover:bg-white/[0.04]"
+          }`}
+        >
+          전체
+        </button>
+        {CUSTOMER_STATUSES.map((s) => (
+          <button
+            key={s}
+            onClick={() => setStatusFilter(s)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              statusFilter === s ? "bg-white/10 text-white" : "text-[var(--muted)] hover:text-white hover:bg-white/[0.04]"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
       </div>
 
       {/* Search */}
@@ -125,7 +154,10 @@ export default function CustomersPage() {
                   {c.name.charAt(0)}
                 </div>
                 <div>
-                  <p className="font-medium">{c.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{c.name}</p>
+                    {c.status && <StatusBadge status={c.status} />}
+                  </div>
                   <div className="flex items-center gap-3 text-sm text-[var(--muted)]">
                     {c.phone && (
                       <span className="flex items-center gap-1">
@@ -183,6 +215,18 @@ export default function CustomersPage() {
                 placeholder="email@example.com"
               />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm text-[var(--muted)] mb-1">상태</label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none transition-colors"
+            >
+              {CUSTOMER_STATUSES.map((s) => (
+                <option key={s} value={s} className="bg-[#111]">{s}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">주소</label>

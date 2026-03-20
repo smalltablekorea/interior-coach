@@ -12,6 +12,7 @@ import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { fmt, fmtDate } from "@/lib/utils";
 import { TRADES, SITE_STATUSES, BUILDING_TYPES } from "@/lib/constants";
+import GaugeChart from "@/components/ui/GaugeChart";
 
 interface Payment {
   type: string;
@@ -97,6 +98,10 @@ export default function SiteDetailPage() {
   const [site, setSite] = useState<SiteDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabKey>("overview");
+  const [healthScore, setHealthScore] = useState<{
+    totalScore: number;
+    breakdown: Record<string, { score: number; max: number; label: string }>;
+  } | null>(null);
 
   // Edit/delete states for overview tab
   const [isEditing, setIsEditing] = useState(false);
@@ -121,8 +126,12 @@ export default function SiteDetailPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [uploadCaption, setUploadCaption] = useState("");
   const [uploadCategory, setUploadCategory] = useState("현장");
+  const [uploadPhase, setUploadPhase] = useState("during");
   const [uploadFiles, setUploadFiles] = useState<{ file: File; preview: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [phaseFilter, setPhaseFilter] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const photosLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -134,22 +143,39 @@ export default function SiteDetailPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    fetch(`/api/sites/${id}/health-score`)
+      .then((r) => r.json())
+      .then((data) => setHealthScore(data))
+      .catch(() => {});
   }, [id]);
+
+  const fetchPhotos = (phase?: string) => {
+    setPhotosLoading(true);
+    const url = phase ? `/api/sites/${id}/photos?phase=${phase}` : `/api/sites/${id}/photos`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((data) => {
+        setPhotos(data);
+        setPhotosLoading(false);
+      })
+      .catch(() => setPhotosLoading(false));
+  };
 
   // Load photos when tab switches
   useEffect(() => {
-    if (tab === "photos" && !photosLoadedRef.current && !photosLoading) {
-      setPhotosLoading(true);
+    if (tab === "photos" && !photosLoadedRef.current) {
       photosLoadedRef.current = true;
-      fetch(`/api/sites/${id}/photos`)
-        .then((r) => r.json())
-        .then((data) => {
-          setPhotos(data);
-          setPhotosLoading(false);
-        })
-        .catch(() => setPhotosLoading(false));
+      fetchPhotos(phaseFilter || undefined);
     }
-  }, [tab, id, photosLoading]);
+  }, [tab, id]);
+
+  // Re-fetch when phase filter changes
+  useEffect(() => {
+    if (tab === "photos" && photosLoadedRef.current) {
+      fetchPhotos(phaseFilter || undefined);
+    }
+  }, [phaseFilter]);
 
   // Cleanup blob URLs on unmount
   useEffect(() => {
@@ -211,45 +237,42 @@ export default function SiteDetailPage() {
     router.push("/sites");
   };
 
-  const addComment = (photoId: string) => {
+  const addComment = async (photoId: string) => {
     if (!commentText.trim()) return;
-    setPhotos((prev) =>
-      prev.map((p) =>
-        p.id === photoId
-          ? {
-              ...p,
-              comments: [
-                ...p.comments,
-                {
-                  id: `cm-${Date.now()}`,
-                  author: "나",
-                  text: commentText.trim(),
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
-          : p
-      )
-    );
-    if (selectedPhoto?.id === photoId) {
-      setSelectedPhoto((prev) =>
-        prev
-          ? {
-              ...prev,
-              comments: [
-                ...prev.comments,
-                {
-                  id: `cm-${Date.now()}`,
-                  author: "나",
-                  text: commentText.trim(),
-                  createdAt: new Date().toISOString(),
-                },
-              ],
-            }
-          : prev
+    const text = commentText.trim();
+    setCommentText("");
+
+    try {
+      const res = await fetch(`/api/photos/${photoId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ authorName: "나", text }),
+      });
+      const newComment = res.ok
+        ? await res.json()
+        : { id: `cm-${Date.now()}`, author: "나", text, createdAt: new Date().toISOString() };
+
+      const comment = { id: newComment.id, author: newComment.authorName || newComment.author || "나", text: newComment.text, createdAt: newComment.createdAt };
+
+      setPhotos((prev) =>
+        prev.map((p) =>
+          p.id === photoId ? { ...p, comments: [...p.comments, comment] } : p
+        )
+      );
+      if (selectedPhoto?.id === photoId) {
+        setSelectedPhoto((prev) =>
+          prev ? { ...prev, comments: [...prev.comments, comment] } : prev
+        );
+      }
+    } catch {
+      // fallback local comment
+      const comment = { id: `cm-${Date.now()}`, author: "나", text, createdAt: new Date().toISOString() };
+      setPhotos((prev) =>
+        prev.map((p) =>
+          p.id === photoId ? { ...p, comments: [...p.comments, comment] } : p
+        )
       );
     }
-    setCommentText("");
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -268,23 +291,38 @@ export default function SiteDetailPage() {
     });
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (uploadFiles.length === 0) return;
+    setUploading(true);
     const today = new Date().toISOString().split("T")[0];
-    const newPhotos: Photo[] = uploadFiles.map((f, idx) => ({
-      id: `upload-${Date.now()}-${idx}`,
-      url: f.preview,
-      thumbnail: f.preview,
-      date: today,
-      category: uploadCategory,
-      caption: uploadCaption || f.file.name,
-      uploadedBy: "나",
-      comments: [],
-    }));
-    setPhotos((prev) => [...newPhotos, ...prev]);
+
+    for (const f of uploadFiles) {
+      const formData = new FormData();
+      formData.append("file", f.file);
+      formData.append("caption", uploadCaption || f.file.name);
+      formData.append("category", uploadCategory);
+      formData.append("phase", uploadPhase);
+      formData.append("date", today);
+
+      try {
+        const res = await fetch(`/api/sites/${id}/photos`, {
+          method: "POST",
+          body: formData,
+        });
+        if (res.ok) {
+          const photo = await res.json();
+          setPhotos((prev) => [{ ...photo, comments: photo.comments || [] }, ...prev]);
+        }
+      } catch {
+        // continue with other files
+      }
+      URL.revokeObjectURL(f.preview);
+    }
+
     setUploadFiles([]);
     setUploadCaption("");
     setShowUpload(false);
+    setUploading(false);
   };
 
   const navigatePhoto = (direction: -1 | 1) => {
@@ -570,26 +608,56 @@ export default function SiteDetailPage() {
               </div>
             )}
           </div>
-          {site.expenses.length > 0 && (
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Receipt size={16} className="text-[var(--muted)]" />
-                <h2 className="text-sm font-semibold text-[var(--muted)]">지출 현황</h2>
-              </div>
-              <div className="space-y-3">
-                {site.expenses.map((e) => (
-                  <div key={e.category} className="flex items-center justify-between">
-                    <span className="text-sm">{e.category}</span>
-                    <span className="text-sm font-medium">{fmt(e.amount)}</span>
+          <div className="space-y-4">
+            {/* Health Score */}
+            {healthScore && (
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+                <h2 className="text-sm font-semibold text-[var(--muted)] mb-3">헬스 스코어</h2>
+                <div className="flex items-center gap-6">
+                  <GaugeChart score={healthScore.totalScore} size={100} />
+                  <div className="flex-1 space-y-2">
+                    {Object.values(healthScore.breakdown).map((item) => (
+                      <div key={item.label} className="flex items-center gap-2">
+                        <span className="text-xs text-[var(--muted)] w-20">{item.label}</span>
+                        <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              width: `${(item.score / item.max) * 100}%`,
+                              backgroundColor: item.score / item.max >= 0.7 ? "var(--green)" : item.score / item.max >= 0.5 ? "var(--orange)" : "var(--red)",
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs font-medium w-10 text-right">{item.score}/{item.max}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                <div className="border-t border-[var(--border)] pt-3 flex items-center justify-between">
-                  <span className="text-sm font-semibold">합계</span>
-                  <span className="text-sm font-bold">{fmt(totalExpense)}</span>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* Expenses */}
+            {site.expenses.length > 0 && (
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <Receipt size={16} className="text-[var(--muted)]" />
+                  <h2 className="text-sm font-semibold text-[var(--muted)]">지출 현황</h2>
+                </div>
+                <div className="space-y-3">
+                  {site.expenses.map((e) => (
+                    <div key={e.category} className="flex items-center justify-between">
+                      <span className="text-sm">{e.category}</span>
+                      <span className="text-sm font-medium">{fmt(e.amount)}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-[var(--border)] pt-3 flex items-center justify-between">
+                    <span className="text-sm font-semibold">합계</span>
+                    <span className="text-sm font-bold">{fmt(totalExpense)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -620,18 +688,56 @@ export default function SiteDetailPage() {
 
       {tab === "photos" && (
         <div className="space-y-6">
-          {/* Upload button */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-[var(--muted)]">
-              {photos.length}장의 사진 · {sortedDates.length}일
-            </p>
-            <button
-              onClick={() => setShowUpload(!showUpload)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black font-medium text-sm"
-            >
-              <Plus size={16} />
-              사진 업로드
-            </button>
+          {/* Phase Filter + Upload buttons */}
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              {[
+                { key: "", label: "전체" },
+                { key: "before", label: "시공 전" },
+                { key: "during", label: "시공 중" },
+                { key: "after", label: "시공 후" },
+              ].map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setPhaseFilter(f.key)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    phaseFilter === f.key
+                      ? "bg-white/10 text-white"
+                      : "text-[var(--muted)] hover:text-white hover:bg-white/[0.04]"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+              <span className="text-sm text-[var(--muted)] ml-2">
+                {photos.length}장
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Camera capture button (mobile) */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-white hover:bg-white/[0.04] transition-colors"
+              >
+                <Camera size={16} />
+                촬영
+              </button>
+              <button
+                onClick={() => setShowUpload(!showUpload)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black font-medium text-sm"
+              >
+                <Plus size={16} />
+                사진 업로드
+              </button>
+            </div>
           </div>
 
           {/* Upload panel */}
@@ -671,7 +777,7 @@ export default function SiteDetailPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block text-sm text-[var(--muted)] mb-1">공종 분류</label>
                   <select
@@ -682,6 +788,18 @@ export default function SiteDetailPage() {
                     {["현장", ...TRADES].map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm text-[var(--muted)] mb-1">단계</label>
+                  <select
+                    value={uploadPhase}
+                    onChange={(e) => setUploadPhase(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                  >
+                    <option value="before">시공 전</option>
+                    <option value="during">시공 중</option>
+                    <option value="after">시공 후</option>
                   </select>
                 </div>
                 <div>
@@ -705,10 +823,10 @@ export default function SiteDetailPage() {
                 </button>
                 <button
                   onClick={handleUpload}
-                  disabled={uploadFiles.length === 0}
+                  disabled={uploadFiles.length === 0 || uploading}
                   className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-medium disabled:opacity-50"
                 >
-                  {uploadFiles.length}장 업로드
+                  {uploading ? "업로드 중..." : `${uploadFiles.length}장 업로드`}
                 </button>
               </div>
             </div>
@@ -777,23 +895,34 @@ export default function SiteDetailPage() {
                           type="text"
                           placeholder="댓글..."
                           className="w-full bg-transparent text-[11px] placeholder:text-[var(--muted)] focus:outline-none border-t border-[var(--border)] pt-1.5"
-                          onKeyDown={(e) => {
+                          onKeyDown={async (e) => {
                             if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
                               const text = (e.target as HTMLInputElement).value.trim();
-                              setPhotos((prev) =>
-                                prev.map((p) =>
-                                  p.id === photo.id
-                                    ? {
-                                        ...p,
-                                        comments: [
-                                          ...p.comments,
-                                          { id: `cm-${Date.now()}`, author: "나", text, createdAt: new Date().toISOString() },
-                                        ],
-                                      }
-                                    : p
-                                )
-                              );
                               (e.target as HTMLInputElement).value = "";
+                              try {
+                                const res = await fetch(`/api/photos/${photo.id}/comments`, {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ authorName: "나", text }),
+                                });
+                                const c = res.ok ? await res.json() : null;
+                                const comment = c
+                                  ? { id: c.id, author: c.authorName || "나", text: c.text, createdAt: c.createdAt }
+                                  : { id: `cm-${Date.now()}`, author: "나", text, createdAt: new Date().toISOString() };
+                                setPhotos((prev) =>
+                                  prev.map((p) =>
+                                    p.id === photo.id ? { ...p, comments: [...p.comments, comment] } : p
+                                  )
+                                );
+                              } catch {
+                                setPhotos((prev) =>
+                                  prev.map((p) =>
+                                    p.id === photo.id
+                                      ? { ...p, comments: [...p.comments, { id: `cm-${Date.now()}`, author: "나", text, createdAt: new Date().toISOString() }] }
+                                      : p
+                                  )
+                                );
+                              }
                             }
                           }}
                         />

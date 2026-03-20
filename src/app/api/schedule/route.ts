@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     .select({
       id: sites.id,
       name: sites.name,
+      address: sites.address,
       status: sites.status,
       startDate: sites.startDate,
       endDate: sites.endDate,
@@ -49,14 +50,20 @@ export async function GET(request: Request) {
       status: constructionPhases.status,
       siteId: constructionPhases.siteId,
       siteName: sites.name,
+      memo: constructionPhases.memo,
     })
     .from(constructionPhases)
     .leftJoin(sites, eq(constructionPhases.siteId, sites.id))
     .where(
       or(
+        // By planned dates
         and(gte(constructionPhases.plannedStart, startOfMonth), lte(constructionPhases.plannedStart, endOfMonth)),
         and(gte(constructionPhases.plannedEnd, startOfMonth), lte(constructionPhases.plannedEnd, endOfMonth)),
         and(lte(constructionPhases.plannedStart, startOfMonth), gte(constructionPhases.plannedEnd, endOfMonth)),
+        // By actual dates
+        and(gte(constructionPhases.actualStart, startOfMonth), lte(constructionPhases.actualStart, endOfMonth)),
+        and(gte(constructionPhases.actualEnd, startOfMonth), lte(constructionPhases.actualEnd, endOfMonth)),
+        and(lte(constructionPhases.actualStart, startOfMonth), gte(constructionPhases.actualEnd, endOfMonth)),
       )
     );
 
@@ -82,4 +89,73 @@ export async function GET(request: Request) {
     );
 
   return NextResponse.json({ sites: siteRows, phases: phaseRows, orders: orderRows, month: target });
+}
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  const { siteId, category, plannedStart, plannedEnd, status, progress, memo } = body;
+  if (!siteId || !category) {
+    return NextResponse.json({ error: "siteId, category 필수" }, { status: 400 });
+  }
+  const maxOrder = await db
+    .select({ max: sql<number>`COALESCE(MAX(${constructionPhases.sortOrder}), 0)` })
+    .from(constructionPhases)
+    .where(eq(constructionPhases.siteId, siteId));
+  const [row] = await db
+    .insert(constructionPhases)
+    .values({
+      userId: "demo",
+      siteId,
+      category,
+      plannedStart: plannedStart || null,
+      plannedEnd: plannedEnd || null,
+      status: status || "예정",
+      progress: progress ?? 0,
+      sortOrder: (maxOrder[0]?.max ?? 0) + 1,
+      memo: memo || null,
+    })
+    .returning();
+  return NextResponse.json(row);
+}
+
+export async function PUT(request: Request) {
+  const body = await request.json();
+  const { id, category, plannedStart, plannedEnd, status, progress, memo } = body;
+  if (!id) return NextResponse.json({ error: "id 필수" }, { status: 400 });
+  const [row] = await db
+    .update(constructionPhases)
+    .set({
+      category,
+      plannedStart: plannedStart || null,
+      plannedEnd: plannedEnd || null,
+      status: status || "예정",
+      progress: progress ?? 0,
+      memo: memo || null,
+    })
+    .where(eq(constructionPhases.id, id))
+    .returning();
+  return NextResponse.json(row);
+}
+
+export async function DELETE(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "id 필수" }, { status: 400 });
+  await db.delete(constructionPhases).where(eq(constructionPhases.id, id));
+  return NextResponse.json({ success: true });
+}
+
+export async function PATCH(request: Request) {
+  const body = await request.json();
+  const { id, status, progress } = body;
+  if (!id) return NextResponse.json({ error: "id 필수" }, { status: 400 });
+  const updates: { status?: string; progress?: number } = {};
+  if (status !== undefined) updates.status = status;
+  if (progress !== undefined) updates.progress = progress;
+  const [row] = await db
+    .update(constructionPhases)
+    .set(updates)
+    .where(eq(constructionPhases.id, id))
+    .returning();
+  return NextResponse.json(row);
 }

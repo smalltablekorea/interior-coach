@@ -72,18 +72,19 @@ export async function PUT(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { name, phone, email, address, memo } = body;
+  const { name, phone, email, address, memo, status } = body;
+
+  const update: Record<string, unknown> = { updatedAt: new Date() };
+  if (name !== undefined) update.name = name;
+  if (phone !== undefined) update.phone = phone || null;
+  if (email !== undefined) update.email = email || null;
+  if (address !== undefined) update.address = address || null;
+  if (memo !== undefined) update.memo = memo || null;
+  if (status !== undefined) update.status = status;
 
   const [row] = await db
     .update(customers)
-    .set({
-      name,
-      phone: phone || null,
-      email: email || null,
-      address: address || null,
-      memo: memo || null,
-      updatedAt: new Date(),
-    })
+    .set(update)
     .where(eq(customers.id, id))
     .returning();
 

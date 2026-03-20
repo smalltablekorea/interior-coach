@@ -1,36 +1,80 @@
 import { NextResponse } from "next/server";
-
-const DEMO_CONTRACTS = [
-  {
-    id: "ct1",
-    contractAmount: 45000000,
-    contractDate: "2026-03-05",
-    siteName: "강남 래미안 32평 리모델링",
-    createdAt: "2026-03-05T09:00:00Z",
-    payments: [
-      { id: "p1", type: "계약금", amount: 13500000, dueDate: "2026-03-05", paidDate: "2026-03-05", status: "완납" },
-      { id: "p2", type: "중도금", amount: 18000000, dueDate: "2026-03-25", paidDate: null, status: "미수" },
-      { id: "p3", type: "잔금", amount: 13500000, dueDate: "2026-04-15", paidDate: null, status: "미수" },
-    ],
-  },
-  {
-    id: "ct2",
-    contractAmount: 62000000,
-    contractDate: "2026-03-01",
-    siteName: "잠실 엘스 42평 전체시공",
-    createdAt: "2026-03-01T09:00:00Z",
-    payments: [
-      { id: "p4", type: "계약금", amount: 18600000, dueDate: "2026-03-01", paidDate: "2026-03-01", status: "완납" },
-      { id: "p5", type: "중도금", amount: 24800000, dueDate: "2026-04-15", paidDate: null, status: "미수" },
-      { id: "p6", type: "잔금", amount: 18600000, dueDate: "2026-05-30", paidDate: null, status: "미수" },
-    ],
-  },
-];
+import { db } from "@/lib/db";
+import { contracts, contractPayments, sites, customers } from "@/lib/db/schema";
+import { eq, desc, sql } from "drizzle-orm";
 
 export async function GET() {
-  return NextResponse.json(DEMO_CONTRACTS);
+  const rows = await db
+    .select({
+      id: contracts.id,
+      contractAmount: contracts.contractAmount,
+      contractDate: contracts.contractDate,
+      siteName: sites.name,
+      siteId: contracts.siteId,
+      createdAt: contracts.createdAt,
+    })
+    .from(contracts)
+    .leftJoin(sites, eq(contracts.siteId, sites.id))
+    .orderBy(desc(contracts.createdAt));
+
+  // Get payments for each contract
+  const result = await Promise.all(
+    rows.map(async (c) => {
+      const pays = await db
+        .select({
+          id: contractPayments.id,
+          type: contractPayments.type,
+          amount: contractPayments.amount,
+          dueDate: contractPayments.dueDate,
+          paidDate: contractPayments.paidDate,
+          status: contractPayments.status,
+        })
+        .from(contractPayments)
+        .where(eq(contractPayments.contractId, c.id));
+      return { ...c, payments: pays };
+    })
+  );
+
+  return NextResponse.json(result);
 }
 
-export async function POST() {
-  return NextResponse.json({ message: "DB 미연결 (데모 모드)" }, { status: 503 });
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { siteId, estimateId, contractAmount, contractDate, memo, payments } = body;
+
+    if (!contractAmount) {
+      return NextResponse.json({ error: "계약금액은 필수입니다" }, { status: 400 });
+    }
+
+    const [row] = await db
+      .insert(contracts)
+      .values({
+        userId: "system",
+        siteId: siteId || null,
+        estimateId: estimateId || null,
+        contractAmount,
+        contractDate: contractDate || null,
+        memo: memo || null,
+      })
+      .returning();
+
+    // Insert payments if provided
+    if (payments && Array.isArray(payments) && payments.length > 0) {
+      await db.insert(contractPayments).values(
+        payments.map((p: { type: string; amount: number; dueDate?: string }) => ({
+          contractId: row.id,
+          type: p.type,
+          amount: p.amount,
+          dueDate: p.dueDate || null,
+          status: "미수" as const,
+        }))
+      );
+    }
+
+    return NextResponse.json(row, { status: 201 });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "저장 실패";
+    return NextResponse.json({ error: msg }, { status: 500 });
+  }
 }

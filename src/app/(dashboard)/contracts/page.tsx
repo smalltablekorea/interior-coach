@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, FileCheck } from "lucide-react";
+import { Plus, FileCheck, AlertTriangle } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { fmt, fmtDate } from "@/lib/utils";
-import { PAYMENT_TYPES } from "@/lib/constants";
+import { fmt, fmtDate, fmtShort } from "@/lib/utils";
 import Link from "next/link";
 
 interface ContractPayment {
@@ -32,9 +31,18 @@ interface Site {
   name: string;
 }
 
+interface UnpaidSummary {
+  totalUnpaid: number;
+  overdue30: number;
+  overdue60: number;
+  overdue90: number;
+  count: number;
+}
+
 export default function ContractsPage() {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
+  const [unpaid, setUnpaid] = useState<UnpaidSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -55,10 +63,12 @@ export default function ContractsPage() {
     Promise.all([
       fetch("/api/contracts").then((r) => r.json()),
       fetch("/api/sites").then((r) => r.json()),
+      fetch("/api/unpaid").then((r) => r.json()),
     ])
-      .then(([contractData, siteData]) => {
-        setContracts(contractData);
-        setSites(siteData);
+      .then(([contractData, siteData, unpaidData]) => {
+        setContracts(Array.isArray(contractData) ? contractData : []);
+        setSites(Array.isArray(siteData) ? siteData : []);
+        setUnpaid(unpaidData);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -90,10 +100,22 @@ export default function ContractsPage() {
     });
     if (res.ok) {
       setShowModal(false);
+      setForm({ siteId: "", contractAmount: "", contractDate: "", memo: "" });
+      setPayments([
+        { type: "계약금", amount: "", dueDate: "" },
+        { type: "중도금", amount: "", dueDate: "" },
+        { type: "잔금", amount: "", dueDate: "" },
+      ]);
       fetchData();
     }
     setSaving(false);
   };
+
+  const totalContractAmount = contracts.reduce((s, c) => s + c.contractAmount, 0);
+  const totalPaid = contracts.reduce(
+    (s, c) => s + c.payments.filter((p) => p.status === "완납").reduce((ps, p) => ps + p.amount, 0),
+    0
+  );
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -106,6 +128,61 @@ export default function ContractsPage() {
           <Plus size={18} />
           계약 등록
         </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+          <p className="text-sm text-[var(--muted)]">총 계약금액</p>
+          <p className="text-xl font-bold mt-1">{fmtShort(totalContractAmount)}</p>
+          <p className="text-xs text-[var(--muted)] mt-0.5">{contracts.length}건</p>
+        </div>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+          <p className="text-sm text-[var(--muted)]">수금 완료</p>
+          <p className="text-xl font-bold text-[var(--green)] mt-1">{fmtShort(totalPaid)}</p>
+        </div>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+          <p className="text-sm text-[var(--muted)]">미수금 총액</p>
+          <p className="text-xl font-bold text-[var(--red)] mt-1">
+            {fmtShort(unpaid?.totalUnpaid || 0)}
+          </p>
+          <p className="text-xs text-[var(--muted)] mt-0.5">{unpaid?.count || 0}건</p>
+        </div>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+          {unpaid && (unpaid.overdue30 > 0 || unpaid.overdue60 > 0 || unpaid.overdue90 > 0) ? (
+            <>
+              <div className="flex items-center gap-1.5">
+                <AlertTriangle size={14} className="text-[var(--orange)]" />
+                <p className="text-sm text-[var(--orange)]">연체 현황</p>
+              </div>
+              <div className="mt-2 space-y-1 text-xs">
+                {unpaid.overdue90 > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-[var(--red)]">D+90 이상</span>
+                    <span className="font-medium text-[var(--red)]">{fmtShort(unpaid.overdue90)}</span>
+                  </div>
+                )}
+                {unpaid.overdue60 > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-[var(--orange)]">D+60~89</span>
+                    <span className="font-medium text-[var(--orange)]">{fmtShort(unpaid.overdue60)}</span>
+                  </div>
+                )}
+                {unpaid.overdue30 > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-[var(--muted)]">D+30~59</span>
+                    <span className="font-medium">{fmtShort(unpaid.overdue30)}</span>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-[var(--muted)]">연체</p>
+              <p className="text-xl font-bold text-[var(--green)] mt-1">없음</p>
+            </>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -134,7 +211,7 @@ export default function ContractsPage() {
             const paidAmount = c.payments
               .filter((p) => p.status === "완납")
               .reduce((sum, p) => sum + p.amount, 0);
-            const unpaid = c.contractAmount - paidAmount;
+            const unpaidAmount = c.contractAmount - paidAmount;
             return (
               <Link
                 key={c.id}
@@ -150,31 +227,32 @@ export default function ContractsPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-lg font-bold">{fmt(c.contractAmount)}</p>
-                    {unpaid > 0 && (
-                      <p className="text-sm text-[var(--red)]">미수금 {fmt(unpaid)}</p>
+                    {unpaidAmount > 0 && (
+                      <p className="text-sm text-[var(--red)]">미수금 {fmt(unpaidAmount)}</p>
                     )}
                   </div>
                 </div>
-                {/* Payment schedule */}
-                <div className="flex gap-2">
-                  {c.payments.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex-1 p-3 rounded-xl bg-white/[0.03]"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-[var(--muted)]">{p.type}</span>
-                        <StatusBadge status={p.status} />
+                {c.payments.length > 0 && (
+                  <div className="flex gap-2">
+                    {c.payments.map((p) => (
+                      <div
+                        key={p.id}
+                        className="flex-1 p-3 rounded-xl bg-white/[0.03]"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-[var(--muted)]">{p.type}</span>
+                          <StatusBadge status={p.status} />
+                        </div>
+                        <p className="text-sm font-medium">{fmt(p.amount)}</p>
+                        {p.dueDate && (
+                          <p className="text-xs text-[var(--muted)]">
+                            {fmtDate(p.dueDate)}
+                          </p>
+                        )}
                       </div>
-                      <p className="text-sm font-medium">{fmt(p.amount)}</p>
-                      {p.dueDate && (
-                        <p className="text-xs text-[var(--muted)]">
-                          {fmtDate(p.dueDate)}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </Link>
             );
           })}
@@ -234,8 +312,6 @@ export default function ContractsPage() {
               placeholder="메모를 입력하세요..."
             />
           </div>
-
-          {/* Payment schedule */}
           <div>
             <label className="block text-sm text-[var(--muted)] mb-2">결제 일정</label>
             <div className="space-y-2">
@@ -269,7 +345,6 @@ export default function ContractsPage() {
               ))}
             </div>
           </div>
-
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
