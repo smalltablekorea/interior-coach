@@ -57,8 +57,14 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const fetchSubscription = useCallback(() => {
     fetch("/api/subscription")
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
+      .then((r) => {
+        if (!r.ok) throw new Error("API error");
+        return r.json();
+      })
+      .then((d) => {
+        if (d?.subscription) setData(d);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 

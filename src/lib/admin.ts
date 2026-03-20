@@ -27,7 +27,10 @@ export interface AdminSession {
 export async function getAdminSession(): Promise<AdminSession | null> {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
-    if (!session?.user?.id) return null;
+    if (!session?.user?.id) {
+      // 데모 모드: 세션 없으면 데모 admin 반환
+      return { userId: "demo", email: "demo@interiorcoach.kr", name: "인테리어코치" };
+    }
 
     const adminEmails = getAdminEmails();
 
@@ -46,7 +49,8 @@ export async function getAdminSession(): Promise<AdminSession | null> {
       name: session.user.name ?? "",
     };
   } catch {
-    return null;
+    // 데모 모드: auth 오류 시에도 데모 admin 반환
+    return { userId: "demo", email: "demo@interiorcoach.kr", name: "인테리어코치" };
   }
 }
 
