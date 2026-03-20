@@ -5,6 +5,8 @@ import { Plus, Search, Building2 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
+import UpgradeModal from "@/components/subscription/UpgradeModal";
+import { useSubscription } from "@/hooks/useSubscription";
 import { fmtDate } from "@/lib/utils";
 import { SITE_STATUSES, BUILDING_TYPES } from "@/lib/constants";
 import Link from "next/link";
@@ -35,6 +37,8 @@ export default function SitesPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [showModal, setShowModal] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const { checkFeature } = useSubscription();
   const [form, setForm] = useState({
     name: "",
     customerId: "",
@@ -111,7 +115,11 @@ export default function SitesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">현장 관리</h1>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            const check = checkFeature("sites");
+            if (!check.allowed) { setShowUpgrade(true); return; }
+            setShowModal(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black font-medium text-sm hover:bg-[var(--green-hover)] transition-colors"
         >
           <Plus size={18} />
@@ -333,6 +341,15 @@ export default function SitesPage() {
           </div>
         </form>
       </Modal>
+
+      <UpgradeModal
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        requiredPlan={checkFeature("sites").requiredPlan || "starter"}
+        featureLabel="현장"
+        currentUsage={checkFeature("sites").current}
+        limit={checkFeature("sites").limit}
+      />
     </div>
   );
 }

@@ -1,11 +1,15 @@
 "use client";
 
 import { useAuth } from "@/components/auth/AuthProvider";
-import { Bell, LogOut, Search } from "lucide-react";
+import { useSubscription } from "@/hooks/useSubscription";
+import PlanBadge from "@/components/subscription/PlanBadge";
+import { Bell, LogOut, Search, Settings } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 
 export default function Header() {
   const { user, signOut } = useAuth();
+  const { plan } = useSubscription();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -50,11 +54,22 @@ export default function Header() {
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-2 w-48 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg py-1">
+            <div className="absolute right-0 top-full mt-2 w-52 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg py-1">
               <div className="px-4 py-2 border-b border-[var(--border)]">
-                <p className="text-sm font-medium">{user?.name}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">{user?.name}</p>
+                  <PlanBadge plan={plan} />
+                </div>
                 <p className="text-xs text-[var(--muted)]">{user?.email}</p>
               </div>
+              <Link
+                href="/settings"
+                onClick={() => setMenuOpen(false)}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+              >
+                <Settings size={16} />
+                설정 / 요금제
+              </Link>
               <button
                 onClick={signOut}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--red)] hover:bg-white/[0.04] transition-colors"

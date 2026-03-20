@@ -1,101 +1,190 @@
 import { NextResponse } from "next/server";
+import { db } from "@/lib/db";
+import { estimates, estimateItems, sites, customers } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
-const DEMO_ESTIMATES: Record<string, object> = {
-  e1: {
-    id: "e1",
-    version: 1,
-    totalAmount: 45000000,
-    status: "승인",
-    siteName: "강남 래미안 32평 리모델링",
-    siteId: "s1",
-    createdAt: "2026-03-02T09:00:00Z",
-    customerName: "김민수",
-    customerPhone: "010-1234-5678",
-    siteAddress: "서울 강남구 역삼동 123-4",
-    areaPyeong: 32,
-    profitRate: 10,
-    overheadRate: 5,
-    vatEnabled: true,
-    items: [
-      { id: "ei1", category: "철거", itemName: "기존 구조물 철거", unit: "식", quantity: 1, unitPrice: 3500000, amount: 3500000 },
-      { id: "ei2", category: "철거", itemName: "폐기물 처리", unit: "식", quantity: 1, unitPrice: 800000, amount: 800000 },
-      { id: "ei3", category: "설비", itemName: "급·배수 배관 교체", unit: "식", quantity: 1, unitPrice: 4200000, amount: 4200000 },
-      { id: "ei4", category: "설비", itemName: "보일러 교체", unit: "대", quantity: 1, unitPrice: 1800000, amount: 1800000 },
-      { id: "ei5", category: "전기", itemName: "전기 배선 공사", unit: "식", quantity: 1, unitPrice: 3200000, amount: 3200000 },
-      { id: "ei6", category: "전기", itemName: "조명 설치", unit: "개", quantity: 15, unitPrice: 80000, amount: 1200000 },
-      { id: "ei7", category: "목공", itemName: "천장 몰딩·걸레받이", unit: "식", quantity: 1, unitPrice: 2800000, amount: 2800000 },
-      { id: "ei8", category: "목공", itemName: "붙박이장 제작", unit: "식", quantity: 1, unitPrice: 4500000, amount: 4500000 },
-      { id: "ei9", category: "타일", itemName: "욕실 타일 시공", unit: "식", quantity: 2, unitPrice: 2200000, amount: 4400000 },
-      { id: "ei10", category: "타일", itemName: "주방 타일 시공", unit: "식", quantity: 1, unitPrice: 1500000, amount: 1500000 },
-      { id: "ei11", category: "도배", itemName: "실크 벽지 시공", unit: "롤", quantity: 45, unitPrice: 55000, amount: 2475000 },
-      { id: "ei12", category: "바닥", itemName: "강마루 시공", unit: "평", quantity: 28, unitPrice: 75000, amount: 2100000 },
-    ],
-  },
-  e2: {
-    id: "e2",
-    version: 1,
-    totalAmount: 18000000,
-    status: "작성중",
-    siteName: "반포 주방/욕실 리모델링",
-    siteId: "s2",
-    createdAt: "2026-03-13T14:00:00Z",
-    customerName: "이정희",
-    customerPhone: "010-9876-5432",
-    siteAddress: "서울 서초구 반포동 456-7",
-    areaPyeong: 24,
-    profitRate: 10,
-    overheadRate: 5,
-    vatEnabled: true,
-    items: [
-      { id: "ei20", category: "철거", itemName: "주방·욕실 철거", unit: "식", quantity: 1, unitPrice: 2000000, amount: 2000000 },
-      { id: "ei21", category: "설비", itemName: "급·배수 배관", unit: "식", quantity: 1, unitPrice: 3000000, amount: 3000000 },
-      { id: "ei22", category: "타일", itemName: "욕실 타일", unit: "식", quantity: 1, unitPrice: 2500000, amount: 2500000 },
-      { id: "ei23", category: "타일", itemName: "주방 타일", unit: "식", quantity: 1, unitPrice: 1800000, amount: 1800000 },
-    ],
-  },
-  e3: {
-    id: "e3",
-    version: 2,
-    totalAmount: 62000000,
-    status: "발송",
-    siteName: "잠실 엘스 42평 전체시공",
-    siteId: "s4",
-    createdAt: "2026-02-25T11:00:00Z",
-    customerName: "김민수",
-    customerPhone: "010-1234-5678",
-    siteAddress: "서울 송파구 잠실동 88",
-    areaPyeong: 42,
-    profitRate: 12,
-    overheadRate: 6,
-    vatEnabled: true,
-    items: [
-      { id: "ei30", category: "철거", itemName: "전체 철거", unit: "식", quantity: 1, unitPrice: 5000000, amount: 5000000 },
-      { id: "ei31", category: "설비", itemName: "전체 배관 교체", unit: "식", quantity: 1, unitPrice: 6500000, amount: 6500000 },
-      { id: "ei32", category: "전기", itemName: "전기 전체 교체", unit: "식", quantity: 1, unitPrice: 5200000, amount: 5200000 },
-      { id: "ei33", category: "목공", itemName: "천장·몰딩·가구", unit: "식", quantity: 1, unitPrice: 8500000, amount: 8500000 },
-      { id: "ei34", category: "타일", itemName: "욕실 2개소·주방", unit: "식", quantity: 1, unitPrice: 7200000, amount: 7200000 },
-      { id: "ei35", category: "도배", itemName: "전체 도배", unit: "식", quantity: 1, unitPrice: 4800000, amount: 4800000 },
-      { id: "ei36", category: "바닥", itemName: "강마루 전체", unit: "평", quantity: 38, unitPrice: 80000, amount: 3040000 },
-    ],
-  },
-};
+async function getUserId(): Promise<string> {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    return session?.user?.id ?? "system";
+  } catch {
+    return "system";
+  }
+}
 
+// 견적 상세 조회
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const estimate = DEMO_ESTIMATES[id];
-  if (!estimate) {
+  const userId = await getUserId();
+
+  // 견적 기본 정보 + 현장 + 고객 조인
+  const [row] = await db
+    .select({
+      id: estimates.id,
+      version: estimates.version,
+      totalAmount: estimates.totalAmount,
+      status: estimates.status,
+      profitRate: estimates.profitRate,
+      overheadRate: estimates.overheadRate,
+      vatEnabled: estimates.vatEnabled,
+      memo: estimates.memo,
+      metadata: estimates.metadata,
+      siteId: estimates.siteId,
+      createdAt: estimates.createdAt,
+      updatedAt: estimates.updatedAt,
+      siteName: sites.name,
+      siteAddress: sites.address,
+      areaPyeong: sites.areaPyeong,
+      customerId: sites.customerId,
+      customerName: customers.name,
+      customerPhone: customers.phone,
+    })
+    .from(estimates)
+    .leftJoin(sites, eq(estimates.siteId, sites.id))
+    .leftJoin(customers, eq(sites.customerId, customers.id))
+    .where(and(eq(estimates.id, id), eq(estimates.userId, userId)));
+
+  if (!row) {
     return NextResponse.json({ error: "견적을 찾을 수 없습니다" }, { status: 404 });
   }
-  return NextResponse.json(estimate);
+
+  // 견적 항목
+  const items = await db
+    .select()
+    .from(estimateItems)
+    .where(eq(estimateItems.estimateId, id))
+    .orderBy(estimateItems.sortOrder);
+
+  // metadata에서 추가 정보 추출
+  const meta = (row.metadata as Record<string, unknown>) || {};
+
+  return NextResponse.json({
+    id: row.id,
+    version: row.version,
+    totalAmount: row.totalAmount,
+    status: row.status,
+    profitRate: row.profitRate,
+    overheadRate: row.overheadRate,
+    vatEnabled: row.vatEnabled,
+    memo: row.memo,
+    metadata: row.metadata,
+    siteId: row.siteId,
+    siteName: row.siteName || (meta.title as string) || "현장 미지정",
+    siteAddress: row.siteAddress || (meta.siteAddress as string) || "",
+    areaPyeong: row.areaPyeong || (meta.areaPyeong as number) || 0,
+    customerName: row.customerName || (meta.clientName as string) || "",
+    customerPhone: row.customerPhone || (meta.clientPhone as string) || "",
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    items: items.map((item) => ({
+      id: item.id,
+      category: item.category,
+      itemName: item.itemName,
+      unit: item.unit,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      amount: item.amount,
+    })),
+  });
 }
 
-export async function PUT() {
-  return NextResponse.json({ message: "저장되었습니다 (데모 모드)" });
+// 견적 수정
+export async function PUT(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const userId = await getUserId();
+  const body = await request.json();
+
+  // 견적 소유권 확인
+  const [existing] = await db
+    .select({ id: estimates.id })
+    .from(estimates)
+    .where(and(eq(estimates.id, id), eq(estimates.userId, userId)));
+
+  if (!existing) {
+    return NextResponse.json({ error: "견적을 찾을 수 없습니다" }, { status: 404 });
+  }
+
+  // 항목 업데이트가 있으면 처리
+  if (body.items) {
+    // 기존 항목 삭제 후 재생성
+    await db.delete(estimateItems).where(eq(estimateItems.estimateId, id));
+
+    if (body.items.length > 0) {
+      await db.insert(estimateItems).values(
+        body.items.map((item: { category: string; itemName: string; unit?: string; quantity?: number; unitPrice?: number; amount?: number }, idx: number) => ({
+          estimateId: id,
+          category: item.category,
+          itemName: item.itemName,
+          unit: item.unit || "식",
+          quantity: item.quantity ?? 1,
+          unitPrice: item.unitPrice ?? 0,
+          amount: item.amount ?? 0,
+          sortOrder: idx,
+        }))
+      );
+    }
+
+    // 총액 재계산
+    const newTotal = body.items.reduce(
+      (sum: number, item: { amount?: number }) => sum + (item.amount ?? 0),
+      0
+    );
+
+    await db
+      .update(estimates)
+      .set({
+        totalAmount: newTotal,
+        updatedAt: new Date(),
+      })
+      .where(eq(estimates.id, id));
+  }
+
+  // 상태, 메모 등 필드 업데이트
+  const updateFields: Record<string, unknown> = { updatedAt: new Date() };
+  if (body.status !== undefined) updateFields.status = body.status;
+  if (body.memo !== undefined) updateFields.memo = body.memo;
+  if (body.profitRate !== undefined) updateFields.profitRate = body.profitRate;
+  if (body.overheadRate !== undefined) updateFields.overheadRate = body.overheadRate;
+  if (body.vatEnabled !== undefined) updateFields.vatEnabled = body.vatEnabled;
+  if (body.totalAmount !== undefined) updateFields.totalAmount = body.totalAmount;
+
+  if (Object.keys(updateFields).length > 1) {
+    await db
+      .update(estimates)
+      .set(updateFields)
+      .where(eq(estimates.id, id));
+  }
+
+  return NextResponse.json({ message: "수정되었습니다" });
 }
 
-export async function DELETE() {
-  return NextResponse.json({ message: "삭제되었습니다 (데모 모드)" });
+// 견적 삭제
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const userId = await getUserId();
+
+  const [existing] = await db
+    .select({ id: estimates.id })
+    .from(estimates)
+    .where(and(eq(estimates.id, id), eq(estimates.userId, userId)));
+
+  if (!existing) {
+    return NextResponse.json({ error: "견적을 찾을 수 없습니다" }, { status: 404 });
+  }
+
+  // cascade로 estimate_items도 자동 삭제
+  await db.delete(estimates).where(eq(estimates.id, id));
+
+  return NextResponse.json({ message: "삭제되었습니다" });
 }

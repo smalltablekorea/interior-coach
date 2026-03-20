@@ -15,31 +15,49 @@ import {
   Megaphone,
   BarChart3,
   CalendarDays,
+  Calculator,
   Settings,
   ChevronLeft,
   ChevronRight,
+  Lock,
+  Crown,
+  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { useSubscription } from "@/hooks/useSubscription";
+import PlanBadge from "@/components/subscription/PlanBadge";
+import type { FeatureKey } from "@/lib/plans";
 
-const navItems = [
+interface NavItem {
+  href: string;
+  icon: typeof LayoutDashboard;
+  label: string;
+  requiredFeature?: FeatureKey;
+}
+
+const navItems: NavItem[] = [
   { href: "/", icon: LayoutDashboard, label: "대시보드" },
   { href: "/customers", icon: Users, label: "고객 관리" },
   { href: "/sites", icon: Building2, label: "현장 관리" },
   { href: "/estimates", icon: FileText, label: "견적 관리" },
+  { href: "/estimates/coach", icon: Sparkles, label: "견적코치 AI" },
   { href: "/contracts", icon: FileCheck, label: "계약 관리" },
   { href: "/construction", icon: Hammer, label: "시공 관리" },
   { href: "/schedule", icon: CalendarDays, label: "일정 관리" },
-  { href: "/materials", icon: Package, label: "자재 관리" },
-  { href: "/workers", icon: HardHat, label: "작업자 관리" },
+  { href: "/materials", icon: Package, label: "자재 관리", requiredFeature: "materialsManagement" },
+  { href: "/workers", icon: HardHat, label: "작업자 관리", requiredFeature: "workersManagement" },
   { href: "/expenses", icon: Receipt, label: "지출 관리" },
-  { href: "/marketing", icon: Megaphone, label: "마케팅" },
+  { href: "/marketing", icon: Megaphone, label: "마케팅", requiredFeature: "marketingAutomation" },
   { href: "/settlement", icon: BarChart3, label: "정산 리포트" },
+  { href: "/tax", icon: Calculator, label: "세무/회계" },
+  { href: "/admin/marketing", icon: BarChart3, label: "마케팅 센터" },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const { plan, checkFeature } = useSubscription();
 
   return (
     <>
@@ -51,13 +69,15 @@ export default function Sidebar() {
         )}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center px-4 border-b border-[var(--border)]">
-          {!collapsed && (
-            <span className="text-lg font-bold text-[var(--green)]">
-              인테리어코치
-            </span>
-          )}
-          {collapsed && (
+        <div className="h-16 flex items-center px-4 border-b border-[var(--border)] gap-2">
+          {!collapsed ? (
+            <>
+              <span className="text-lg font-bold text-[var(--green)]">
+                인테리어코치
+              </span>
+              <PlanBadge plan={plan} />
+            </>
+          ) : (
             <span className="text-lg font-bold text-[var(--green)] mx-auto">IC</span>
           )}
         </div>
@@ -69,6 +89,10 @@ export default function Sidebar() {
               item.href === "/"
                 ? pathname === "/"
                 : pathname.startsWith(item.href);
+            const isLocked = item.requiredFeature
+              ? !checkFeature(item.requiredFeature).allowed
+              : false;
+
             return (
               <Link
                 key={item.href}
@@ -81,14 +105,29 @@ export default function Sidebar() {
                 )}
               >
                 <item.icon size={20} />
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && (
+                  <span className="flex-1 flex items-center justify-between">
+                    {item.label}
+                    {isLocked && <Lock size={12} className="text-[var(--muted)]" />}
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom */}
-        <div className="p-2 border-t border-[var(--border)]">
+        <div className="p-2 border-t border-[var(--border)] space-y-1">
+          {/* Upgrade button - show for free/starter */}
+          {(plan === "free" || plan === "starter") && !collapsed && (
+            <Link
+              href="/pricing"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm bg-[var(--green)]/10 text-[var(--green)] hover:bg-[var(--green)]/20 transition-all"
+            >
+              <Crown size={20} />
+              <span>업그레이드</span>
+            </Link>
+          )}
           <Link
             href="/settings"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-all"

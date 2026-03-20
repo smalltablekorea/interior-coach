@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus, Search, HardHat, Phone } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
+import FeatureGate from "@/components/subscription/FeatureGate";
 import { fmt } from "@/lib/utils";
 import { TRADES } from "@/lib/constants";
 import Link from "next/link";
@@ -73,6 +74,7 @@ export default function WorkersPage() {
   });
 
   return (
+    <FeatureGate feature="workersManagement" label="작업자 관리">
     <div className="space-y-6 animate-fade-up">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">작업자 관리</h1>
@@ -261,5 +263,6 @@ export default function WorkersPage() {
         </form>
       </Modal>
     </div>
+    </FeatureGate>
   );
 }

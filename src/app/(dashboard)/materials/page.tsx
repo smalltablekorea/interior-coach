@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useRef } from "react";
 import { Plus, Package, Search, Pencil, Trash2, ChevronDown, ChevronRight, Filter, Camera, Upload, X, Check, Loader2, AlertCircle, CalendarDays, RotateCcw } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
+import FeatureGate from "@/components/subscription/FeatureGate";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { fmt, fmtDate } from "@/lib/utils";
 
@@ -427,6 +428,7 @@ export default function MaterialsPage() {
   };
 
   return (
+    <FeatureGate feature="materialsManagement" label="자재 관리">
     <div className="space-y-5 animate-fade-up">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -1103,5 +1105,6 @@ export default function MaterialsPage() {
         </div>
       </Modal>
     </div>
+    </FeatureGate>
   );
 }

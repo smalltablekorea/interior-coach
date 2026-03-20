@@ -5,6 +5,8 @@ import { Plus, Search, Users, Phone, Mail } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
+import UpgradeModal from "@/components/subscription/UpgradeModal";
+import { useSubscription } from "@/hooks/useSubscription";
 import { CUSTOMER_STATUSES } from "@/lib/constants";
 import { fmtDate } from "@/lib/utils";
 import Link from "next/link";
@@ -27,6 +29,8 @@ export default function CustomersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [showModal, setShowModal] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const { checkFeature } = useSubscription();
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", memo: "", status: "상담중" });
   const [saving, setSaving] = useState(false);
 
@@ -75,7 +79,11 @@ export default function CustomersPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">고객 관리</h1>
         <button
-          onClick={() => setShowModal(true)}
+          onClick={() => {
+            const check = checkFeature("customers");
+            if (!check.allowed) { setShowUpgrade(true); return; }
+            setShowModal(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black font-medium text-sm hover:bg-[var(--green-hover)] transition-colors"
         >
           <Plus size={18} />
@@ -265,6 +273,15 @@ export default function CustomersPage() {
           </div>
         </form>
       </Modal>
+
+      <UpgradeModal
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        requiredPlan={checkFeature("customers").requiredPlan || "starter"}
+        featureLabel="고객"
+        currentUsage={checkFeature("customers").current}
+        limit={checkFeature("customers").limit}
+      />
     </div>
   );
 }
