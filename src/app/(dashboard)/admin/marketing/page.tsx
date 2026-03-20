@@ -57,7 +57,7 @@ export default function MarketingOverviewPage() {
   useEffect(() => {
     setLoading(true);
     fetch(`/api/admin/marketing/overview?period=${period}`)
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   }, [period]);

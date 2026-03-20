@@ -72,7 +72,7 @@ export default function CampaignsPage() {
   const fetchCampaigns = () => {
     setLoading(true);
     fetch("/api/admin/marketing/campaigns")
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => {
         setCampaigns(d.campaigns || []);
         setLoading(false);

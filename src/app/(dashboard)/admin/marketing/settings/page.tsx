@@ -70,7 +70,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     fetch("/api/admin/marketing/settings")
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => {
         setData(d);
         setLoading(false);

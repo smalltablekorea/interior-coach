@@ -77,7 +77,7 @@ export default function AutomationsPage() {
   const fetchAutomations = () => {
     setLoading(true);
     fetch("/api/admin/marketing/automations")
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => {
         setAutomations(d.automations || []);
         setLoading(false);

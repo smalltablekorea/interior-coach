@@ -76,7 +76,7 @@ export default function LeadsPage() {
     if (search) params.set("search", search);
     if (statusFilter) params.set("status", statusFilter);
     fetch(`/api/admin/marketing/leads?${params}`)
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => {
         setLeads(d.leads || []);
         setTotal(d.pagination?.total || 0);
@@ -91,7 +91,7 @@ export default function LeadsPage() {
   const openDetail = (id: string) => {
     setLoadingDetail(true);
     fetch(`/api/admin/marketing/leads/${id}`)
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => { setSelectedLead(d); setLoadingDetail(false); })
       .catch(() => setLoadingDetail(false));
   };

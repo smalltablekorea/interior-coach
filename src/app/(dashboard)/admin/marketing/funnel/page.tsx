@@ -29,7 +29,7 @@ export default function FunnelPage() {
     if (channel) params.set("channel", channel);
     if (campaign) params.set("campaign", campaign);
     fetch(`/api/admin/marketing/funnel?${params}`)
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => { setData(d); setLoading(false); })
       .catch(() => setLoading(false));
   };

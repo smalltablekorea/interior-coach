@@ -64,7 +64,7 @@ export default function SegmentsPage() {
   const fetchSegments = () => {
     setLoading(true);
     fetch("/api/admin/marketing/segments")
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((d) => {
         setSegments(d.segments || []);
         setLoading(false);
