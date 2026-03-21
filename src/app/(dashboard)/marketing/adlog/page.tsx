@@ -731,6 +731,34 @@ export default function AdlogPage() {
               </a>
             </div>
           </div>
+
+          <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-6 space-y-3">
+            <h3 className="text-sm font-medium">플레이스 히든 지수 안내</h3>
+            <p className="text-xs text-neutral-500">N사에서 제공되는 플레이스 지수 N1, N2, N3 표기 설명</p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.02]">
+                <span className="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-400 text-xs font-bold shrink-0">N1</span>
+                <div>
+                  <p className="text-sm font-medium text-cyan-400">유사도</p>
+                  <p className="text-xs text-neutral-500">키워드와 업체정보 유사성 — 키워드+네이버로직과 업체정보의 유사성을 기준으로 측정</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.02]">
+                <span className="px-2 py-0.5 rounded bg-violet-500/15 text-violet-400 text-xs font-bold shrink-0">N2</span>
+                <div>
+                  <p className="text-sm font-medium text-violet-400">관련성</p>
+                  <p className="text-xs text-neutral-500">리뷰/저장/트래픽 기반 관련성 — 키워드 및 리뷰, 저장, 트래픽 등 네이버로직에 의해 측정</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.02]">
+                <span className="px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 text-xs font-bold shrink-0">N3</span>
+                <div>
+                  <p className="text-sm font-medium text-amber-400">랭킹</p>
+                  <p className="text-xs text-neutral-500">플레이스 순위 기반 점수 — 키워드의 플레이스 순위 기준으로 측정</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
