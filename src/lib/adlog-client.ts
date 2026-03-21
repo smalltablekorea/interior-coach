@@ -246,6 +246,153 @@ export async function fetchAdlogDashboard(creds: AdlogCredentials): Promise<Adlo
   };
 }
 
+/* ─── Place Rank Score Types ─── */
+
+export interface PlaceRankEntry {
+  date: string;
+  rank: number | null;
+  n1: number | null;
+  n2: number | null;
+  n3: number | null;
+  saves: string;
+  blogReviews: string;
+  visitorReviews: string;
+}
+
+export interface PlaceRankItem {
+  keyword: string;
+  placeUrl: string;
+  placeName: string;
+  placeId: string;
+  monthlySearch: number;
+  businessCount: number;
+  representativeKeywords: string[];
+  registeredDate: string;
+  ranks: PlaceRankEntry[];
+  lastCheckedAt: string;
+}
+
+/**
+ * 플레이스 히든 지수 페이지를 파싱하여 N1/N2/N3 포함된 순위 데이터를 반환합니다.
+ * URL: /adlog/naver_place_rank_score.php
+ */
+export function parseAdlogScorePage(html: string): PlaceRankItem[] {
+  const items: PlaceRankItem[] = [];
+
+  // 각 키워드 행은 api_rows_XXXXX 클래스로 묶여 있음 (2개의 <tr>)
+  const apiRowIds = [...new Set((html.match(/api_rows_(\d+)/g) || []).map((m) => m.replace("api_rows_", "")))];
+
+  for (const apiNo of apiRowIds) {
+    const rowRegex = new RegExp(`<tr[^>]*class="[^"]*api_rows_${apiNo}[^"]*"[^>]*>([\\s\\S]*?)<\\/tr>`, "gi");
+    const rows: string[] = [];
+    let m;
+    while ((m = rowRegex.exec(html)) !== null) {
+      rows.push(m[1]);
+    }
+    if (rows.length < 2) continue;
+
+    const row1 = rows[0]; // 키워드, URL, 업체명, 월검색량, 등록일
+    const row2 = rows[1]; // 순위 데이터 (stat_div들)
+
+    // 키워드 추출
+    const keywordMatch = row1.match(/<td[^>]*align="left"[^>]*><a[^>]*>([^<]+)<\/a>/);
+    const keyword = keywordMatch ? keywordMatch[1].trim() : "";
+
+    // 플레이스 URL + 업체명 + placeId
+    const placeIdMatch = row1.match(/place\/(\d+)/);
+    const placeId = placeIdMatch ? placeIdMatch[1] : "";
+    const placeNameMatch = row1.match(/class="fc_blu">([^<]+)<\/a>/);
+    const placeName = placeNameMatch ? placeNameMatch[1].trim() : "";
+    const placeUrl = placeId ? `https://m.place.naver.com/place/${placeId}` : "";
+
+    // 월 검색량, 업체수
+    const monthlyMatch = row1.match(/월\s*([\d,]+)건/);
+    const monthlySearch = monthlyMatch ? parseInt(monthlyMatch[1].replace(/,/g, ""), 10) : 0;
+    const businessMatch = row1.match(/업체\s*([\d,]+)개/);
+    const businessCount = businessMatch ? parseInt(businessMatch[1].replace(/,/g, ""), 10) : 0;
+
+    // 대표키워드
+    const repKeyMatch = row1.match(/\[\s*([^\]]+)\s*\]/);
+    const representativeKeywords = repKeyMatch
+      ? repKeyMatch[1].split(/[,，]/).map((k) => k.trim()).filter(Boolean)
+      : [];
+
+    // 등록일
+    const regDateMatch = row1.match(/(\d{4}-\d{2}-\d{2})/);
+    const registeredDate = regDateMatch ? regDateMatch[1] : "";
+
+    // 순위 데이터 파싱 (stat_div들)
+    const ranks: PlaceRankEntry[] = [];
+    const statDivRegex = /stat_date="([^"]+)"[^>]*stat_total_rank="([^"]*)"[^>]*>([\s\S]*?)<\/div>/gi;
+    let statMatch;
+    while ((statMatch = statDivRegex.exec(row2)) !== null) {
+      const date = statMatch[1];
+      const rankStr = statMatch[2];
+      const content = statMatch[3];
+
+      const rank = rankStr ? parseInt(rankStr, 10) : null;
+
+      // N1/N2/N3 추출
+      const n1Match = content.match(/N1\s*([\d.]+)/);
+      const n2Match = content.match(/N2\s*([\d.]+)/);
+      const n3Match = content.match(/N3\s*([\d.]+)/);
+
+      // 저장수, 블로그리뷰, 방문자리뷰
+      const savesMatch = content.match(/fc_grn">([^<]+)</);
+      const blogMatch = content.match(/블\s*([\d,]+)개/);
+      const visitorMatch = content.match(/방\s*([\d,]+)개/);
+
+      ranks.push({
+        date,
+        rank: isNaN(rank as number) ? null : rank,
+        n1: n1Match ? parseFloat(n1Match[1]) : null,
+        n2: n2Match ? parseFloat(n2Match[1]) : null,
+        n3: n3Match ? parseFloat(n3Match[1]) : null,
+        saves: savesMatch ? savesMatch[1].trim() : "",
+        blogReviews: blogMatch ? `${blogMatch[1]}개` : "",
+        visitorReviews: visitorMatch ? visitorMatch[1] : "",
+      });
+    }
+
+    // 마지막 체크 시간
+    const checkTimeMatch = rows.length > 1 ? rows[1].match(/(\d{4}-\d{2}-\d{2})\s*<br>\s*(\d{2}:\d{2}:\d{2})/) : null;
+    const lastCheckedAt = checkTimeMatch ? `${checkTimeMatch[1]} ${checkTimeMatch[2]}` : "";
+
+    if (keyword) {
+      items.push({
+        keyword,
+        placeUrl,
+        placeName,
+        placeId,
+        monthlySearch,
+        businessCount,
+        representativeKeywords,
+        registeredDate,
+        ranks,
+        lastCheckedAt,
+      });
+    }
+  }
+
+  return items;
+}
+
+/**
+ * 플레이스 히든 지수 페이지를 가져와 파싱합니다.
+ */
+export async function fetchAdlogPlaceScores(creds: AdlogCredentials): Promise<PlaceRankItem[]> {
+  const login = await adlogLogin(creds);
+  if (!login.ok) return [];
+
+  const html = await adlogFetch(login.cookies, "/adlog/naver_place_rank_score.php");
+  if (html.includes("login_check") && !html.includes("naver_place_rank_score")) {
+    sessionCache.delete(creds.mb_id);
+    return [];
+  }
+
+  return parseAdlogScorePage(html);
+}
+
 /* ─── Helpers ─── */
 
 function parseKrNumber(str: string): number {

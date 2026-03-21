@@ -37,6 +37,9 @@ interface RankEntry {
   saves: string;
   blogReviews: string;
   visitorReviews: string;
+  n1: number | null;
+  n2: number | null;
+  n3: number | null;
 }
 
 interface PlaceRankItem {
@@ -344,6 +347,17 @@ export default function AdlogPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3 shrink-0">
+                        {(() => {
+                          const latestN = item.ranks.find((r) => r.n1 != null || r.n2 != null || r.n3 != null);
+                          if (!latestN) return null;
+                          return (
+                            <div className="flex items-center gap-2 text-[10px] font-medium">
+                              {latestN.n1 != null && <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-400">N1 {latestN.n1.toFixed(6)}</span>}
+                              {latestN.n2 != null && <span className="px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-400">N2 {latestN.n2.toFixed(6)}</span>}
+                              {latestN.n3 != null && <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">N3 {latestN.n3.toFixed(6)}</span>}
+                            </div>
+                          );
+                        })()}
                         {rankDiff !== 0 && (
                           <span className={cn("flex items-center gap-0.5 text-xs font-medium", rankDiff > 0 ? "text-emerald-400" : "text-red-400")}>
                             {rankDiff > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
@@ -435,24 +449,47 @@ export default function AdlogPage() {
                         </a>
                       )}
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      <div className="px-4 py-3 rounded-xl bg-white/[0.03]">
-                        <p className="text-xs text-neutral-500">월 검색량</p>
-                        <p className="text-lg font-bold mt-1">{fmtNum(selectedRank.monthlySearch)}</p>
-                      </div>
-                      <div className="px-4 py-3 rounded-xl bg-white/[0.03]">
-                        <p className="text-xs text-neutral-500">경쟁 업체수</p>
-                        <p className="text-lg font-bold mt-1">{fmtNum(selectedRank.businessCount)}</p>
-                      </div>
-                      <div className="px-4 py-3 rounded-xl bg-white/[0.03]">
-                        <p className="text-xs text-neutral-500">등록일</p>
-                        <p className="text-lg font-bold mt-1">{selectedRank.registeredDate}</p>
-                      </div>
-                      <div className="px-4 py-3 rounded-xl bg-white/[0.03]">
-                        <p className="text-xs text-neutral-500">마지막 체크</p>
-                        <p className="text-lg font-bold mt-1">{selectedRank.lastCheckedAt.split(" ")[0] || "-"}</p>
-                      </div>
-                    </div>
+                    {(() => {
+                      const latestWithN = selectedRank.ranks.find((r) => r.n1 != null || r.n2 != null || r.n3 != null);
+                      return (
+                        <>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div className="px-4 py-3 rounded-xl bg-white/[0.03]">
+                              <p className="text-xs text-neutral-500">월 검색량</p>
+                              <p className="text-lg font-bold mt-1">{fmtNum(selectedRank.monthlySearch)}</p>
+                            </div>
+                            <div className="px-4 py-3 rounded-xl bg-white/[0.03]">
+                              <p className="text-xs text-neutral-500">경쟁 업체수</p>
+                              <p className="text-lg font-bold mt-1">{fmtNum(selectedRank.businessCount)}</p>
+                            </div>
+                            <div className="px-4 py-3 rounded-xl bg-white/[0.03]">
+                              <p className="text-xs text-neutral-500">등록일</p>
+                              <p className="text-lg font-bold mt-1">{selectedRank.registeredDate}</p>
+                            </div>
+                            <div className="px-4 py-3 rounded-xl bg-white/[0.03]">
+                              <p className="text-xs text-neutral-500">마지막 체크</p>
+                              <p className="text-lg font-bold mt-1">{selectedRank.lastCheckedAt.split(" ")[0] || "-"}</p>
+                            </div>
+                          </div>
+                          {latestWithN && (
+                            <div className="grid grid-cols-3 gap-4">
+                              <div className="px-4 py-3 rounded-xl bg-white/[0.03] border border-cyan-500/20">
+                                <p className="text-xs text-neutral-500">N1 유사도</p>
+                                <p className="text-lg font-bold mt-1 text-cyan-400">{latestWithN.n1?.toFixed(6) ?? "-"}</p>
+                              </div>
+                              <div className="px-4 py-3 rounded-xl bg-white/[0.03] border border-violet-500/20">
+                                <p className="text-xs text-neutral-500">N2 관련성</p>
+                                <p className="text-lg font-bold mt-1 text-violet-400">{latestWithN.n2?.toFixed(6) ?? "-"}</p>
+                              </div>
+                              <div className="px-4 py-3 rounded-xl bg-white/[0.03] border border-amber-500/20">
+                                <p className="text-xs text-neutral-500">N3 랭킹</p>
+                                <p className="text-lg font-bold mt-1 text-amber-400">{latestWithN.n3?.toFixed(6) ?? "-"}</p>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                     {selectedRank.representativeKeywords.length > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
                         <Hash size={14} className="text-neutral-500" />
@@ -509,6 +546,9 @@ export default function AdlogPage() {
                             <th className="text-right px-4 py-2 text-neutral-500 font-medium">저장수</th>
                             <th className="text-right px-4 py-2 text-neutral-500 font-medium">블로그 리뷰</th>
                             <th className="text-right px-4 py-2 text-neutral-500 font-medium">방문자 리뷰</th>
+                            <th className="text-right px-4 py-2 text-neutral-500 font-medium">N1 지수</th>
+                            <th className="text-right px-4 py-2 text-neutral-500 font-medium">N2 지수</th>
+                            <th className="text-right px-4 py-2 text-neutral-500 font-medium">N3 지수</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -531,6 +571,15 @@ export default function AdlogPage() {
                                 <td className="px-4 py-2 text-right text-neutral-400">{r.saves || "-"}</td>
                                 <td className="px-4 py-2 text-right text-neutral-400">{r.blogReviews || "-"}</td>
                                 <td className="px-4 py-2 text-right text-neutral-400">{r.visitorReviews ? fmtNum(parseInt(r.visitorReviews)) : "-"}</td>
+                                <td className="px-4 py-2 text-right">
+                                  {r.n1 != null ? <span className="font-medium text-cyan-400">{r.n1.toFixed(6)}</span> : "-"}
+                                </td>
+                                <td className="px-4 py-2 text-right">
+                                  {r.n2 != null ? <span className="font-medium text-violet-400">{r.n2.toFixed(6)}</span> : "-"}
+                                </td>
+                                <td className="px-4 py-2 text-right">
+                                  {r.n3 != null ? <span className="font-medium text-amber-400">{r.n3.toFixed(6)}</span> : "-"}
+                                </td>
                               </tr>
                             );
                           })}

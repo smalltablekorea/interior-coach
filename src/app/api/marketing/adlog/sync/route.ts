@@ -16,6 +16,9 @@ export interface RankEntry {
   saves: string;
   blogReviews: string;
   visitorReviews: string;
+  n1: number | null;
+  n2: number | null;
+  n3: number | null;
 }
 
 export interface PlaceRankItem {
@@ -100,7 +103,7 @@ export async function GET() {
     const [mainHtml, placeHtml, bidHtml] = await Promise.all([
       fetchPage(`${ADLOG_BASE}/adlog/`, cookies),
       fetchPage(
-        `${ADLOG_BASE}/adlog/naver_place_rank_check.php?sfl=user_id&stx=${encodeURIComponent(settings.adlogId)}`,
+        `${ADLOG_BASE}/adlog/naver_place_rank_score.php?sfl=user_id&stx=${encodeURIComponent(settings.adlogId)}`,
         cookies,
       ),
       fetchPage(
@@ -211,7 +214,7 @@ function parseAccountInfo(html: string): AccountInfo {
   return info;
 }
 
-/* ─── 플레이스 순위 체크 파싱 ─── */
+/* ─── 플레이스 히든 지수 파싱 (naver_place_rank_score.php) ─── */
 
 function parsePlaceRanks(html: string): PlaceRankItem[] {
   const items: PlaceRankItem[] = [];
@@ -221,17 +224,29 @@ function parsePlaceRanks(html: string): PlaceRankItem[] {
     const table = $("table").first();
     const rows = table.find("tr");
 
+    // score 페이지: 6 tds (번호, 키워드, URL, 검색량, 등록일, 관리)
+    // rank_check 페이지: 7 tds (번호, 그룹, 키워드, URL, 검색량, 등록일, 관리)
+    // 첫 데이터 행의 td 개수로 오프셋 결정
+    let colOffset = 0;
+    for (let i = 0; i < rows.length; i++) {
+      const cls = $(rows[i]).attr("class") || "";
+      if (cls.match(/^api_rows_\d+$/)) {
+        const tdCount = $(rows[i]).find("td").length;
+        colOffset = tdCount >= 7 ? 1 : 0; // 7개면 그룹 칼럼 있음
+        break;
+      }
+    }
+
     for (let i = 0; i < rows.length; i++) {
       const row = $(rows[i]);
       const cls = row.attr("class") || "";
-      // 메인 행: api_rows_XXXXXXX (tr2 아님)
       if (!cls.match(/^api_rows_\d+$/)) continue;
 
       const tds = row.find("td");
       if (tds.length < 6) continue;
 
-      // 키워드
-      const keyword = $(tds[2])
+      // 키워드 (score: td[1], rank_check: td[2])
+      const keyword = $(tds[1 + colOffset])
         .text()
         .trim()
         .replace(/\s*ⓜ\s*/g, "")
@@ -239,7 +254,7 @@ function parsePlaceRanks(html: string): PlaceRankItem[] {
         .trim();
 
       // 플레이스 URL & 업체명
-      const placeText = $(tds[3]).text().trim();
+      const placeText = $(tds[2 + colOffset]).text().trim();
       const urlMatch = placeText.match(/https:\/\/[^\s]+place\/(\d+)/);
       const placeUrl = urlMatch ? urlMatch[0].split("\n")[0].trim() : "";
       const placeId = urlMatch ? urlMatch[1] : "";
@@ -247,7 +262,7 @@ function parsePlaceRanks(html: string): PlaceRankItem[] {
       const placeName = nameMatch ? nameMatch[1].trim() : "";
 
       // 월 검색량 & 업체수
-      const infoText = $(tds[4]).text().trim();
+      const infoText = $(tds[3 + colOffset]).text().trim();
       const searchMatch = infoText.match(/월\s*([\d,]+)건/);
       const bizMatch = infoText.match(/업체\s*([\d,]+)개/);
       const monthlySearch = searchMatch
@@ -267,7 +282,7 @@ function parsePlaceRanks(html: string): PlaceRankItem[] {
         : [];
 
       // 등록일
-      const registeredDate = $(tds[5]).text().trim().split("\n")[0]?.trim() || "";
+      const registeredDate = $(tds[4 + colOffset]).text().trim().split("\n")[0]?.trim() || "";
 
       // tr2 행에서 순위 데이터 추출
       const tr2 = row.next("tr");
@@ -301,7 +316,23 @@ function parsePlaceRanks(html: string): PlaceRankItem[] {
                   .replace(/,/g, "");
             });
 
-          ranks.push({ date: dateMatch[1], rank, saves, blogReviews, visitorReviews });
+          // N1/N2/N3 지수
+          let n1: number | null = null;
+          let n2: number | null = null;
+          let n3: number | null = null;
+          const n1Span = $(div).find("span.fc_197").text().trim();
+          const n1Match = n1Span.match(/N1\s*([\d.]+)/);
+          if (n1Match) n1 = parseFloat(n1Match[1]);
+
+          const n2Span = $(div).find("span.fc_255").text().trim();
+          const n2Match = n2Span.match(/N2\s*([\d.]+)/);
+          if (n2Match) n2 = parseFloat(n2Match[1]);
+
+          const n3Span = $(div).find("span.fc_888.marb5").text().trim();
+          const n3Match = n3Span.match(/N3\s*([\d.]+)/);
+          if (n3Match) n3 = parseFloat(n3Match[1]);
+
+          ranks.push({ date: dateMatch[1], rank, saves, blogReviews, visitorReviews, n1, n2, n3 });
         });
       }
 
