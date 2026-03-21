@@ -51,7 +51,6 @@ const navItems: NavItem[] = [
   { href: "/marketing", icon: Megaphone, label: "마케팅", requiredFeature: "marketingAutomation" },
   { href: "/settlement", icon: BarChart3, label: "정산 리포트" },
   { href: "/tax", icon: Calculator, label: "세무/회계" },
-  { href: "/admin/marketing", icon: BarChart3, label: "마케팅 센터" },
 ];
 
 export default function Sidebar() {

@@ -40,6 +40,7 @@ const INQUIRY_CHANNELS = [
   "인스타",
   "유튜브",
   "스레드",
+  "애드로그",
   "지인소개",
   "현수막",
   "기타",
@@ -68,6 +69,7 @@ const DEFAULT_CHANNELS: ChannelStat[] = [
   { slug: "youtube", name: "유튜브", icon: "🎬", connected: false, postCount: 0 },
   { slug: "meta-ads", name: "메타 광고", icon: "📢", connected: false, postCount: 0 },
   { slug: "sms", name: "SMS 자동화", icon: "💬", connected: false, postCount: 0 },
+  { slug: "adlog", name: "애드로그", icon: "📊", connected: false, postCount: 0 },
 ];
 
 /* ── Helpers ── */
