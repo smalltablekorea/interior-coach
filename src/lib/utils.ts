@@ -4,6 +4,12 @@ export function fmt(n: number | null | undefined): string {
   return n.toLocaleString("ko-KR") + "원";
 }
 
+/** 숫자 포맷 (단위 없음): 1,234,567 */
+export function fmtNum(n: number | null | undefined): string {
+  if (n == null) return "0";
+  return n.toLocaleString("ko-KR");
+}
+
 /** 금액 포맷 (만원 단위): 123만 */
 export function fmtM(n: number | null | undefined): string {
   if (n == null) return "0만";

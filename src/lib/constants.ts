@@ -129,6 +129,7 @@ export const MARKETING_CHANNELS = [
   { id: "youtube", name: "유튜브", color: "#FF0000" },
   { id: "meta_ads", name: "메타 광고", color: "#1877F2" },
   { id: "sms", name: "SMS 자동화", color: "#FF6B00" },
+  { id: "adlog", name: "애드로그", color: "#4A90D9" },
 ] as const;
 
 // ─── SMS/알림톡 리드 자동화 ───
@@ -241,17 +242,4 @@ export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   starter: { bg: "bg-blue-500/10", text: "text-blue-400" },
   pro: { bg: "bg-[var(--green)]/10", text: "text-[var(--green)]" },
   enterprise: { bg: "bg-yellow-500/10", text: "text-yellow-400" },
-  // 마케팅 센터 캠페인 상태
-  draft: { bg: "bg-white/[0.06]", text: "text-[var(--muted)]" },
-  pending_approval: { bg: "bg-[var(--orange)]/10", text: "text-[var(--orange)]" },
-  paused: { bg: "bg-yellow-500/10", text: "text-yellow-400" },
-  running: { bg: "bg-[var(--green)]/10", text: "text-[var(--green)]" },
-  archived: { bg: "bg-white/[0.06]", text: "text-[var(--muted)]" },
-  // 마케팅 리드 상태
-  anonymous: { bg: "bg-white/[0.06]", text: "text-[var(--muted)]" },
-  identified: { bg: "bg-blue-500/10", text: "text-blue-400" },
-  engaged: { bg: "bg-[var(--green)]/10", text: "text-[var(--green)]" },
-  qualified: { bg: "bg-purple-500/10", text: "text-purple-400" },
-  customer: { bg: "bg-yellow-500/10", text: "text-yellow-400" },
-  churned: { bg: "bg-[var(--red)]/10", text: "text-[var(--red)]" },
 };
