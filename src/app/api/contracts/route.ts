@@ -1,80 +1,110 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { contracts, contractPayments, sites, customers } from "@/lib/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { contracts, contractPayments, sites } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, serverError } from "@/lib/api/response";
+import { validateBody, contractSchema } from "@/lib/api/validate";
+import { parsePagination, buildPaginationMeta, countSql } from "@/lib/api/query-helpers";
+import { z } from "zod";
 
-export async function GET() {
-  const rows = await db
-    .select({
-      id: contracts.id,
-      contractAmount: contracts.contractAmount,
-      contractDate: contracts.contractDate,
-      siteName: sites.name,
-      siteId: contracts.siteId,
-      createdAt: contracts.createdAt,
-    })
-    .from(contracts)
-    .leftJoin(sites, eq(contracts.siteId, sites.id))
-    .orderBy(desc(contracts.createdAt));
+const contractCreateSchema = contractSchema.extend({
+  payments: z.array(z.object({
+    type: z.string().min(1),
+    amount: z.number().min(0),
+    dueDate: z.string().nullable().optional(),
+  })).optional(),
+});
 
-  // Get payments for each contract
-  const result = await Promise.all(
-    rows.map(async (c) => {
-      const pays = await db
-        .select({
-          id: contractPayments.id,
-          type: contractPayments.type,
-          amount: contractPayments.amount,
-          dueDate: contractPayments.dueDate,
-          paidDate: contractPayments.paidDate,
-          status: contractPayments.status,
-        })
-        .from(contractPayments)
-        .where(eq(contractPayments.contractId, c.id));
-      return { ...c, payments: pays };
-    })
-  );
+export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
 
-  return NextResponse.json(result);
+  try {
+    const pagination = parsePagination(request);
+    const where = eq(contracts.userId, auth.userId);
+
+    const [{ count: total }] = await db
+      .select({ count: countSql() })
+      .from(contracts)
+      .where(where);
+
+    const rows = await db
+      .select({
+        id: contracts.id,
+        contractAmount: contracts.contractAmount,
+        contractDate: contracts.contractDate,
+        memo: contracts.memo,
+        siteName: sites.name,
+        siteId: contracts.siteId,
+        createdAt: contracts.createdAt,
+      })
+      .from(contracts)
+      .leftJoin(sites, eq(contracts.siteId, sites.id))
+      .where(where)
+      .orderBy(desc(contracts.createdAt))
+      .limit(pagination.limit)
+      .offset(pagination.offset);
+
+    const result = await Promise.all(
+      rows.map(async (c) => {
+        const pays = await db
+          .select({
+            id: contractPayments.id,
+            type: contractPayments.type,
+            amount: contractPayments.amount,
+            dueDate: contractPayments.dueDate,
+            paidDate: contractPayments.paidDate,
+            status: contractPayments.status,
+          })
+          .from(contractPayments)
+          .where(eq(contractPayments.contractId, c.id));
+        return { ...c, payments: pays };
+      })
+    );
+
+    return ok(result, buildPaginationMeta(total, pagination));
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
-export async function POST(request: Request) {
-  try {
-    const body = await request.json();
-    const { siteId, estimateId, contractAmount, contractDate, memo, payments } = body;
+export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
 
-    if (!contractAmount) {
-      return NextResponse.json({ error: "계약금액은 필수입니다" }, { status: 400 });
-    }
+  const validation = await validateBody(request, contractCreateSchema);
+  if (!validation.ok) return validation.response;
+
+  try {
+    const { payments, ...contractData } = validation.data;
 
     const [row] = await db
       .insert(contracts)
       .values({
-        userId: "system",
-        siteId: siteId || null,
-        estimateId: estimateId || null,
-        contractAmount,
-        contractDate: contractDate || null,
-        memo: memo || null,
+        userId: auth.userId,
+        siteId: contractData.siteId ?? null,
+        estimateId: contractData.estimateId ?? null,
+        contractAmount: contractData.contractAmount,
+        contractDate: contractData.contractDate ?? null,
+        memo: contractData.memo ?? null,
       })
       .returning();
 
-    // Insert payments if provided
-    if (payments && Array.isArray(payments) && payments.length > 0) {
+    if (payments && payments.length > 0) {
       await db.insert(contractPayments).values(
-        payments.map((p: { type: string; amount: number; dueDate?: string }) => ({
+        payments.map((p) => ({
           contractId: row.id,
           type: p.type,
           amount: p.amount,
-          dueDate: p.dueDate || null,
+          dueDate: p.dueDate ?? null,
           status: "미수" as const,
         }))
       );
     }
 
-    return NextResponse.json(row, { status: 201 });
+    return ok(row);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "저장 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }

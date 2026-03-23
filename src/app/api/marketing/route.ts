@@ -6,8 +6,12 @@ import {
   marketingInquiries,
 } from "@/lib/db/schema";
 import { desc, sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
 
 export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     // Total content count
     const [contentCount] = await db

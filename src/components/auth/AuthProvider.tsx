@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
+import { useSession, signOut } from "@/lib/auth-client";
 
 interface AuthContextType {
   user: { id: string; name: string; email: string; image?: string | null } | null;
@@ -14,23 +15,29 @@ const AuthContext = createContext<AuthContextType>({
   signOut: () => {},
 });
 
-// TODO: DB 연결 후 실제 세션 기반으로 변경
-const DEMO_USER = {
-  id: "demo",
-  name: "인테리어코치",
-  email: "demo@interiorcoach.kr",
-  image: null,
-};
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, isPending } = useSession();
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = "/auth/login";
+  };
+
+  const user = session?.user
+    ? {
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        image: session.user.image ?? null,
+      }
+    : null;
+
   return (
     <AuthContext.Provider
       value={{
-        user: DEMO_USER,
-        loading: false,
-        signOut: () => {
-          window.location.href = "/auth/login";
-        },
+        user,
+        loading: isPending,
+        signOut: handleSignOut,
       }}
     >
       {children}

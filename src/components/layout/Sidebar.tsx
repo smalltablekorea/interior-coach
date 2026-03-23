@@ -37,7 +37,7 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: "/", icon: LayoutDashboard, label: "대시보드" },
+  { href: "/dashboard", icon: LayoutDashboard, label: "대시보드" },
   { href: "/customers", icon: Users, label: "고객 관리" },
   { href: "/sites", icon: Building2, label: "현장 관리" },
   { href: "/estimates", icon: FileText, label: "견적 관리" },
@@ -85,8 +85,8 @@ export default function Sidebar() {
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive =
-              item.href === "/"
-                ? pathname === "/"
+              item.href === "/dashboard"
+                ? pathname === "/dashboard"
                 : pathname.startsWith(item.href);
             const isLocked = item.requiredFeature
               ? !checkFeature(item.requiredFeature).allowed
@@ -148,8 +148,8 @@ export default function Sidebar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[var(--sidebar)] border-t border-[var(--border)] flex items-center justify-around z-40">
         {navItems.slice(0, 5).map((item) => {
           const isActive =
-            item.href === "/"
-              ? pathname === "/"
+            item.href === "/dashboard"
+              ? pathname === "/dashboard"
               : pathname.startsWith(item.href);
           return (
             <Link

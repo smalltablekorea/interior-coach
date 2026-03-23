@@ -8,9 +8,13 @@ import {
   contracts,
   sites,
 } from "@/lib/db/schema";
+import { requireAuth } from "@/lib/api-auth";
 import { eq, sql, and } from "drizzle-orm";
 
 export async function GET(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const siteId = searchParams.get("siteId");
 

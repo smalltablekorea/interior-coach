@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { expenses } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const body = await request.json();
   const { siteId, category, description, amount, date, paymentMethod, vendor, receiptUrl } = body;
@@ -38,6 +42,9 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   await db.delete(expenses).where(eq(expenses.id, id));
   return NextResponse.json({ success: true });

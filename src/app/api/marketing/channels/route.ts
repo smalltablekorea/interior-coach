@@ -3,8 +3,12 @@ import { db } from "@/lib/db";
 import { marketingChannels } from "@/lib/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { disconnectChannel, getChannelConnection } from "@/lib/marketing-oauth/token-manager";
+import { requireAuth } from "@/lib/api-auth";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     // Single channel query: GET /api/marketing/channels?channel=threads
     const channelFilter = request.nextUrl.searchParams.get("channel");

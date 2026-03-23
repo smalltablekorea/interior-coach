@@ -1,15 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { sites, customers, estimates, contracts, contractPayments, constructionPhases } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, notFound, serverError } from "@/lib/api/response";
+import { validateBody, siteSchema } from "@/lib/api/validate";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
 
-  // Get site with customer info
   const [site] = await db
     .select({
       id: sites.id,
@@ -28,14 +33,11 @@ export async function GET(
     })
     .from(sites)
     .leftJoin(customers, eq(sites.customerId, customers.id))
-    .where(eq(sites.id, id))
+    .where(and(eq(sites.id, id), eq(sites.userId, auth.userId)))
     .limit(1);
 
-  if (!site) {
-    return NextResponse.json({ error: "현장을 찾을 수 없습니다" }, { status: 404 });
-  }
+  if (!site) return notFound("현장을 찾을 수 없습니다");
 
-  // Get related estimates
   const siteEstimates = await db
     .select({
       id: estimates.id,
@@ -45,10 +47,9 @@ export async function GET(
       createdAt: estimates.createdAt,
     })
     .from(estimates)
-    .where(eq(estimates.siteId, id))
-    .orderBy(sql`${estimates.createdAt} DESC`);
+    .where(and(eq(estimates.siteId, id), eq(estimates.userId, auth.userId)))
+    .orderBy(desc(estimates.createdAt));
 
-  // Get related contracts with payments
   const siteContracts = await db
     .select({
       id: contracts.id,
@@ -56,7 +57,7 @@ export async function GET(
       contractDate: contracts.contractDate,
     })
     .from(contracts)
-    .where(eq(contracts.siteId, id));
+    .where(and(eq(contracts.siteId, id), eq(contracts.userId, auth.userId)));
 
   const contractsWithPayments = await Promise.all(
     siteContracts.map(async (c) => {
@@ -74,7 +75,6 @@ export async function GET(
     })
   );
 
-  // Get construction phases
   const phases = await db
     .select({
       id: constructionPhases.id,
@@ -85,15 +85,14 @@ export async function GET(
       plannedEnd: constructionPhases.plannedEnd,
     })
     .from(constructionPhases)
-    .where(eq(constructionPhases.siteId, id))
+    .where(and(eq(constructionPhases.siteId, id), eq(constructionPhases.userId, auth.userId)))
     .orderBy(constructionPhases.sortOrder);
 
-  return NextResponse.json({
+  return ok({
     ...site,
     estimates: siteEstimates,
     contracts: contractsWithPayments,
     phases,
-    expenses: [],
   });
 }
 
@@ -101,35 +100,41 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
-  const body = await request.json();
-  const { name, customerId, address, buildingType, areaPyeong, status, startDate, endDate, memo } = body;
+  const validation = await validateBody(request, siteSchema.partial());
+  if (!validation.ok) return validation.response;
 
-  const [row] = await db
-    .update(sites)
-    .set({
-      name,
-      customerId: customerId || null,
-      address: address || null,
-      buildingType: buildingType || null,
-      areaPyeong: areaPyeong || null,
-      status: status || "상담중",
-      startDate: startDate || null,
-      endDate: endDate || null,
-      memo: memo || null,
-      updatedAt: new Date(),
-    })
-    .where(eq(sites.id, id))
-    .returning();
+  try {
+    const [row] = await db
+      .update(sites)
+      .set({ ...validation.data, updatedAt: new Date() })
+      .where(and(eq(sites.id, id), eq(sites.userId, auth.userId)))
+      .returning();
 
-  return NextResponse.json(row);
+    if (!row) return notFound("현장을 찾을 수 없습니다");
+    return ok(row);
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
-  await db.delete(sites).where(eq(sites.id, id));
-  return NextResponse.json({ success: true });
+
+  const [row] = await db
+    .delete(sites)
+    .where(and(eq(sites.id, id), eq(sites.userId, auth.userId)))
+    .returning({ id: sites.id });
+
+  if (!row) return notFound("현장을 찾을 수 없습니다");
+  return ok({ id: row.id });
 }

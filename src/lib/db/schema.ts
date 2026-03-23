@@ -10,6 +10,21 @@ import {
   date,
 } from "drizzle-orm/pg-core";
 
+// ─── 업체 정보 ───
+
+export const companies = pgTable("companies", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  ceoName: text("ceo_name"),
+  businessNumber: text("business_number").unique(),
+  phone: text("phone"),
+  address: text("address"),
+  plan: text("plan").notNull().default("free"), // free | starter | pro | enterprise
+  planExpiresAt: timestamp("plan_expires_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
+});
+
 // ─── Better Auth 테이블 ───
 
 export const user = pgTable("user", {
@@ -19,6 +34,8 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
   phone: text("phone"),
+  companyId: uuid("company_id").references(() => companies.id),
+  role: text("role").default("owner"), // owner | manager | worker
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -79,6 +96,7 @@ export const customers = pgTable("customers", {
   referredBy: uuid("referred_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 // ─── 현장 관리 ───
@@ -99,6 +117,7 @@ export const sites = pgTable("sites", {
   memo: text("memo"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 // ─── 견적 관리 ───
@@ -119,6 +138,7 @@ export const estimates = pgTable("estimates", {
   metadata: jsonb("metadata"), // 빌더 추가 데이터 (gradeKey, companyInfo 등)
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const estimateItems = pgTable("estimate_items", {
@@ -150,6 +170,7 @@ export const contracts = pgTable("contracts", {
   memo: text("memo"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const contractPayments = pgTable("contract_payments", {
@@ -199,6 +220,7 @@ export const workers = pgTable("workers", {
   dailyWage: integer("daily_wage"),
   memo: text("memo"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const phaseWorkers = pgTable("phase_workers", {
@@ -229,6 +251,7 @@ export const materials = pgTable("materials", {
   memo: text("memo"),
   isStandard: boolean("is_standard").notNull().default(false), // 표준 자재 여부
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const materialOrders = pgTable("material_orders", {
@@ -265,6 +288,7 @@ export const expenses = pgTable("expenses", {
   receiptUrl: text("receipt_url"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 export const inventory = pgTable("inventory", {

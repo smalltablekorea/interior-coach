@@ -1,60 +1,88 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { expenses, sites } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, serverError } from "@/lib/api/response";
+import { validateBody, expenseSchema } from "@/lib/api/validate";
+import { parsePagination, buildPaginationMeta, parseFilters, countSql } from "@/lib/api/query-helpers";
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const siteId = searchParams.get("siteId");
+export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
 
-  const query = db
-    .select({
-      id: expenses.id,
-      date: expenses.date,
-      category: expenses.category,
-      description: expenses.description,
-      amount: expenses.amount,
-      siteId: expenses.siteId,
-      siteName: sites.name,
-      paymentMethod: expenses.paymentMethod,
-      vendor: expenses.vendor,
-      receiptUrl: expenses.receiptUrl,
-    })
-    .from(expenses)
-    .leftJoin(sites, eq(expenses.siteId, sites.id))
-    .orderBy(desc(expenses.date));
+  try {
+    const pagination = parsePagination(request);
+    const filters = parseFilters(request, ["siteId", "category"]);
 
-  const rows = siteId
-    ? await query.where(eq(expenses.siteId, siteId))
-    : await query;
+    const conditions = [eq(expenses.userId, auth.userId)];
 
-  return NextResponse.json(rows);
+    if (filters.siteId) {
+      conditions.push(eq(expenses.siteId, filters.siteId));
+    }
+    if (filters.category) {
+      conditions.push(eq(expenses.category, filters.category));
+    }
+
+    const where = and(...conditions);
+
+    const [{ count: total }] = await db
+      .select({ count: countSql() })
+      .from(expenses)
+      .where(where);
+
+    const rows = await db
+      .select({
+        id: expenses.id,
+        date: expenses.date,
+        category: expenses.category,
+        description: expenses.description,
+        amount: expenses.amount,
+        siteId: expenses.siteId,
+        siteName: sites.name,
+        paymentMethod: expenses.paymentMethod,
+        vendor: expenses.vendor,
+        receiptUrl: expenses.receiptUrl,
+        createdAt: expenses.createdAt,
+      })
+      .from(expenses)
+      .leftJoin(sites, eq(expenses.siteId, sites.id))
+      .where(where)
+      .orderBy(desc(expenses.date))
+      .limit(pagination.limit)
+      .offset(pagination.offset);
+
+    return ok(rows, buildPaginationMeta(total, pagination));
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
+  const validation = await validateBody(request, expenseSchema);
+  if (!validation.ok) return validation.response;
+
   try {
-    const body = await request.json();
-    const { siteId, category, description, amount, date, paymentMethod, vendor, receiptUrl } = body;
-    if (!category || !amount) {
-      return NextResponse.json({ error: "category, amount 필수" }, { status: 400 });
-    }
     const [row] = await db
       .insert(expenses)
       .values({
-        userId: "demo",
-        siteId: siteId || null,
-        category,
-        description: description || null,
-        amount,
-        date: date || null,
-        paymentMethod: paymentMethod || null,
-        vendor: vendor || null,
-        receiptUrl: receiptUrl || null,
+        userId: auth.userId,
+        siteId: validation.data.siteId ?? null,
+        category: validation.data.category,
+        description: validation.data.description ?? null,
+        amount: validation.data.amount,
+        date: validation.data.date ?? null,
+        paymentMethod: validation.data.paymentMethod ?? null,
+        vendor: validation.data.vendor ?? null,
+        receiptUrl: validation.data.receiptUrl ?? null,
       })
       .returning();
-    return NextResponse.json(row);
+
+    return ok(row);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "저장 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }

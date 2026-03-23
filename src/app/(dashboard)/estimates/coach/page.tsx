@@ -9,11 +9,9 @@ import {
   Bot,
   User,
   Loader2,
-  TrendingDown,
   TrendingUp,
   ChevronDown,
   ChevronUp,
-  Info,
   Lightbulb,
   BarChart3,
   Calculator,
@@ -21,13 +19,22 @@ import {
   Home,
   Minus,
   Plus,
+  Download,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 import {
   CATS,
   GRADES,
   GRADE_SPECS,
   calcCatTotal,
-  areaCoeff,
   rooms,
   baths,
   getDuration,
@@ -229,7 +236,6 @@ export default function EstimateCoachPage() {
 
   const selectedGradeTotal =
     gradeComparison.find((g) => g.key === grade)?.total || 0;
-  const maxGradeTotal = Math.max(...gradeComparison.map((g) => g.total));
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -252,12 +258,21 @@ export default function EstimateCoachPage() {
             </p>
           </div>
         </div>
-        <Link
-          href="/estimates/builder"
-          className="px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
-        >
-          견적서 작성하기
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-colors"
+          >
+            <Download size={16} />
+            <span className="hidden sm:inline">PDF 저장</span>
+          </button>
+          <Link
+            href="/estimates/builder"
+            className="px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
+          >
+            견적서 작성하기
+          </Link>
+        </div>
       </div>
 
       {/* ─── 시뮬레이터 입력 ─── */}
@@ -625,7 +640,7 @@ export default function EstimateCoachPage() {
             </div>
           </div>
 
-          {/* 등급별 비교 차트 */}
+          {/* 등급별 비교 차트 — recharts */}
           <div className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)]">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-medium flex items-center gap-2">
@@ -639,71 +654,76 @@ export default function EstimateCoachPage() {
                 {showAllGrades ? "주요 등급만" : "전체 등급 보기"}
               </button>
             </div>
-            <div className="space-y-2.5">
-              {visibleGrades.map((g) => {
-                const pct = (g.total / maxGradeTotal) * 100;
-                const isSelected = g.key === grade;
-                const diff = g.total - selectedGradeTotal;
-                return (
-                  <button
-                    key={g.key}
-                    onClick={() => setGrade(g.key)}
-                    className={cn(
-                      "w-full text-left p-3 rounded-xl border transition-all",
-                      isSelected
-                        ? "border-[var(--green)]/30 bg-[var(--green)]/[0.03]"
-                        : "border-[var(--border)] hover:border-[var(--border-hover)]"
-                    )}
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">
-                          {GRADE_EMOJI[g.key]} {g.label}
-                        </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-[var(--muted)]">
-                          {g.tag}
-                        </span>
-                        {isSelected && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--green)]/10 text-[var(--green)]">
-                            선택
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {!isSelected && diff !== 0 && (
-                          <span
-                            className={cn(
-                              "text-[10px] flex items-center gap-0.5",
-                              diff > 0 ? "text-[var(--red)]" : "text-[var(--green)]"
-                            )}
-                          >
-                            {diff > 0 ? (
-                              <TrendingUp size={10} />
-                            ) : (
-                              <TrendingDown size={10} />
-                            )}
-                            {diff > 0 ? "+" : ""}
-                            {fmtShort(diff)}
-                          </span>
-                        )}
-                        <span className="text-sm font-medium tabular-nums">
-                          {fmtShort(g.total)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: g.color,
-                          opacity: isSelected ? 0.9 : 0.4,
-                        }}
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={visibleGrades.map((g) => ({
+                    name: g.label,
+                    key: g.key,
+                    total: g.total,
+                    color: g.color,
+                    tag: g.tag,
+                  }))}
+                  margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  onClick={(state: any) => {
+                    const key = state?.activePayload?.[0]?.payload?.key;
+                    if (key) setGrade(key);
+                  }}
+                >
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fill: "#888", fontSize: 12 }}
+                    axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tickFormatter={(v: number) => fmtShort(v)}
+                    tick={{ fill: "#888", fontSize: 11 }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={60}
+                  />
+                  <RechartsTooltip
+                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    contentStyle={{
+                      backgroundColor: "#111",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: "12px",
+                      fontSize: "12px",
+                    }}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    formatter={(value: any, _name: any, props: any) => {
+                      const v = Number(value) || 0;
+                      const diff = v - selectedGradeTotal;
+                      const diffLabel = diff === 0 ? "(현재 선택)" : diff > 0 ? `+${fmtShort(diff)}` : fmtShort(diff);
+                      return [`${fmtShort(v)} ${diffLabel}`, `${props?.payload?.tag || ""}`];
+                    }}
+                    labelFormatter={(label: any) => `${label} 등급`}
+                  />
+                  <Bar dataKey="total" radius={[6, 6, 0, 0]} cursor="pointer">
+                    {visibleGrades.map((g) => (
+                      <Cell
+                        key={g.key}
+                        fill={g.color}
+                        fillOpacity={g.key === grade ? 0.9 : 0.35}
+                        stroke={g.key === grade ? g.color : "transparent"}
+                        strokeWidth={g.key === grade ? 2 : 0}
                       />
-                    </div>
-                  </button>
-                );
-              })}
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            {/* Selected grade info */}
+            <div className="mt-3 flex items-center justify-between p-3 rounded-xl bg-[var(--green)]/[0.03] border border-[var(--green)]/20">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">{GRADE_EMOJI[grade]} {selectedGrade.label}</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-[var(--muted)]">
+                  {selectedGrade.tag}
+                </span>
+              </div>
+              <span className="text-sm font-bold">{fmtShort(selectedGradeTotal)}</span>
             </div>
           </div>
         </div>

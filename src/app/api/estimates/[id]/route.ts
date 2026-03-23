@@ -1,28 +1,18 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { estimates, estimateItems, sites, customers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, notFound, serverError } from "@/lib/api/response";
 
-async function getUserId(): Promise<string> {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    return session?.user?.id ?? "system";
-  } catch {
-    return "system";
-  }
-}
-
-// 견적 상세 조회
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const userId = await getUserId();
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
 
-  // 견적 기본 정보 + 현장 + 고객 조인
+  const { id } = await params;
+
   const [row] = await db
     .select({
       id: estimates.id,
@@ -47,23 +37,19 @@ export async function GET(
     .from(estimates)
     .leftJoin(sites, eq(estimates.siteId, sites.id))
     .leftJoin(customers, eq(sites.customerId, customers.id))
-    .where(and(eq(estimates.id, id), eq(estimates.userId, userId)));
+    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId)));
 
-  if (!row) {
-    return NextResponse.json({ error: "견적을 찾을 수 없습니다" }, { status: 404 });
-  }
+  if (!row) return notFound("견적을 찾을 수 없습니다");
 
-  // 견적 항목
   const items = await db
     .select()
     .from(estimateItems)
     .where(eq(estimateItems.estimateId, id))
     .orderBy(estimateItems.sortOrder);
 
-  // metadata에서 추가 정보 추출
   const meta = (row.metadata as Record<string, unknown>) || {};
 
-  return NextResponse.json({
+  return ok({
     id: row.id,
     version: row.version,
     totalAmount: row.totalAmount,
@@ -93,98 +79,86 @@ export async function GET(
   });
 }
 
-// 견적 수정
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const userId = await getUserId();
-  const body = await request.json();
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
 
-  // 견적 소유권 확인
+  const { id } = await params;
+
   const [existing] = await db
     .select({ id: estimates.id })
     .from(estimates)
-    .where(and(eq(estimates.id, id), eq(estimates.userId, userId)));
+    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId)));
 
-  if (!existing) {
-    return NextResponse.json({ error: "견적을 찾을 수 없습니다" }, { status: 404 });
-  }
+  if (!existing) return notFound("견적을 찾을 수 없습니다");
 
-  // 항목 업데이트가 있으면 처리
-  if (body.items) {
-    // 기존 항목 삭제 후 재생성
-    await db.delete(estimateItems).where(eq(estimateItems.estimateId, id));
+  try {
+    const body = await request.json();
 
-    if (body.items.length > 0) {
-      await db.insert(estimateItems).values(
-        body.items.map((item: { category: string; itemName: string; unit?: string; quantity?: number; unitPrice?: number; amount?: number }, idx: number) => ({
-          estimateId: id,
-          category: item.category,
-          itemName: item.itemName,
-          unit: item.unit || "식",
-          quantity: item.quantity ?? 1,
-          unitPrice: item.unitPrice ?? 0,
-          amount: item.amount ?? 0,
-          sortOrder: idx,
-        }))
+    if (body.items) {
+      await db.delete(estimateItems).where(eq(estimateItems.estimateId, id));
+
+      if (body.items.length > 0) {
+        await db.insert(estimateItems).values(
+          body.items.map((item: { category: string; itemName: string; unit?: string; quantity?: number; unitPrice?: number; amount?: number }, idx: number) => ({
+            estimateId: id,
+            category: item.category,
+            itemName: item.itemName,
+            unit: item.unit || "식",
+            quantity: item.quantity ?? 1,
+            unitPrice: item.unitPrice ?? 0,
+            amount: item.amount ?? 0,
+            sortOrder: idx,
+          }))
+        );
+      }
+
+      const newTotal = body.items.reduce(
+        (sum: number, item: { amount?: number }) => sum + (item.amount ?? 0),
+        0
       );
+
+      await db
+        .update(estimates)
+        .set({ totalAmount: newTotal, updatedAt: new Date() })
+        .where(eq(estimates.id, id));
     }
 
-    // 총액 재계산
-    const newTotal = body.items.reduce(
-      (sum: number, item: { amount?: number }) => sum + (item.amount ?? 0),
-      0
-    );
+    const updateFields: Record<string, unknown> = { updatedAt: new Date() };
+    if (body.status !== undefined) updateFields.status = body.status;
+    if (body.memo !== undefined) updateFields.memo = body.memo;
+    if (body.profitRate !== undefined) updateFields.profitRate = body.profitRate;
+    if (body.overheadRate !== undefined) updateFields.overheadRate = body.overheadRate;
+    if (body.vatEnabled !== undefined) updateFields.vatEnabled = body.vatEnabled;
+    if (body.totalAmount !== undefined) updateFields.totalAmount = body.totalAmount;
 
-    await db
-      .update(estimates)
-      .set({
-        totalAmount: newTotal,
-        updatedAt: new Date(),
-      })
-      .where(eq(estimates.id, id));
+    if (Object.keys(updateFields).length > 1) {
+      await db.update(estimates).set(updateFields).where(eq(estimates.id, id));
+    }
+
+    return ok({ message: "수정되었습니다" });
+  } catch (error) {
+    return serverError(error);
   }
-
-  // 상태, 메모 등 필드 업데이트
-  const updateFields: Record<string, unknown> = { updatedAt: new Date() };
-  if (body.status !== undefined) updateFields.status = body.status;
-  if (body.memo !== undefined) updateFields.memo = body.memo;
-  if (body.profitRate !== undefined) updateFields.profitRate = body.profitRate;
-  if (body.overheadRate !== undefined) updateFields.overheadRate = body.overheadRate;
-  if (body.vatEnabled !== undefined) updateFields.vatEnabled = body.vatEnabled;
-  if (body.totalAmount !== undefined) updateFields.totalAmount = body.totalAmount;
-
-  if (Object.keys(updateFields).length > 1) {
-    await db
-      .update(estimates)
-      .set(updateFields)
-      .where(eq(estimates.id, id));
-  }
-
-  return NextResponse.json({ message: "수정되었습니다" });
 }
 
-// 견적 삭제
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
-  const userId = await getUserId();
 
-  const [existing] = await db
-    .select({ id: estimates.id })
-    .from(estimates)
-    .where(and(eq(estimates.id, id), eq(estimates.userId, userId)));
+  const [row] = await db
+    .delete(estimates)
+    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId)))
+    .returning({ id: estimates.id });
 
-  if (!existing) {
-    return NextResponse.json({ error: "견적을 찾을 수 없습니다" }, { status: 404 });
-  }
-
-  // cascade로 estimate_items도 자동 삭제
-  await db.delete(estimates).where(eq(estimates.id, id));
-
-  return NextResponse.json({ message: "삭제되었습니다" });
+  if (!row) return notFound("견적을 찾을 수 없습니다");
+  return ok({ id: row.id });
 }

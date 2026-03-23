@@ -1,18 +1,82 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { db } from "@/lib/db";
+import { workers } from "@/lib/db/schema";
+import { eq, and, desc, sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, serverError } from "@/lib/api/response";
+import { validateBody, workerSchema } from "@/lib/api/validate";
+import { parsePagination, buildPaginationMeta, parseFilters, searchPattern, countSql } from "@/lib/api/query-helpers";
 
-const DEMO_WORKERS = [
-  { id: "w1", name: "최영수", phone: "010-1111-2222", trade: "목공", dailyWage: 380000, memo: "경력 15년" },
-  { id: "w2", name: "장현우", phone: "010-3333-4444", trade: "전기", dailyWage: 300000, memo: null },
-  { id: "w3", name: "한도현", phone: "010-5555-6666", trade: "설비", dailyWage: 320000, memo: "보일러 전문" },
-  { id: "w4", name: "이태훈", phone: "010-7777-8888", trade: "타일", dailyWage: 350000, memo: null },
-  { id: "w5", name: "김상호", phone: "010-9999-0000", trade: "도배", dailyWage: 280000, memo: "실크/합지 가능" },
-  { id: "w6", name: "정우진", phone: "010-2222-3333", trade: "철거", dailyWage: 250000, memo: null },
-];
+export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
 
-export async function GET() {
-  return NextResponse.json(DEMO_WORKERS);
+  try {
+    const pagination = parsePagination(request);
+    const filters = parseFilters(request, ["trade", "search"]);
+
+    const conditions = [eq(workers.userId, auth.userId)];
+
+    if (filters.trade) {
+      conditions.push(eq(workers.trade, filters.trade));
+    }
+    if (filters.search) {
+      conditions.push(
+        sql`(${workers.name} ILIKE ${searchPattern(filters.search)} OR ${workers.phone} ILIKE ${searchPattern(filters.search)})`
+      );
+    }
+
+    const where = and(...conditions);
+
+    const [{ count: total }] = await db
+      .select({ count: countSql() })
+      .from(workers)
+      .where(where);
+
+    const rows = await db
+      .select({
+        id: workers.id,
+        name: workers.name,
+        phone: workers.phone,
+        trade: workers.trade,
+        dailyWage: workers.dailyWage,
+        memo: workers.memo,
+        createdAt: workers.createdAt,
+      })
+      .from(workers)
+      .where(where)
+      .orderBy(desc(workers.createdAt))
+      .limit(pagination.limit)
+      .offset(pagination.offset);
+
+    return ok(rows, buildPaginationMeta(total, pagination));
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
-export async function POST() {
-  return NextResponse.json({ message: "DB 미연결 (데모 모드)" }, { status: 503 });
+export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
+  const validation = await validateBody(request, workerSchema);
+  if (!validation.ok) return validation.response;
+
+  try {
+    const [row] = await db
+      .insert(workers)
+      .values({
+        userId: auth.userId,
+        name: validation.data.name,
+        phone: validation.data.phone ?? null,
+        trade: validation.data.trade,
+        dailyWage: validation.data.dailyWage ?? null,
+        memo: validation.data.memo ?? null,
+      })
+      .returning();
+
+    return ok(row);
+  } catch (error) {
+    return serverError(error);
+  }
 }

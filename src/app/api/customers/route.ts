@@ -1,50 +1,86 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { customers } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, serverError } from "@/lib/api/response";
+import { validateBody, customerSchema } from "@/lib/api/validate";
+import { parsePagination, buildPaginationMeta, parseFilters, searchPattern, countSql } from "@/lib/api/query-helpers";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const statusFilter = searchParams.get("status");
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
 
-  const query = db
-    .select({
-      id: customers.id,
-      name: customers.name,
-      phone: customers.phone,
-      email: customers.email,
-      address: customers.address,
-      memo: customers.memo,
-      status: customers.status,
-      referredBy: customers.referredBy,
-      createdAt: customers.createdAt,
-    })
-    .from(customers)
-    .orderBy(sql`${customers.createdAt} DESC`);
+  try {
+    const pagination = parsePagination(request);
+    const filters = parseFilters(request, ["status", "search"]);
 
-  const rows = statusFilter
-    ? await query.where(eq(customers.status, statusFilter))
-    : await query;
+    // 기본 조건: userId 격리
+    const conditions = [eq(customers.userId, auth.userId)];
 
-  return NextResponse.json(rows);
+    if (filters.status) {
+      conditions.push(eq(customers.status, filters.status));
+    }
+    if (filters.search) {
+      conditions.push(
+        sql`(${customers.name} ILIKE ${searchPattern(filters.search)} OR ${customers.phone} ILIKE ${searchPattern(filters.search)})`
+      );
+    }
+
+    const where = and(...conditions);
+
+    const [{ count: total }] = await db
+      .select({ count: countSql() })
+      .from(customers)
+      .where(where);
+
+    const rows = await db
+      .select({
+        id: customers.id,
+        name: customers.name,
+        phone: customers.phone,
+        email: customers.email,
+        address: customers.address,
+        memo: customers.memo,
+        status: customers.status,
+        referredBy: customers.referredBy,
+        createdAt: customers.createdAt,
+      })
+      .from(customers)
+      .where(where)
+      .orderBy(desc(customers.createdAt))
+      .limit(pagination.limit)
+      .offset(pagination.offset);
+
+    return ok(rows, buildPaginationMeta(total, pagination));
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { name, phone, email, address, memo, status } = body;
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
 
-  const [row] = await db
-    .insert(customers)
-    .values({
-      userId: "system",
-      name,
-      phone: phone || null,
-      email: email || null,
-      address: address || null,
-      memo: memo || null,
-      status: status || "상담중",
-    })
-    .returning();
+  const validation = await validateBody(request, customerSchema);
+  if (!validation.ok) return validation.response;
 
-  return NextResponse.json(row);
+  try {
+    const [row] = await db
+      .insert(customers)
+      .values({
+        userId: auth.userId,
+        name: validation.data.name,
+        phone: validation.data.phone ?? null,
+        email: validation.data.email ?? null,
+        address: validation.data.address ?? null,
+        memo: validation.data.memo ?? null,
+        status: validation.data.status,
+      })
+      .returning();
+
+    return ok(row);
+  } catch (error) {
+    return serverError(error);
+  }
 }

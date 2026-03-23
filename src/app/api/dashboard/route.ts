@@ -5,8 +5,12 @@ import {
   estimates, materialOrders, expenses,
 } from "@/lib/db/schema";
 import { eq, sql, and, gte, lte, ne, or, desc } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
 
 export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
 

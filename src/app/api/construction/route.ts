@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { constructionPhases, sites } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
 
 export async function GET(request: Request) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const siteId = searchParams.get("siteId");
 
@@ -34,6 +38,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const body = await request.json();
   const { siteId, category, plannedStart, plannedEnd, status, memo } = body;
 
@@ -50,7 +57,7 @@ export async function POST(request: NextRequest) {
   const [row] = await db
     .insert(constructionPhases)
     .values({
-      userId: "system",
+      userId: auth.userId,
       siteId,
       category,
       plannedStart: plannedStart || null,

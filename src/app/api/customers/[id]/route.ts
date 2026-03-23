@@ -1,26 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { customers, sites, estimates, contracts, contractPayments } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, notFound, serverError } from "@/lib/api/response";
+import { validateBody, customerSchema } from "@/lib/api/validate";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
 
-  // Get customer
   const [customer] = await db
     .select()
     .from(customers)
-    .where(eq(customers.id, id))
+    .where(and(eq(customers.id, id), eq(customers.userId, auth.userId)))
     .limit(1);
 
   if (!customer) {
-    return NextResponse.json({ error: "고객을 찾을 수 없습니다" }, { status: 404 });
+    return notFound("고객을 찾을 수 없습니다");
   }
 
-  // Get related sites
   const customerSites = await db
     .select({
       id: sites.id,
@@ -29,9 +33,8 @@ export async function GET(
       areaPyeong: sites.areaPyeong,
     })
     .from(sites)
-    .where(eq(sites.customerId, id));
+    .where(and(eq(sites.customerId, id), eq(sites.userId, auth.userId)));
 
-  // Get related estimates
   const customerEstimates = await db
     .select({
       id: estimates.id,
@@ -42,9 +45,8 @@ export async function GET(
     })
     .from(estimates)
     .leftJoin(sites, eq(estimates.siteId, sites.id))
-    .where(eq(sites.customerId, id));
+    .where(and(eq(sites.customerId, id), eq(estimates.userId, auth.userId)));
 
-  // Get related contracts with paid amounts
   const customerContracts = await db
     .select({
       id: contracts.id,
@@ -55,10 +57,10 @@ export async function GET(
     .from(contracts)
     .leftJoin(sites, eq(contracts.siteId, sites.id))
     .leftJoin(contractPayments, eq(contractPayments.contractId, contracts.id))
-    .where(eq(sites.customerId, id))
+    .where(and(eq(sites.customerId, id), eq(contracts.userId, auth.userId)))
     .groupBy(contracts.id, sites.name);
 
-  return NextResponse.json({
+  return ok({
     ...customer,
     sites: customerSites,
     estimates: customerEstimates,
@@ -70,32 +72,42 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
-  const body = await request.json();
-  const { name, phone, email, address, memo, status } = body;
 
-  const update: Record<string, unknown> = { updatedAt: new Date() };
-  if (name !== undefined) update.name = name;
-  if (phone !== undefined) update.phone = phone || null;
-  if (email !== undefined) update.email = email || null;
-  if (address !== undefined) update.address = address || null;
-  if (memo !== undefined) update.memo = memo || null;
-  if (status !== undefined) update.status = status;
+  const validation = await validateBody(request, customerSchema.partial());
+  if (!validation.ok) return validation.response;
 
-  const [row] = await db
-    .update(customers)
-    .set(update)
-    .where(eq(customers.id, id))
-    .returning();
+  try {
+    const [row] = await db
+      .update(customers)
+      .set({ ...validation.data, updatedAt: new Date() })
+      .where(and(eq(customers.id, id), eq(customers.userId, auth.userId)))
+      .returning();
 
-  return NextResponse.json(row);
+    if (!row) return notFound("고객을 찾을 수 없습니다");
+    return ok(row);
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
-  await db.delete(customers).where(eq(customers.id, id));
-  return NextResponse.json({ success: true });
+
+  const [row] = await db
+    .delete(customers)
+    .where(and(eq(customers.id, id), eq(customers.userId, auth.userId)))
+    .returning({ id: customers.id });
+
+  if (!row) return notFound("고객을 찾을 수 없습니다");
+  return ok({ id: row.id });
 }

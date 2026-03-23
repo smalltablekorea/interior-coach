@@ -2,26 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { estimates, estimateItems, sites } from "@/lib/db/schema";
 import { eq, desc, and } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-
-async function getUserId(): Promise<string> {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    return session?.user?.id ?? "system";
-  } catch {
-    return "system";
-  }
-}
+import { requireAuth } from "@/lib/api-auth";
 
 // 견적 목록 조회
 export async function GET(request: NextRequest) {
-  const userId = await getUserId();
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const statusFilter = searchParams.get("status");
   const siteIdFilter = searchParams.get("siteId");
 
-  let conditions = eq(estimates.userId, userId);
+  let conditions = eq(estimates.userId, auth.userId);
   if (statusFilter) {
     conditions = and(conditions, eq(estimates.status, statusFilter))!;
   }
@@ -49,7 +41,9 @@ export async function GET(request: NextRequest) {
 
 // 빠른 견적 생성 (모달에서)
 export async function POST(request: NextRequest) {
-  const userId = await getUserId();
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const body = await request.json();
   const {
     siteId,
@@ -64,7 +58,7 @@ export async function POST(request: NextRequest) {
   const [estimate] = await db
     .insert(estimates)
     .values({
-      userId,
+      userId: auth.userId,
       siteId: siteId || null,
       version: 1,
       totalAmount: totalAmount || 0,
