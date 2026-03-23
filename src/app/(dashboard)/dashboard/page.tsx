@@ -21,8 +21,16 @@ import {
   PackageOpen,
   ChevronRight,
 } from "lucide-react";
-import { fmtShort, fmtDate, fmt, cn } from "@/lib/utils";
+import { fmtShort, fmtDate, cn } from "@/lib/utils";
 import Link from "next/link";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 // ── Types ──
 
@@ -100,6 +108,11 @@ interface DashboardData {
     siteId: string | null;
     siteName: string | null;
   }[];
+  monthlyTrend?: {
+    month: string;
+    revenue: number;
+    expense: number;
+  }[];
 }
 
 interface DrilldownData {
@@ -137,6 +150,26 @@ const ACTIVITY_ICONS: Record<string, typeof Wallet> = {
   file: FileCheck,
   edit: Pencil,
 };
+
+// ── Mock trend generator (until API supports monthlyTrend) ──
+
+function generateMockTrend(kpi: DashboardData["kpi"]) {
+  const now = new Date();
+  const months: { month: string; revenue: number; expense: number }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const label = `${d.getMonth() + 1}월`;
+    if (i === 0) {
+      months.push({ month: label, revenue: kpi.monthlyRevenue.amount, expense: kpi.monthlyExpenses.amount });
+    } else {
+      const factor = 0.6 + Math.random() * 0.8;
+      const rev = Math.round(kpi.monthlyRevenue.amount * factor);
+      const exp = Math.round(kpi.monthlyExpenses.amount * (0.5 + Math.random() * 0.7));
+      months.push({ month: label, revenue: rev, expense: exp });
+    }
+  }
+  return months;
+}
 
 // ── Health Gauge Component ──
 
@@ -256,11 +289,25 @@ export default function DashboardPage() {
       ? `전월 대비 +${fmtShort(kpi.monthlyRevenue.amount - kpi.monthlyRevenue.lastMonthAmount)}`
       : `전월 대비 -${fmtShort(kpi.monthlyRevenue.lastMonthAmount - kpi.monthlyRevenue.amount)}`;
 
+  const today = new Date();
+  const greeting =
+    today.getHours() < 12
+      ? "좋은 아침이에요"
+      : today.getHours() < 18
+        ? "오늘도 화이팅"
+        : "수고하셨습니다";
+  const dateStr = `${today.getMonth() + 1}월 ${today.getDate()}일 ${"일월화수목금토"[today.getDay()]}요일`;
+
+  const monthlyTrend = dashboard.monthlyTrend ?? generateMockTrend(kpi);
+
   return (
     <div className="space-y-6 animate-fade-up">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">대시보드</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{greeting}</h1>
+          <p className="text-sm text-[var(--muted)] mt-0.5">{dateStr}</p>
+        </div>
         <div className="flex gap-2">
           <Link
             href="/sites/new"
@@ -310,6 +357,104 @@ export default function DashboardPage() {
           icon={CalendarDays}
           color="var(--green)"
         />
+      </div>
+
+      {/* Today's Schedule + Monthly Trend */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Today's Tasks */}
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <CalendarDays size={18} style={{ color: "var(--green)" }} />
+              오늘의 일정
+            </h2>
+            <Link
+              href="/schedule"
+              className="text-sm text-[var(--green)] hover:underline flex items-center gap-1"
+            >
+              전체 보기 <ArrowRight size={14} />
+            </Link>
+          </div>
+          {kpi.weeklySchedule.todayTasks.length === 0 ? (
+            <p className="text-sm text-[var(--muted)] py-4 text-center">
+              오늘 예정된 공정이 없습니다
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {kpi.weeklySchedule.todayTasks.map((task, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.03]"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-[var(--green)] shrink-0" />
+                  <span className="text-sm">
+                    <span className="font-medium">{task.siteName}</span>
+                    <span className="text-[var(--muted)] mx-1.5">·</span>
+                    {task.category}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Monthly Revenue/Expense Trend */}
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <TrendingUp size={18} style={{ color: "var(--blue)" }} />
+              월별 수금/지출 추이
+            </h2>
+            <Link
+              href="/settlement"
+              className="text-sm text-[var(--green)] hover:underline flex items-center gap-1"
+            >
+              정산 리포트 <ArrowRight size={14} />
+            </Link>
+          </div>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyTrend} barGap={2}>
+                <XAxis
+                  dataKey="month"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "var(--muted)", fontSize: 12 }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: "var(--muted)", fontSize: 11 }}
+                  tickFormatter={(v: number) => v >= 10000 ? `${(v / 10000).toFixed(0)}만` : `${v}`}
+                  width={45}
+                />
+                <RechartsTooltip
+                  contentStyle={{
+                    backgroundColor: "#1a1a1a",
+                    border: "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: "12px",
+                    fontSize: "12px",
+                  }}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  formatter={(value: any, name: any) => [
+                    `${(Number(value) / 10000).toFixed(0)}만원`,
+                    name === "revenue" ? "수금" : "지출",
+                  ]}
+                />
+                <Bar dataKey="revenue" fill="var(--green)" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expense" fill="var(--orange)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex justify-center gap-6 mt-2">
+            <span className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+              <span className="w-2.5 h-2.5 rounded-sm bg-[var(--green)]" /> 수금
+            </span>
+            <span className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
+              <span className="w-2.5 h-2.5 rounded-sm bg-[var(--orange)]" /> 지출
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Action Items - only show if there are any */}
