@@ -249,7 +249,7 @@ const FEATURES = [
 
 const COST_ITEMS = [
   { label: "네이버 블로그 대행", cost: 700000 },
-  { label: "세무사 기장료", cost: 350000 },
+  { label: "세무사 기장료", cost: 100000 },
   { label: "현장관리 앱", cost: 150000 },
   { label: "SNS 대행", cost: 500000 },
 ];

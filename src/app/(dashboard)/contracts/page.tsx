@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, FileCheck, AlertTriangle } from "lucide-react";
+import { Plus, FileCheck, AlertTriangle, Search } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { fmt, fmtDate, fmtShort } from "@/lib/utils";
+import { fmt, fmtDate, fmtShort, cn } from "@/lib/utils";
 import Link from "next/link";
+
+const PAYMENT_STATUSES = ["전체", "미납", "완납", "부분납"];
 
 interface ContractPayment {
   id: string;
@@ -46,6 +48,8 @@ export default function ContractsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("전체");
 
   const [form, setForm] = useState({
     siteId: "",
@@ -117,6 +121,15 @@ export default function ContractsPage() {
     0
   );
 
+  const filtered = contracts.filter((c) => {
+    if (search && !c.siteName?.toLowerCase().includes(search.toLowerCase())) return false;
+    if (statusFilter !== "전체") {
+      const hasPending = c.payments.some((p) => p.status === statusFilter);
+      if (!hasPending) return false;
+    }
+    return true;
+  });
+
   return (
     <div className="space-y-6 animate-fade-up">
       <div className="flex items-center justify-between">
@@ -185,29 +198,61 @@ export default function ContractsPage() {
         </div>
       </div>
 
+      {/* Search & Filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] flex-1">
+          <Search size={18} className="text-[var(--muted)]" />
+          <input
+            type="text"
+            placeholder="현장명으로 검색..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-transparent text-sm flex-1 focus:outline-none placeholder:text-[var(--muted)]"
+          />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {PAYMENT_STATUSES.map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={cn(
+                "px-3 py-2 rounded-xl text-xs font-medium transition-colors",
+                statusFilter === s
+                  ? "bg-[var(--green)]/10 text-[var(--green)]"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04]"
+              )}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-32 rounded-2xl animate-shimmer" />
+            <div key={i} className="h-24 rounded-2xl animate-shimmer" />
           ))}
         </div>
-      ) : contracts.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <EmptyState
           icon={FileCheck}
-          title="등록된 계약이 없습니다"
-          description="계약을 등록하고 결제 일정을 관리해보세요."
+          title={search || statusFilter !== "전체" ? "조건에 맞는 계약이 없습니다" : "등록된 계약이 없습니다"}
+          description={!search && statusFilter === "전체" ? "계약을 등록하고 결제 일정을 관리해보세요." : undefined}
           action={
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
-            >
-              첫 계약 등록하기
-            </button>
+            !search && statusFilter === "전체" ? (
+              <button
+                onClick={() => setShowModal(true)}
+                className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
+              >
+                첫 계약 등록하기
+              </button>
+            ) : undefined
           }
         />
       ) : (
         <div className="space-y-3">
-          {contracts.map((c) => {
+          {filtered.map((c) => {
             const paidAmount = c.payments
               .filter((p) => p.status === "완납")
               .reduce((sum, p) => sum + p.amount, 0);

@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Hammer, Pencil, Trash2 } from "lucide-react";
+import { Plus, Hammer, Pencil, Trash2, Search } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
-import { fmtDate } from "@/lib/utils";
+import { fmtDate, cn } from "@/lib/utils";
 import { TRADES, PHASE_STATUSES } from "@/lib/constants";
 
 interface Phase {
@@ -53,6 +53,8 @@ export default function ConstructionPage() {
     memo: "",
   });
   const [deletePhaseId, setDeletePhaseId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("전체");
 
   const fetchData = () => {
     Promise.all([
@@ -127,9 +129,16 @@ export default function ConstructionPage() {
     setDeletePhaseId(null);
   };
 
+  // Filter phases
+  const filtered = phases.filter((p) => {
+    if (search && !p.siteName?.toLowerCase().includes(search.toLowerCase()) && !p.category.toLowerCase().includes(search.toLowerCase())) return false;
+    if (statusFilter !== "전체" && p.status !== statusFilter) return false;
+    return true;
+  });
+
   // Group by site
   const grouped: Record<string, { siteName: string; phases: Phase[] }> = {};
-  phases.forEach((p) => {
+  filtered.forEach((p) => {
     if (!grouped[p.siteId]) {
       grouped[p.siteId] = { siteName: p.siteName || "미지정", phases: [] };
     }
@@ -149,24 +158,56 @@ export default function ConstructionPage() {
         </button>
       </div>
 
+      {/* Search & Filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] flex-1">
+          <Search size={18} className="text-[var(--muted)]" />
+          <input
+            type="text"
+            placeholder="현장명 또는 공종으로 검색..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-transparent text-sm flex-1 focus:outline-none placeholder:text-[var(--muted)]"
+          />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {["전체", ...PHASE_STATUSES].map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={cn(
+                "px-3 py-2 rounded-xl text-xs font-medium transition-colors",
+                statusFilter === s
+                  ? "bg-[var(--green)]/10 text-[var(--green)]"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04]"
+              )}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {loading ? (
         <div className="space-y-3">
-          {[1, 2].map((i) => (
-            <div key={i} className="h-40 rounded-2xl animate-shimmer" />
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 rounded-2xl animate-shimmer" />
           ))}
         </div>
       ) : Object.keys(grouped).length === 0 ? (
         <EmptyState
           icon={Hammer}
-          title="등록된 공정이 없습니다"
-          description="현장별 공정을 등록하고 진행률을 관리해보세요."
+          title={search || statusFilter !== "전체" ? "조건에 맞는 공정이 없습니다" : "등록된 공정이 없습니다"}
+          description={!search && statusFilter === "전체" ? "현장별 공정을 등록하고 진행률을 관리해보세요." : undefined}
           action={
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
-            >
-              첫 공정 추가하기
-            </button>
+            !search && statusFilter === "전체" ? (
+              <button
+                onClick={() => setShowModal(true)}
+                className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
+              >
+                첫 공정 추가하기
+              </button>
+            ) : undefined
           }
         />
       ) : (
