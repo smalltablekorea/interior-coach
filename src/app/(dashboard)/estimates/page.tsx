@@ -286,48 +286,52 @@ export default function EstimatesPage() {
               {items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="grid grid-cols-12 gap-2 items-center"
+                  className="flex flex-col gap-2 md:grid md:grid-cols-12 md:gap-2 md:items-center border-b border-[var(--border)] pb-2 md:border-0 md:pb-0"
                 >
-                  <select
-                    value={item.category}
-                    onChange={(e) => updateItem(idx, "category", e.target.value)}
-                    className="col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
-                  >
-                    {TRADES.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="text"
-                    placeholder="항목명"
-                    value={item.itemName}
-                    onChange={(e) => updateItem(idx, "itemName", e.target.value)}
-                    className="col-span-3 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:outline-none"
-                  />
-                  <input
-                    type="number"
-                    placeholder="수량"
-                    value={item.quantity || ""}
-                    onChange={(e) => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)}
-                    className="col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
-                  />
-                  <input
-                    type="number"
-                    placeholder="단가"
-                    value={item.unitPrice || ""}
-                    onChange={(e) => updateItem(idx, "unitPrice", parseInt(e.target.value) || 0)}
-                    className="col-span-3 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
-                  />
-                  <div className="col-span-1 text-right text-sm text-[var(--muted)]">
-                    {item.amount > 0 ? (item.amount / 10000).toFixed(0) + "만" : "-"}
+                  <div className="flex gap-2 md:contents">
+                    <select
+                      value={item.category}
+                      onChange={(e) => updateItem(idx, "category", e.target.value)}
+                      className="flex-1 md:col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
+                    >
+                      {TRADES.map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="항목명"
+                      value={item.itemName}
+                      onChange={(e) => updateItem(idx, "itemName", e.target.value)}
+                      className="flex-[2] md:col-span-3 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:outline-none"
+                    />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(idx)}
-                    className="col-span-1 text-[var(--red)] text-sm hover:underline"
-                  >
-                    삭제
-                  </button>
+                  <div className="flex gap-2 items-center md:contents">
+                    <input
+                      type="number"
+                      placeholder="수량"
+                      value={item.quantity || ""}
+                      onChange={(e) => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)}
+                      className="flex-1 md:col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
+                    />
+                    <input
+                      type="number"
+                      placeholder="단가"
+                      value={item.unitPrice || ""}
+                      onChange={(e) => updateItem(idx, "unitPrice", parseInt(e.target.value) || 0)}
+                      className="flex-[2] md:col-span-3 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
+                    />
+                    <div className="md:col-span-1 text-right text-sm text-[var(--muted)] min-w-[3rem]">
+                      {item.amount > 0 ? (item.amount / 10000).toFixed(0) + "만" : "-"}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(idx)}
+                      className="md:col-span-1 text-[var(--red)] text-sm hover:underline"
+                    >
+                      삭제
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
