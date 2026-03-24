@@ -12,7 +12,9 @@ import {
   Users,
   Minus,
   Plus,
+  Check,
 } from "lucide-react";
+import SocialProofWidget from "@/components/SocialProofWidget";
 import {
   CATS,
   GRADES,
@@ -351,6 +353,10 @@ export default function LandingPage() {
           <p className="text-xs text-[var(--muted)] mt-3">
             카드 등록 불필요 · 영구 무료 플랜 포함 · 3분 만에 시작
           </p>
+
+          <div className="mt-6 flex justify-center">
+            <SocialProofWidget />
+          </div>
         </div>
       </section>
 
@@ -561,6 +567,71 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── 견적 분석 가격 (3건 패키지 포함) ─── */}
+      <section className="py-20">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold">
+              견적 분석 가격
+            </h2>
+            <p className="text-[var(--muted)] mt-3">
+              견적서 사진만 올리면 AI가 공종별 과다/과소 항목을 분석합니다
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto">
+            {/* 1건 */}
+            <div className="p-6 rounded-2xl bg-[var(--card)] border border-[var(--border)] text-center">
+              <p className="text-sm text-[var(--muted)] mb-2">1건 분석</p>
+              <p className="text-3xl font-bold">39,900<span className="text-base font-normal text-[var(--muted)]">원</span></p>
+              <ul className="mt-4 space-y-2 text-left">
+                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <Check size={14} className="text-[var(--green)] shrink-0" />
+                  공종별 상세 분석
+                </li>
+                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <Check size={14} className="text-[var(--green)] shrink-0" />
+                  과다/과소 항목 지적
+                </li>
+                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <Check size={14} className="text-[var(--green)] shrink-0" />
+                  절감 포인트 분석
+                </li>
+              </ul>
+            </div>
+
+            {/* 3건 패키지 */}
+            <div className="p-6 rounded-2xl bg-[var(--card)] border-2 border-[var(--green)] text-center relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[var(--green)] text-black text-xs font-semibold">
+                인기
+              </div>
+              <p className="text-sm text-[var(--muted)] mb-2">3건 패키지</p>
+              <p className="text-3xl font-bold">99,900<span className="text-base font-normal text-[var(--muted)]">원</span></p>
+              <p className="text-xs text-[var(--green)] mt-1">1건당 33,300원 · 17% 할인</p>
+              <ul className="mt-4 space-y-2 text-left">
+                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <Check size={14} className="text-[var(--green)] shrink-0" />
+                  1건 분석의 모든 기능 포함
+                </li>
+                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <Check size={14} className="text-[var(--green)] shrink-0" />
+                  여러 업체 견적 비교 가능
+                </li>
+                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
+                  <Check size={14} className="text-[var(--green)] shrink-0" />
+                  미사용 건은 마이페이지에서 사용
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-[var(--muted)] mt-4">
+            분석 완료 후 24시간 이내 전액 환불 가능 ·{" "}
+            <Link href="/refund-policy" className="underline hover:text-[var(--foreground)]">환불 정책</Link>
+          </p>
+        </div>
+      </section>
+
       {/* ─── Final CTA ─── */}
       <section className="py-20 bg-gradient-to-b from-[var(--green)]/10 to-transparent">
         <div className="max-w-4xl mx-auto px-6 text-center">
@@ -599,12 +670,19 @@ export default function LandingPage() {
           <div className="grid gap-6 sm:grid-cols-3">
             <div className="space-y-1.5">
               <p className="font-medium text-sm text-[var(--foreground)]/80">스몰테이블</p>
-              <p>사업자등록번호: 511-27-58367</p>
               <p>대표자명: 배다솜</p>
+              <p>사업자등록번호: 511-27-58367</p>
+              <p>통신판매업 신고번호: 제2026-인천연수-XXXX호</p>
             </div>
             <div className="space-y-1.5">
               <p>인천광역시 연수구 인천타워대로 301, A동 1301호</p>
               <p>유선번호: 0507-1315-3173</p>
+              <p>이메일: smalltablekorea@gmail.com</p>
+              <p className="mt-1">
+                <a href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=5112758367" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--foreground)]">
+                  사업자정보 확인
+                </a>
+              </p>
             </div>
             <div className="space-y-1.5">
               <Link href="/pricing" className="hover:text-[var(--foreground)] transition-colors block">
@@ -616,9 +694,19 @@ export default function LandingPage() {
               <Link href="/estimates/coach" className="hover:text-[var(--foreground)] transition-colors block">
                 견적코치 AI
               </Link>
+              <Link href="/refund-policy" className="hover:text-[var(--foreground)] transition-colors block">
+                환불 정책
+              </Link>
+              <Link href="/terms" className="hover:text-[var(--foreground)] transition-colors block">
+                이용약관
+              </Link>
             </div>
           </div>
-          <div className="mt-6 border-t border-[var(--border)] pt-6 text-center">
+          <div className="mt-6 border-t border-[var(--border)] pt-6 text-center space-y-2">
+            <p className="text-[10px] text-[var(--muted)]/60 max-w-xl mx-auto leading-relaxed">
+              본 서비스의 견적 분석은 참고용이며, 실제 시공 가격은 현장 조건에 따라 달라질 수 있습니다.
+              견적코치는 가격을 보증하지 않으며, 본 분석을 근거로 한 의사결정에 대해 책임지지 않습니다.
+            </p>
             <p>&copy; 2026 스몰테이블. All rights reserved.</p>
           </div>
         </div>

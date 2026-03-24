@@ -239,6 +239,15 @@ export default function EstimateCoachPage() {
 
   return (
     <div className="space-y-6 animate-fade-up">
+      {/* ─── 면책 조항 배너 ─── */}
+      <div className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/20 flex items-start gap-3">
+        <span className="text-amber-500 shrink-0 mt-0.5 text-sm">⚠️</span>
+        <p className="text-xs text-[var(--muted)] leading-relaxed">
+          본 분석은 참고용이며, 실제 시공 가격은 현장 조건에 따라 달라질 수 있습니다.
+          견적코치는 가격을 보증하지 않으며, 본 분석을 근거로 한 의사결정에 대해 책임지지 않습니다.
+        </p>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -822,6 +831,57 @@ export default function EstimateCoachPage() {
           </div>
         </div>
       </div>
+
+      {/* ─── Before/After 절감 금액 비교 ─── */}
+      {(() => {
+        const gradeIdx = GRADES.findIndex((g) => g.key === grade);
+        const lowerGrade = gradeIdx > 0 ? GRADES[gradeIdx - 1] : null;
+        if (!lowerGrade) return null;
+
+        const lowerTotal = CATS.reduce(
+          (s, cat) => s + Math.round(calcCatTotal(cat, area, lowerGrade.key) * buildingAdj),
+          0
+        );
+        const lowerGrand = Math.round(lowerTotal * (1 + profitRate / 100 + overheadRate / 100) * (vatOn ? 1.1 : 1));
+        const saving = grandTotal - lowerGrand;
+
+        if (saving <= 0) return null;
+
+        return (
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-[var(--green)]/5 to-[var(--green)]/[0.01] border border-[var(--green)]/20">
+            <h2 className="text-sm font-medium mb-4 flex items-center gap-2">
+              <TrendingUp size={16} className="text-[var(--green)]" />
+              등급 조정 시 예상 절감 금액
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+              {/* 현재 견적 */}
+              <div className="text-center p-4 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                <p className="text-[10px] text-[var(--muted)] mb-1">현재 ({selectedGrade.label})</p>
+                <p className="text-xl font-bold">{fmtShort(grandTotal)}</p>
+              </div>
+              {/* 화살표 */}
+              <div className="text-center">
+                <div className="inline-flex flex-col items-center gap-1">
+                  <p className="text-3xl font-bold text-[var(--green)]">
+                    -{fmtShort(saving)}
+                  </p>
+                  <p className="text-[10px] text-[var(--muted)]">
+                    {lowerGrade.label}로 변경 시
+                  </p>
+                </div>
+              </div>
+              {/* 절감 견적 */}
+              <div className="text-center p-4 rounded-xl bg-[var(--green)]/5 border border-[var(--green)]/20">
+                <p className="text-[10px] text-[var(--muted)] mb-1">참고 가격 범위 ({lowerGrade.label})</p>
+                <p className="text-xl font-bold text-[var(--green)]">{fmtShort(lowerGrand)}</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-[var(--muted)] mt-3 text-center">
+              * 자재 등급을 선택적으로 조합하면 품질은 유지하면서 절감 효과를 극대화할 수 있습니다
+            </p>
+          </div>
+        );
+      })()}
 
       {/* ─── 절약 팁 카드 ─── */}
       <div className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)]">
