@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { makeSignature } from "better-auth/crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 
@@ -6,7 +7,14 @@ function getPath(url: string) {
   return new URL(url).pathname.replace("/api/auth", "");
 }
 
-function setCookieHeaders(
+const SECRET = process.env.BETTER_AUTH_SECRET || "";
+
+async function signToken(token: string): Promise<string> {
+  const sig = await makeSignature(token, SECRET);
+  return `${token}.${sig}`;
+}
+
+async function setSessionCookie(
   response: NextResponse,
   token: string,
   maxAge = 604800,
@@ -17,7 +25,9 @@ function setCookieHeaders(
     ? "__Secure-better-auth.session_token"
     : "better-auth.session_token";
 
-  response.cookies.set(cookieName, token, {
+  const signedToken = await signToken(token);
+
+  response.cookies.set(cookieName, signedToken, {
     httpOnly: true,
     secure: isSecure,
     sameSite: "lax",
@@ -61,9 +71,9 @@ export async function POST(req: NextRequest) {
         const parsed = JSON.parse(rawBody);
         email = parsed.email;
         password = parsed.password;
-      } catch (parseErr) {
+      } catch {
         return NextResponse.json(
-          { error: "Invalid JSON body", raw: rawBody.substring(0, 100) },
+          { error: "Invalid JSON body" },
           { status: 400 },
         );
       }
@@ -76,13 +86,25 @@ export async function POST(req: NextRequest) {
         user: result.user,
       });
       if (result.token) {
-        setCookieHeaders(response, result.token);
+        await setSessionCookie(response, result.token);
       }
       return response;
     }
 
     if (path === "/sign-up/email") {
-      const { email, password, name } = await req.json();
+      const rawBody = await req.text();
+      let email: string, password: string, name: string | undefined;
+      try {
+        const parsed = JSON.parse(rawBody);
+        email = parsed.email;
+        password = parsed.password;
+        name = parsed.name;
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid JSON body" },
+          { status: 400 },
+        );
+      }
       const result = await auth.api.signUpEmail({
         body: { email, password, name: name || email.split("@")[0] },
       });
@@ -91,13 +113,17 @@ export async function POST(req: NextRequest) {
         user: result.user,
       });
       if (result.token) {
-        setCookieHeaders(response, result.token);
+        await setSessionCookie(response, result.token);
       }
       return response;
     }
 
     if (path === "/sign-out") {
-      await auth.api.signOut({ headers: await headers() });
+      try {
+        await auth.api.signOut({ headers: await headers() });
+      } catch {
+        // Session might already be invalid
+      }
       const response = NextResponse.json({ success: true });
       const isSecure =
         process.env.BETTER_AUTH_URL?.startsWith("https") ?? false;
@@ -112,10 +138,7 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error("[Auth POST]", path, e);
     return NextResponse.json(
-      {
-        error: e instanceof Error ? e.message : "Auth error",
-        stack: e instanceof Error ? e.stack?.split("\n").slice(0, 5) : undefined,
-      },
+      { error: e instanceof Error ? e.message : "Auth error" },
       { status: 500 },
     );
   }
