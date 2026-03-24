@@ -55,7 +55,18 @@ export async function POST(req: NextRequest) {
 
   try {
     if (path === "/sign-in/email") {
-      const { email, password } = await req.json();
+      const rawBody = await req.text();
+      let email: string, password: string;
+      try {
+        const parsed = JSON.parse(rawBody);
+        email = parsed.email;
+        password = parsed.password;
+      } catch (parseErr) {
+        return NextResponse.json(
+          { error: "Invalid JSON body", raw: rawBody.substring(0, 100) },
+          { status: 400 },
+        );
+      }
       const result = await auth.api.signInEmail({
         body: { email, password },
       });
@@ -101,7 +112,10 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error("[Auth POST]", path, e);
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Auth error" },
+      {
+        error: e instanceof Error ? e.message : "Auth error",
+        stack: e instanceof Error ? e.stack?.split("\n").slice(0, 5) : undefined,
+      },
       { status: 500 },
     );
   }
