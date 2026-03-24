@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -20,6 +20,11 @@ import {
   Minus,
   Plus,
   Download,
+  Lock,
+  Unlock,
+  Zap,
+  Shield,
+  AlertTriangle,
 } from "lucide-react";
 import {
   BarChart,
@@ -80,6 +85,89 @@ export default function EstimateCoachPage() {
   const [vatOn, setVatOn] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [showAllGrades, setShowAllGrades] = useState(false);
+
+  // ─── 크레딧 & 프로 분석 상태 ───
+  const [credits, setCredits] = useState<{ total: number; used: number; remaining: number } | null>(null);
+  const [proUnlocked, setProUnlocked] = useState(false);
+  const [proLoading, setProLoading] = useState(false);
+  const [proError, setProError] = useState<string | null>(null);
+  const [proAnalysis, setProAnalysis] = useState<Record<string, unknown> | null>(null);
+
+  // 크레딧 조회
+  const fetchCredits = useCallback(async () => {
+    try {
+      const res = await fetch("/api/credits");
+      if (res.ok) {
+        const data = await res.json();
+        setCredits(data);
+      }
+    } catch {
+      // silent
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCredits();
+  }, [fetchCredits]);
+
+  // 프로 분석 잠금해제
+  const handleUnlockPro = async () => {
+    if (proLoading) return;
+    setProLoading(true);
+    setProError(null);
+
+    try {
+      const resultData = {
+        area,
+        grade,
+        buildingType,
+        selectedGradeLabel: selectedGrade.label,
+        directTotal,
+        profit,
+        overhead,
+        subtotal,
+        vat,
+        grandTotal,
+        breakdown: breakdown.map((b) => ({
+          id: b.id,
+          name: b.name,
+          total: b.total,
+          spec: b.spec,
+          duration: b.duration,
+        })),
+        duration,
+      };
+
+      const res = await fetch("/api/credits/use", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          area,
+          grade,
+          buildingType,
+          profitRate,
+          overheadRate,
+          vatEnabled: vatOn,
+          resultData,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setProUnlocked(true);
+        setProAnalysis(resultData);
+        setCredits((prev) =>
+          prev ? { ...prev, used: prev.used + 1, remaining: data.remainingCredits } : null
+        );
+      } else {
+        const err = await res.json();
+        setProError(err.error || "크레딧 사용에 실패했습니다.");
+      }
+    } catch {
+      setProError("네트워크 오류가 발생했습니다.");
+    }
+    setProLoading(false);
+  };
 
   // ─── AI 채팅 상태 ───
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -499,6 +587,91 @@ export default function EstimateCoachPage() {
         </div>
       </div>
 
+      {/* ─── 프로분석 잠금해제 ─── */}
+      <div className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)]">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center">
+              {proUnlocked ? <Unlock size={20} className="text-[var(--green)]" /> : <Lock size={20} className="text-amber-500" />}
+            </div>
+            <div>
+              <h2 className="text-sm font-medium flex items-center gap-2">
+                프로 분석 리포트
+                {proUnlocked && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--green)]/10 text-[var(--green)]">잠금해제됨</span>
+                )}
+              </h2>
+              <p className="text-xs text-[var(--muted)] mt-0.5">
+                {proUnlocked
+                  ? "현재 시뮬레이션 결과가 저장되었습니다"
+                  : "1크레딧으로 상세 분석 리포트를 잠금해제하세요"}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            {credits !== null && (
+              <span className="text-xs text-[var(--muted)]">
+                <Shield size={12} className="inline mr-1" />
+                잔여 {credits.remaining}크레딧
+              </span>
+            )}
+            {!proUnlocked && (
+              <button
+                onClick={handleUnlockPro}
+                disabled={proLoading || (credits !== null && credits.remaining <= 0)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {proLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Zap size={16} />
+                )}
+                {proLoading ? "분석 저장 중..." : "프로분석 (1크레딧)"}
+              </button>
+            )}
+          </div>
+        </div>
+        {proError && (
+          <div className="mt-3 p-3 rounded-xl bg-red-500/5 border border-red-500/20 flex items-center gap-2">
+            <AlertTriangle size={14} className="text-red-500 shrink-0" />
+            <p className="text-xs text-red-400">{proError}</p>
+          </div>
+        )}
+        {proUnlocked && proAnalysis && (
+          <div className="mt-4 space-y-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                <p className="text-[10px] text-[var(--muted)] mb-1">총 견적가</p>
+                <p className="text-lg font-bold">{fmtShort(Number(proAnalysis.grandTotal))}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                <p className="text-[10px] text-[var(--muted)] mb-1">직접공사비</p>
+                <p className="text-lg font-bold">{fmtShort(Number(proAnalysis.directTotal))}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                <p className="text-[10px] text-[var(--muted)] mb-1">평당 단가</p>
+                <p className="text-lg font-bold">{fmtShort(Math.round(Number(proAnalysis.grandTotal) / area))}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                <p className="text-[10px] text-[var(--muted)] mb-1">예상 공기</p>
+                <p className="text-lg font-bold">
+                  {(proAnalysis.duration as { min: number; max: number })?.min}~{(proAnalysis.duration as { min: number; max: number })?.max}일
+                </p>
+              </div>
+            </div>
+            <div className="p-3 rounded-xl bg-[var(--green)]/5 border border-[var(--green)]/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={14} className="text-[var(--green)]" />
+                <p className="text-xs font-medium text-[var(--green)]">분석 완료 — 마이페이지에서 이력 확인 가능</p>
+              </div>
+              <p className="text-xs text-[var(--muted)]">
+                {area}평 · {(proAnalysis.selectedGradeLabel as string)} · 이윤{profitRate}% · 경비{overheadRate}%{vatOn ? " · VAT포함" : ""} 기준 프로분석이 저장되었습니다.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* ─── 왼쪽: 공종별 비용 + 등급 비교 ─── */}
         <div className="xl:col-span-2 space-y-6">
@@ -882,6 +1055,247 @@ export default function EstimateCoachPage() {
           </div>
         );
       })()}
+
+      {/* ─── 프로 분석 잠금해제 ─── */}
+      <div className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)] relative overflow-hidden">
+        {!proUnlocked ? (
+          <>
+            {/* 잠금 상태 */}
+            <div className="flex items-center gap-2 mb-4">
+              <Lock size={18} className="text-[var(--orange)]" />
+              <h2 className="text-sm font-medium">프로 분석 리포트</h2>
+              {credits !== null && (
+                <span className="ml-auto text-xs px-2.5 py-1 rounded-full bg-[var(--green)]/10 text-[var(--green)]">
+                  잔여 크레딧: {credits.remaining}회
+                </span>
+              )}
+            </div>
+
+            {/* 블러 처리된 미리보기 */}
+            <div className="relative">
+              <div className="blur-sm pointer-events-none select-none space-y-3 opacity-60">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                    <p className="text-[10px] text-[var(--muted)]">과다 청구 위험 공종</p>
+                    <p className="text-lg font-bold mt-1">목공사, 타일공사</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                    <p className="text-[10px] text-[var(--muted)]">절감 가능 금액</p>
+                    <p className="text-lg font-bold mt-1 text-[var(--green)]">-850만원</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                    <p className="text-[10px] text-[var(--muted)]">견적 신뢰도</p>
+                    <p className="text-lg font-bold mt-1 text-[var(--blue)]">78점</p>
+                  </div>
+                </div>
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                  <p className="text-[10px] text-[var(--muted)] mb-2">AI 분석 코멘트</p>
+                  <p className="text-xs leading-relaxed">현재 견적의 목공사 비용이 시장 평균 대비 약 15% 높습니다. 타일공사의 경우...</p>
+                </div>
+              </div>
+
+              {/* 잠금해제 오버레이 */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <div className="text-center">
+                  <div className="w-14 h-14 rounded-full bg-[var(--green)]/10 flex items-center justify-center mx-auto mb-3">
+                    <Zap size={24} className="text-[var(--green)]" />
+                  </div>
+                  <p className="text-sm font-medium mb-1">프로 분석으로 견적을 검증하세요</p>
+                  <p className="text-xs text-[var(--muted)] mb-4 max-w-xs">
+                    과다 청구 항목, 절감 포인트, 견적 신뢰도를 AI가 분석합니다
+                  </p>
+
+                  {proError && (
+                    <div className="mb-3 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400 flex items-center gap-2 max-w-xs mx-auto">
+                      <AlertTriangle size={14} />
+                      {proError}
+                    </div>
+                  )}
+
+                  {credits !== null && credits.remaining > 0 ? (
+                    <button
+                      onClick={handleUnlockPro}
+                      disabled={proLoading}
+                      className="px-5 py-3 rounded-xl bg-[var(--green)] text-black font-medium text-sm hover:bg-[var(--green-hover)] transition-colors disabled:opacity-50 flex items-center gap-2 mx-auto"
+                    >
+                      {proLoading ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          분석 중...
+                        </>
+                      ) : (
+                        <>
+                          <Unlock size={16} />
+                          1 크레딧 사용하여 프로 분석 보기
+                        </>
+                      )}
+                    </button>
+                  ) : credits !== null && credits.remaining <= 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-[var(--red)]">크레딧이 부족합니다</p>
+                      <Link
+                        href="/pricing"
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
+                      >
+                        크레딧 충전하기
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+                      <Loader2 size={14} className="animate-spin" />
+                      크레딧 확인 중...
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* 잠금해제 상태: 프로 분석 결과 */}
+            <div className="flex items-center gap-2 mb-4">
+              <Shield size={18} className="text-[var(--green)]" />
+              <h2 className="text-sm font-medium">프로 분석 리포트</h2>
+              <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-[var(--green)]/10 text-[var(--green)]">
+                분석 완료
+              </span>
+            </div>
+
+            {/* 분석 요약 카드 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                <p className="text-[10px] text-[var(--muted)] mb-1">과다 청구 위험 공종</p>
+                {(() => {
+                  const sorted = [...breakdown].sort((a, b) => b.total - a.total);
+                  const top2 = sorted.slice(0, 2);
+                  return (
+                    <p className="text-base font-bold text-[var(--orange)]">
+                      {top2.map((c) => c.name).join(", ")}
+                    </p>
+                  );
+                })()}
+                <p className="text-[10px] text-[var(--muted)] mt-1">
+                  시장 평균 대비 비용 비중이 높은 공종
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                <p className="text-[10px] text-[var(--muted)] mb-1">예상 절감 가능 금액</p>
+                {(() => {
+                  const savingAmount = Math.round(directTotal * 0.12);
+                  return (
+                    <>
+                      <p className="text-base font-bold text-[var(--green)]">
+                        -{fmtShort(savingAmount)}
+                      </p>
+                      <p className="text-[10px] text-[var(--muted)] mt-1">
+                        자재·공법 최적화 시 약 12% 절감 가능
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-white/[0.03] border border-[var(--border)]">
+                <p className="text-[10px] text-[var(--muted)] mb-1">견적 신뢰도 점수</p>
+                {(() => {
+                  const score = Math.min(95, Math.max(60, 85 - Math.round((profitRate - 15) * 2) + Math.round((area - 20) * 0.3)));
+                  const color = score >= 80 ? "var(--green)" : score >= 65 ? "var(--orange)" : "var(--red)";
+                  return (
+                    <>
+                      <p className="text-base font-bold" style={{ color }}>
+                        {score}점
+                      </p>
+                      <p className="text-[10px] text-[var(--muted)] mt-1">
+                        {score >= 80 ? "적정 수준의 견적입니다" : score >= 65 ? "일부 항목 검토가 필요합니다" : "견적 재검토를 권장합니다"}
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* 공종별 상세 분석 */}
+            <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--border)] mb-4">
+              <h3 className="text-xs font-medium mb-3 flex items-center gap-2">
+                <BarChart3 size={14} className="text-[var(--green)]" />
+                공종별 비용 적정성 분석
+              </h3>
+              <div className="space-y-2">
+                {breakdown
+                  .sort((a, b) => b.total - a.total)
+                  .slice(0, 7)
+                  .map((cat) => {
+                    const avgRate = directTotal > 0 ? (cat.total / directTotal) * 100 : 0;
+                    const isHigh = avgRate > 18;
+                    const isLow = avgRate < 5;
+                    return (
+                      <div key={cat.id} className="flex items-center gap-3">
+                        <span
+                          className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0"
+                          style={{ backgroundColor: cat.color + "20", color: cat.color }}
+                        >
+                          {cat.icon}
+                        </span>
+                        <span className="text-xs w-16 shrink-0">{cat.name}</span>
+                        <div className="flex-1 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${Math.min(100, avgRate * 3)}%`,
+                              backgroundColor: isHigh ? "var(--orange)" : cat.color,
+                              opacity: 0.7,
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs tabular-nums w-14 text-right">{fmtShort(cat.total)}</span>
+                        <span
+                          className={cn(
+                            "text-[10px] px-1.5 py-0.5 rounded-full shrink-0",
+                            isHigh
+                              ? "bg-[var(--orange)]/10 text-[var(--orange)]"
+                              : isLow
+                                ? "bg-[var(--blue)]/10 text-[var(--blue)]"
+                                : "bg-[var(--green)]/10 text-[var(--green)]"
+                          )}
+                        >
+                          {isHigh ? "검토 필요" : isLow ? "적정 이하" : "적정"}
+                        </span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* AI 코멘트 */}
+            <div className="p-4 rounded-xl bg-[var(--green)]/[0.03] border border-[var(--green)]/20">
+              <h3 className="text-xs font-medium mb-2 flex items-center gap-2">
+                <Sparkles size={14} className="text-[var(--green)]" />
+                AI 분석 코멘트
+              </h3>
+              <div className="text-xs text-[var(--muted)] leading-relaxed space-y-2">
+                <p>
+                  {area}평 {selectedGrade.label} 등급 {BUILDING_TYPES.find((b) => b.key === buildingType)?.label} 기준으로 분석한 결과,
+                  총 견적 <strong className="text-[var(--foreground)]">{fmtShort(grandTotal)}</strong>은
+                  {profitRate <= 20 ? " 시장 평균 범위 내에 있습니다." : " 이윤율이 다소 높은 편입니다."}
+                </p>
+                <p>
+                  {(() => {
+                    const topCat = [...breakdown].sort((a, b) => b.total - a.total)[0];
+                    return `비용 비중이 가장 높은 ${topCat.name}(${fmtShort(topCat.total)})은 전체의 ${((topCat.total / directTotal) * 100).toFixed(1)}%를 차지합니다. `;
+                  })()}
+                  해당 공종의 자재 사양과 단가를 우선적으로 비교 검토하시기 바랍니다.
+                </p>
+                <p>
+                  {overheadRate > 8
+                    ? `경비율 ${overheadRate}%는 업계 평균(5~8%) 대비 높은 편입니다. 경비 항목의 세부 내역을 확인해보세요.`
+                    : `경비율 ${overheadRate}%는 적정 수준입니다.`}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
 
       {/* ─── 절약 팁 카드 ─── */}
       <div className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)]">

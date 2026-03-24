@@ -530,6 +530,35 @@ export const billingRecords = pgTable("billing_records", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ─── 분석 크레딧 ───
+
+export const analysisCredits = pgTable("analysis_credits", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id)
+    .unique(),
+  totalCredits: integer("total_credits").notNull().default(0),
+  usedCredits: integer("used_credits").notNull().default(0),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const analysisResults = pgTable("analysis_results", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  area: real("area").notNull(),
+  grade: text("grade").notNull(),
+  buildingType: text("building_type").default("apt"),
+  profitRate: real("profit_rate").default(20),
+  overheadRate: real("overhead_rate").default(6),
+  vatEnabled: boolean("vat_enabled").default(false),
+  resultData: jsonb("result_data"),
+  creditUsed: boolean("credit_used").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ─── 쓰레드 마케팅 자동화 ───
 
 export const threadsAccount = pgTable("threads_account", {
