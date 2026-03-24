@@ -3,14 +3,17 @@ import { NextRequest, NextResponse } from "next/server";
 
 async function handler(req: NextRequest) {
   try {
-    // Better Auth expects a standard Request, not NextRequest
-    // NextRequest in Next.js 16 may have incompatible properties
+    // Read the body first so it's not consumed by Next.js streaming
+    let body: string | undefined;
+    if (req.method !== "GET" && req.method !== "HEAD") {
+      body = await req.text();
+    }
+
+    // Create a clean Request for better-auth
     const standardReq = new Request(req.url, {
       method: req.method,
       headers: req.headers,
-      body: req.method !== "GET" && req.method !== "HEAD" ? req.body : undefined,
-      // @ts-expect-error duplex needed for streaming body
-      duplex: "half",
+      body,
     });
 
     const response = await auth.handler(standardReq);
