@@ -55,8 +55,10 @@ export async function POST(req: NextRequest) {
 
   try {
     if (path === "/sign-in/email") {
-      const body = await req.json();
-      const result = await auth.api.signInEmail({ body });
+      const { email, password } = await req.json();
+      const result = await auth.api.signInEmail({
+        body: { email, password },
+      });
       const response = NextResponse.json({
         redirect: result.redirect,
         token: result.token,
@@ -69,8 +71,10 @@ export async function POST(req: NextRequest) {
     }
 
     if (path === "/sign-up/email") {
-      const body = await req.json();
-      const result = await auth.api.signUpEmail({ body });
+      const { email, password, name } = await req.json();
+      const result = await auth.api.signUpEmail({
+        body: { email, password, name: name || email.split("@")[0] },
+      });
       const response = NextResponse.json({
         token: result.token,
         user: result.user,
