@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 import type { ApiResponse, PaginationMeta } from "@/types/api";
 
 /**
- * 표준화된 성공 응답
+ * 표준화된 성공 응답 — 클라이언트가 바로 사용할 수 있도록 data를 직접 반환
  */
-export function ok<T>(data: T, meta?: PaginationMeta): NextResponse<ApiResponse<T>> {
-  return NextResponse.json({ success: true, data, meta });
+export function ok<T>(data: T, _meta?: PaginationMeta): NextResponse {
+  return NextResponse.json(data);
 }
 
 /**
