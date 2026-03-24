@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import KPICard from "@/components/ui/KPICard";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Modal from "@/components/ui/Modal";
@@ -22,15 +23,14 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { fmtShort, fmtDate, cn } from "@/lib/utils";
+import OnboardingModal from "@/components/onboarding/OnboardingModal";
 import Link from "next/link";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-} from "recharts";
+
+// recharts SSR 비활성화 → hydration 에러 방지
+const MonthlyTrendChart = dynamic(
+  () => import("@/components/charts/MonthlyTrendChart"),
+  { ssr: false },
+);
 
 // ── Types ──
 
@@ -191,7 +191,7 @@ function HealthGauge({ score, size = 80 }: { score: number; size?: number }) {
         <path
           d={`M 4 ${size / 2} A ${radius} ${radius} 0 0 1 ${size - 4} ${size / 2}`}
           fill="none"
-          stroke="rgba(255,255,255,0.08)"
+          stroke="var(--border)"
           strokeWidth="6"
           strokeLinecap="round"
         />
@@ -228,12 +228,12 @@ export default function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/sites").then((r) => r.json()),
-      fetch("/api/dashboard").then((r) => r.json()),
+      fetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/dashboard").then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([siteData, dashData]) => {
-        setSites(siteData);
-        setDashboard(dashData);
+        setSites(Array.isArray(siteData) ? siteData : []);
+        if (dashData?.kpi) setDashboard(dashData);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -302,6 +302,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-fade-up">
+      <OnboardingModal />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -318,7 +319,7 @@ export default function DashboardPage() {
           </Link>
           <Link
             href="/estimates/new"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
           >
             <Plus size={16} />
             견적 작성
@@ -413,38 +414,7 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyTrend} barGap={2}>
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "var(--muted)", fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: "var(--muted)", fontSize: 11 }}
-                  tickFormatter={(v: number) => v >= 10000 ? `${(v / 10000).toFixed(0)}만` : `${v}`}
-                  width={45}
-                />
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: "#1a1a1a",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    borderRadius: "12px",
-                    fontSize: "12px",
-                  }}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  formatter={(value: any, name: any) => [
-                    `${(Number(value) / 10000).toFixed(0)}만원`,
-                    name === "revenue" ? "수금" : "지출",
-                  ]}
-                />
-                <Bar dataKey="revenue" fill="var(--green)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expense" fill="var(--orange)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <MonthlyTrendChart data={monthlyTrend} />
           </div>
           <div className="flex justify-center gap-6 mt-2">
             <span className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
@@ -936,7 +906,7 @@ function ScoreBar({
   return (
     <div className="flex items-center gap-2">
       <span className="text-[10px] text-[var(--muted)] w-6">{label}</span>
-      <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full">
+      <div className="flex-1 h-1.5 bg-[var(--border)] rounded-full">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${pct}%`, backgroundColor: color }}

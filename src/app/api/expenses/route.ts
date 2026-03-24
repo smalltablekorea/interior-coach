@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { expenses, sites } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { ok, serverError } from "@/lib/api/response";
 import { validateBody, expenseSchema } from "@/lib/api/validate";
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const pagination = parsePagination(request);
     const filters = parseFilters(request, ["siteId", "category"]);
 
-    const conditions = [eq(expenses.userId, auth.userId)];
+    const conditions = [eq(expenses.userId, auth.userId), isNull(expenses.deletedAt)];
 
     if (filters.siteId) {
       conditions.push(eq(expenses.siteId, filters.siteId));

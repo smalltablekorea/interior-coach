@@ -135,7 +135,7 @@ export default function EstimatesPage() {
           </Link>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-[var(--muted)] font-medium text-sm hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-[var(--muted)] font-medium text-sm hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
           >
             <Plus size={18} />
             빠른 작성
@@ -240,7 +240,7 @@ export default function EstimatesPage() {
               <select
                 value={form.siteId}
                 onChange={(e) => setForm({ ...form, siteId: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none"
               >
                 <option value="">선택</option>
                 {sites.map((s) => (
@@ -255,7 +255,7 @@ export default function EstimatesPage() {
                   type="number"
                   value={form.profitRate}
                   onChange={(e) => setForm({ ...form, profitRate: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none"
                 />
               </div>
               <div>
@@ -264,7 +264,7 @@ export default function EstimatesPage() {
                   type="number"
                   value={form.overheadRate}
                   onChange={(e) => setForm({ ...form, overheadRate: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none"
                 />
               </div>
             </div>
@@ -292,7 +292,7 @@ export default function EstimatesPage() {
                     <select
                       value={item.category}
                       onChange={(e) => updateItem(idx, "category", e.target.value)}
-                      className="flex-1 md:col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
+                      className="flex-1 md:col-span-2 px-2 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:outline-none"
                     >
                       {TRADES.map((t) => (
                         <option key={t} value={t}>{t}</option>
@@ -303,7 +303,7 @@ export default function EstimatesPage() {
                       placeholder="항목명"
                       value={item.itemName}
                       onChange={(e) => updateItem(idx, "itemName", e.target.value)}
-                      className="flex-[2] md:col-span-3 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:outline-none"
+                      className="flex-[2] md:col-span-3 px-2 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:outline-none"
                     />
                   </div>
                   <div className="flex gap-2 items-center md:contents">
@@ -312,14 +312,14 @@ export default function EstimatesPage() {
                       placeholder="수량"
                       value={item.quantity || ""}
                       onChange={(e) => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)}
-                      className="flex-1 md:col-span-2 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
+                      className="flex-1 md:col-span-2 px-2 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:outline-none"
                     />
                     <input
                       type="number"
                       placeholder="단가"
                       value={item.unitPrice || ""}
                       onChange={(e) => updateItem(idx, "unitPrice", parseInt(e.target.value) || 0)}
-                      className="flex-[2] md:col-span-3 px-2 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
+                      className="flex-[2] md:col-span-3 px-2 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:outline-none"
                     />
                     <div className="md:col-span-1 text-right text-sm text-[var(--muted)] min-w-[3rem]">
                       {item.amount > 0 ? (item.amount / 10000).toFixed(0) + "만" : "-"}

@@ -293,16 +293,16 @@ export default function SchedulePage() {
 
       {/* Month navigation */}
       <div className="flex items-center justify-between px-4 py-3 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
-        <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors">
+        <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-[var(--border)] transition-colors">
           <ChevronLeft size={20} />
         </button>
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">{monthLabel}</h2>
-          <button onClick={goToday} className="px-2.5 py-1 rounded-lg text-xs border border-[var(--border)] text-[var(--muted)] hover:bg-white/[0.04] transition-colors">
+          <button onClick={goToday} className="px-2.5 py-1 rounded-lg text-xs border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)] transition-colors">
             오늘
           </button>
         </div>
-        <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors">
+        <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-[var(--border)] transition-colors">
           <ChevronRight size={20} />
         </button>
       </div>
@@ -559,7 +559,7 @@ export default function SchedulePage() {
             <select
               value={phaseForm.siteId}
               onChange={(e) => setPhaseForm({ ...phaseForm, siteId: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
             >
               <option value="">현장 선택</option>
               {sites.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
@@ -571,24 +571,24 @@ export default function SchedulePage() {
               type="text"
               value={phaseForm.category}
               onChange={(e) => setPhaseForm({ ...phaseForm, category: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
               placeholder="예: 도배, 타일, 전기"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">시작일</label>
-              <input type="date" value={phaseForm.plannedStart} onChange={(e) => setPhaseForm({ ...phaseForm, plannedStart: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none transition-colors" />
+              <input type="date" value={phaseForm.plannedStart} onChange={(e) => setPhaseForm({ ...phaseForm, plannedStart: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">종료일</label>
-              <input type="date" value={phaseForm.plannedEnd} onChange={(e) => setPhaseForm({ ...phaseForm, plannedEnd: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none transition-colors" />
+              <input type="date" value={phaseForm.plannedEnd} onChange={(e) => setPhaseForm({ ...phaseForm, plannedEnd: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">상태</label>
-              <select value={phaseForm.status} onChange={(e) => setPhaseForm({ ...phaseForm, status: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none transition-colors">
+              <select value={phaseForm.status} onChange={(e) => setPhaseForm({ ...phaseForm, status: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors">
                 <option value="예정">예정</option>
                 <option value="진행중">진행중</option>
                 <option value="완료">완료</option>
@@ -597,15 +597,15 @@ export default function SchedulePage() {
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">진행률 (%)</label>
-              <input type="number" min={0} max={100} value={phaseForm.progress} onChange={(e) => setPhaseForm({ ...phaseForm, progress: Number(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none transition-colors" />
+              <input type="number" min={0} max={100} value={phaseForm.progress} onChange={(e) => setPhaseForm({ ...phaseForm, progress: Number(e.target.value) })} className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors" />
             </div>
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">메모</label>
-            <textarea value={phaseForm.memo} onChange={(e) => setPhaseForm({ ...phaseForm, memo: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors resize-none h-20" placeholder="참고사항" />
+            <textarea value={phaseForm.memo} onChange={(e) => setPhaseForm({ ...phaseForm, memo: e.target.value })} className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors resize-none h-20" placeholder="참고사항" />
           </div>
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={() => setShowPhaseModal(false)} className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors">취소</button>
+            <button type="button" onClick={() => setShowPhaseModal(false)} className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors">취소</button>
             {editingPhaseId && (
               <button type="button" onClick={() => { setShowPhaseModal(false); handleDeletePhase(editingPhaseId); }} className="px-4 py-2.5 rounded-xl border border-[var(--red)]/30 text-sm text-[var(--red)] hover:bg-[var(--red)]/10 transition-colors">삭제</button>
             )}

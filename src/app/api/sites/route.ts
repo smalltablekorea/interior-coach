@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { sites, customers } from "@/lib/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { ok, serverError } from "@/lib/api/response";
 import { validateBody, siteSchema } from "@/lib/api/validate";
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const pagination = parsePagination(request);
     const filters = parseFilters(request, ["status", "search", "customerId"]);
 
-    const conditions = [eq(sites.userId, auth.userId)];
+    const conditions = [eq(sites.userId, auth.userId), isNull(sites.deletedAt)];
 
     if (filters.status) {
       conditions.push(eq(sites.status, filters.status));

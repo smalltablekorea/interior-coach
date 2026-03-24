@@ -119,10 +119,10 @@ const EFFICIENCY_BADGE: Record<string, { bg: string; text: string; label: string
 };
 
 const inputCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
 
 const selectCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[#00C471] focus:outline-none";
 
 /* ── Demo data ── */
 
@@ -341,7 +341,7 @@ export default function MetaAdsPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/marketing"
-          className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center hover:bg-white/[0.04] transition-colors"
+          className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors"
         >
           <ArrowLeft size={16} />
         </Link>
@@ -362,7 +362,7 @@ export default function MetaAdsPage() {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap",
               activeTab === tab.key
-                ? "bg-white/[0.08] text-white font-medium"
+                ? "bg-[var(--border)] text-[var(--foreground)] font-medium"
                 : "text-neutral-500 hover:text-neutral-300"
             )}
           >
@@ -386,7 +386,7 @@ export default function MetaAdsPage() {
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                   period === p.key
-                    ? "bg-white/[0.08] text-white"
+                    ? "bg-[var(--border)] text-[var(--foreground)]"
                     : "text-neutral-500 hover:text-neutral-300"
                 )}
               >
@@ -695,7 +695,7 @@ export default function MetaAdsPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddCampaign(false)}
-                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+                  className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
                 >
                   취소
                 </button>
@@ -734,7 +734,7 @@ export default function MetaAdsPage() {
               {funnelStages.map((stage, i) => (
                 <div key={i} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-white font-medium">{stage.label}</span>
+                    <span className="text-[var(--foreground)] font-medium">{stage.label}</span>
                     <span className="font-medium">
                       {stage.value.toLocaleString()}{stage.unit}
                     </span>
@@ -924,19 +924,19 @@ export default function MetaAdsPage() {
             </h3>
             <div className="space-y-3 text-sm text-[var(--muted)]">
               <p>
-                <span className="text-white font-medium">1. Instagram 예산 확대 권장:</span>{" "}
+                <span className="text-[var(--foreground)] font-medium">1. Instagram 예산 확대 권장:</span>{" "}
                 CPA가 23,077원으로 전 채널 중 가장 낮습니다. 현재 월 120만원에서 200만원으로 증액 시 문의 30건 추가 유입이 예상됩니다.
               </p>
               <p>
-                <span className="text-white font-medium">2. Meta 리타겟팅 캠페인 추가:</span>{" "}
+                <span className="text-[var(--foreground)] font-medium">2. Meta 리타겟팅 캠페인 추가:</span>{" "}
                 사이트 방문 후 이탈한 사용자 대상 리타겟팅을 통해 전환율을 현재 4.5%에서 7%까지 개선할 수 있습니다.
               </p>
               <p>
-                <span className="text-white font-medium">3. 주말 광고비 조정:</span>{" "}
+                <span className="text-[var(--foreground)] font-medium">3. 주말 광고비 조정:</span>{" "}
                 데이터 분석 결과 토/일 문의 전환율이 평일 대비 1.8배 높습니다. 주말 예산 비중을 30%에서 40%로 조정을 권장합니다.
               </p>
               <p>
-                <span className="text-white font-medium">4. 기타 채널 재검토:</span>{" "}
+                <span className="text-[var(--foreground)] font-medium">4. 기타 채널 재검토:</span>{" "}
                 CPA 40,000원으로 효율이 낮습니다. 해당 예산을 Meta 또는 Instagram으로 이전하는 것을 검토해주세요.
               </p>
             </div>
@@ -997,7 +997,7 @@ export default function MetaAdsPage() {
                         setOauthMessage({ type: "error", text: "토큰 갱신에 실패했습니다." });
                       }
                     }}
-                    className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+                    className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
                   >
                     토큰 갱신
                   </button>

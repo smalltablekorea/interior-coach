@@ -444,7 +444,7 @@ export default function MaterialsPage() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowReceiptModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium hover:bg-white/[0.04] transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium hover:bg-[var(--border)] transition-colors"
             >
               <Camera size={18} />
               영수증 분석
@@ -489,7 +489,7 @@ export default function MaterialsPage() {
                 className="bg-transparent text-sm flex-1 focus:outline-none placeholder:text-[var(--muted)]"
               />
               {search && (
-                <button onClick={() => setSearch("")} className="text-xs text-[var(--muted)] hover:text-white">초기화</button>
+                <button onClick={() => setSearch("")} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]">초기화</button>
               )}
             </div>
 
@@ -502,8 +502,8 @@ export default function MaterialsPage() {
                     onClick={() => setGrade(g)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                       grade === g
-                        ? g === "전체" ? "bg-white/10 text-white" : g === "일반" ? "bg-white/10 text-[var(--muted)]" : g === "중급" ? "bg-[var(--blue)]/10 text-[var(--blue)]" : "bg-[var(--orange)]/10 text-[var(--orange)]"
-                        : "text-[var(--muted)] hover:bg-white/[0.04]"
+                        ? g === "전체" ? "bg-[var(--border)] text-white" : g === "일반" ? "bg-[var(--border)] text-[var(--muted)]" : g === "중급" ? "bg-[var(--blue)]/10 text-[var(--blue)]" : "bg-[var(--orange)]/10 text-[var(--orange)]"
+                        : "text-[var(--muted)] hover:bg-[var(--border)]"
                     }`}
                   >
                     {g}
@@ -511,14 +511,14 @@ export default function MaterialsPage() {
                 ))}
               </div>
               <div className="h-4 w-px bg-[var(--border)] mx-1" />
-              <button onClick={expandAll} className="px-3 py-1.5 rounded-lg text-xs text-[var(--muted)] hover:text-white border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors">
+              <button onClick={expandAll} className="px-3 py-1.5 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors">
                 모두 펼치기
               </button>
-              <button onClick={collapseAll} className="px-3 py-1.5 rounded-lg text-xs text-[var(--muted)] hover:text-white border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors">
+              <button onClick={collapseAll} className="px-3 py-1.5 rounded-lg text-xs text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors">
                 모두 접기
               </button>
               {(grade !== "전체" || search) && (
-                <button onClick={() => { setGrade("전체"); setSearch(""); }} className="px-3 py-1.5 rounded-lg text-xs text-[var(--red)] hover:text-white border border-[var(--red)]/30 hover:border-[var(--red)] transition-colors">
+                <button onClick={() => { setGrade("전체"); setSearch(""); }} className="px-3 py-1.5 rounded-lg text-xs text-[var(--red)] hover:text-[var(--foreground)] border border-[var(--red)]/30 hover:border-[var(--red)] transition-colors">
                   필터 초기화
                 </button>
               )}
@@ -581,7 +581,7 @@ export default function MaterialsPage() {
                                       <td className="px-5 py-2.5 font-medium">{m.name}</td>
                                       <td className="px-4 py-2.5 text-[var(--muted)] whitespace-nowrap">{m.brand !== "-" ? m.brand : ""}</td>
                                       <td className="px-4 py-2.5 text-center whitespace-nowrap">
-                                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${m.grade === "고급" ? "bg-[var(--orange)]/10 text-[var(--orange)]" : m.grade === "중급" ? "bg-[var(--blue)]/10 text-[var(--blue)]" : "bg-white/5 text-[var(--muted)]"}`}>
+                                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${m.grade === "고급" ? "bg-[var(--orange)]/10 text-[var(--orange)]" : m.grade === "중급" ? "bg-[var(--blue)]/10 text-[var(--blue)]" : "bg-[var(--card)] text-[var(--muted)]"}`}>
                                           {m.grade}
                                         </span>
                                       </td>
@@ -627,7 +627,7 @@ export default function MaterialsPage() {
               {hasOrdFilters && (
                 <button
                   onClick={resetOrdFilters}
-                  className="flex items-center gap-1 text-xs text-[var(--muted)] hover:text-white transition-colors"
+                  className="flex items-center gap-1 text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                 >
                   <RotateCcw size={12} />
                   초기화
@@ -638,7 +638,7 @@ export default function MaterialsPage() {
               <select
                 value={ordFilterSite}
                 onChange={(e) => setOrdFilterSite(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
+                className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
               >
                 <option value="">현장 전체</option>
                 {ordSiteOptions.map((s) => (<option key={s} value={s}>{s}</option>))}
@@ -647,7 +647,7 @@ export default function MaterialsPage() {
               <select
                 value={ordFilterCategory}
                 onChange={(e) => setOrdFilterCategory(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
+                className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
               >
                 <option value="">공종 전체</option>
                 {ordCategoryOptions.map((c) => (<option key={c} value={c}>{CATEGORY_ICONS[c] || "📁"} {c}</option>))}
@@ -656,7 +656,7 @@ export default function MaterialsPage() {
               <select
                 value={ordFilterUser}
                 onChange={(e) => setOrdFilterUser(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
+                className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
               >
                 <option value="">발주자 전체</option>
                 {ordUserOptions.map(([id, name]) => (<option key={id} value={id}>{id === "system" ? "시스템" : name}</option>))}
@@ -665,7 +665,7 @@ export default function MaterialsPage() {
               <select
                 value={ordGroupBy}
                 onChange={(e) => setOrdGroupBy(e.target.value as "" | "site" | "category" | "user")}
-                className="px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
+                className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
               >
                 <option value="">그룹 없음</option>
                 <option value="site">현장별 그룹</option>
@@ -681,14 +681,14 @@ export default function MaterialsPage() {
                 type="date"
                 value={ordFilterDateFrom}
                 onChange={(e) => setOrdFilterDateFrom(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
+                className="flex-1 px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
               />
               <span className="text-xs text-[var(--muted)]">~</span>
               <input
                 type="date"
                 value={ordFilterDateTo}
                 onChange={(e) => setOrdFilterDateTo(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
+                className="flex-1 px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
               />
             </div>
           </div>
@@ -715,7 +715,7 @@ export default function MaterialsPage() {
               title="발주 내역이 없습니다"
               action={
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setShowReceiptModal(true)} className="px-4 py-2 rounded-xl border border-[var(--border)] text-sm font-medium hover:bg-white/[0.04]">
+                  <button onClick={() => setShowReceiptModal(true)} className="px-4 py-2 rounded-xl border border-[var(--border)] text-sm font-medium hover:bg-[var(--border)]">
                     영수증 분석
                   </button>
                   <button onClick={() => setShowOrdModal(true)} className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-medium">
@@ -763,10 +763,10 @@ export default function MaterialsPage() {
                           <div className="flex items-center gap-3">
                             <p className="text-sm font-medium tabular-nums">{fmt(o.totalAmount)}</p>
                             <div className="flex items-center gap-1">
-                              <button onClick={() => openEditOrd(o)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors" title="편집">
+                              <button onClick={() => openEditOrd(o)} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors" title="편집">
                                 <Pencil size={14} />
                               </button>
-                              <button onClick={() => setDeleteOrdId(o.id)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--red)] transition-colors" title="삭제">
+                              <button onClick={() => setDeleteOrdId(o.id)} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--red)] transition-colors" title="삭제">
                                 <Trash2 size={14} />
                               </button>
                             </div>
@@ -801,10 +801,10 @@ export default function MaterialsPage() {
                   <div className="flex items-center gap-3">
                     <p className="font-medium">{fmt(o.totalAmount)}</p>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => openEditOrd(o)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors" title="편집">
+                      <button onClick={() => openEditOrd(o)} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors" title="편집">
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => setDeleteOrdId(o.id)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--red)] transition-colors" title="삭제">
+                      <button onClick={() => setDeleteOrdId(o.id)} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--red)] transition-colors" title="삭제">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -841,7 +841,7 @@ export default function MaterialsPage() {
             <>
               <div className="grid grid-cols-3 gap-2">
                 {receiptImages.map((img, idx) => (
-                  <div key={idx} className="relative group rounded-xl overflow-hidden border border-[var(--border)] bg-white/5">
+                  <div key={idx} className="relative group rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--card)]">
                     <img
                       src={`data:${img.mimeType};base64,${img.base64}`}
                       alt={img.name}
@@ -864,7 +864,7 @@ export default function MaterialsPage() {
                 <select
                   value={receiptSiteId}
                   onChange={(e) => setReceiptSiteId(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
                 >
                   <option value="">현장 미지정</option>
                   {sites.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
@@ -995,7 +995,7 @@ export default function MaterialsPage() {
 
                   <button
                     onClick={() => { setShowReceiptModal(false); resetReceipt(); }}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] text-sm font-medium hover:bg-white/[0.04] transition-colors"
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] text-sm font-medium hover:bg-[var(--border)] transition-colors"
                   >
                     닫기
                   </button>
@@ -1012,11 +1012,11 @@ export default function MaterialsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">자재명 *</label>
-              <input type="text" required value={ordForm.materialName} onChange={(e) => setOrdForm({ ...ordForm, materialName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none" placeholder="자재명" />
+              <input type="text" required value={ordForm.materialName} onChange={(e) => setOrdForm({ ...ordForm, materialName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="자재명" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">현장</label>
-              <select value={ordForm.siteId} onChange={(e) => setOrdForm({ ...ordForm, siteId: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none">
+              <select value={ordForm.siteId} onChange={(e) => setOrdForm({ ...ordForm, siteId: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none">
                 <option value="">선택</option>
                 {sites.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
               </select>
@@ -1025,21 +1025,21 @@ export default function MaterialsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">수량 *</label>
-              <input type="number" required value={ordForm.quantity} onChange={(e) => setOrdForm({ ...ordForm, quantity: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="number" required value={ordForm.quantity} onChange={(e) => setOrdForm({ ...ordForm, quantity: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">단가</label>
-              <input type="number" value={ordForm.unitPrice} onChange={(e) => setOrdForm({ ...ordForm, unitPrice: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none" placeholder="원" />
+              <input type="number" value={ordForm.unitPrice} onChange={(e) => setOrdForm({ ...ordForm, unitPrice: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="원" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">발주일</label>
-              <input type="date" value={ordForm.orderedDate} onChange={(e) => setOrdForm({ ...ordForm, orderedDate: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="date" value={ordForm.orderedDate} onChange={(e) => setOrdForm({ ...ordForm, orderedDate: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">입고 예정일</label>
-              <input type="date" value={ordForm.deliveryDate} onChange={(e) => setOrdForm({ ...ordForm, deliveryDate: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="date" value={ordForm.deliveryDate} onChange={(e) => setOrdForm({ ...ordForm, deliveryDate: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
@@ -1054,31 +1054,31 @@ export default function MaterialsPage() {
         <form onSubmit={handleEditOrdSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">자재명 *</label>
-            <input type="text" required value={editOrdForm.materialName} onChange={(e) => setEditOrdForm({ ...editOrdForm, materialName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none" />
+            <input type="text" required value={editOrdForm.materialName} onChange={(e) => setEditOrdForm({ ...editOrdForm, materialName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">수량</label>
-              <input type="number" value={editOrdForm.quantity} onChange={(e) => setEditOrdForm({ ...editOrdForm, quantity: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="number" value={editOrdForm.quantity} onChange={(e) => setEditOrdForm({ ...editOrdForm, quantity: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">단가</label>
-              <input type="number" value={editOrdForm.unitPrice} onChange={(e) => setEditOrdForm({ ...editOrdForm, unitPrice: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="number" value={editOrdForm.unitPrice} onChange={(e) => setEditOrdForm({ ...editOrdForm, unitPrice: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">발주일</label>
-              <input type="date" value={editOrdForm.orderedDate} onChange={(e) => setEditOrdForm({ ...editOrdForm, orderedDate: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="date" value={editOrdForm.orderedDate} onChange={(e) => setEditOrdForm({ ...editOrdForm, orderedDate: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">입고 예정일</label>
-              <input type="date" value={editOrdForm.deliveryDate} onChange={(e) => setEditOrdForm({ ...editOrdForm, deliveryDate: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="date" value={editOrdForm.deliveryDate} onChange={(e) => setEditOrdForm({ ...editOrdForm, deliveryDate: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">상태</label>
-            <select value={editOrdForm.status} onChange={(e) => setEditOrdForm({ ...editOrdForm, status: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none">
+            <select value={editOrdForm.status} onChange={(e) => setEditOrdForm({ ...editOrdForm, status: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none">
               {["발주", "배송중", "입고", "취소"].map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}

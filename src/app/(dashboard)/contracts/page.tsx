@@ -219,7 +219,7 @@ export default function ContractsPage() {
                 "px-3 py-2 rounded-xl text-xs font-medium transition-colors",
                 statusFilter === s
                   ? "bg-[var(--green)]/10 text-[var(--green)]"
-                  : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04]"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)]"
               )}
             >
               {s}
@@ -318,7 +318,7 @@ export default function ContractsPage() {
               <select
                 value={form.siteId}
                 onChange={(e) => setForm({ ...form, siteId: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none"
               >
                 <option value="">선택</option>
                 {sites.map((s) => (
@@ -333,7 +333,7 @@ export default function ContractsPage() {
                 required
                 value={form.contractAmount}
                 onChange={(e) => setForm({ ...form, contractAmount: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none"
                 placeholder="원"
               />
             </div>
@@ -344,7 +344,7 @@ export default function ContractsPage() {
               type="date"
               value={form.contractDate}
               onChange={(e) => setForm({ ...form, contractDate: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none"
             />
           </div>
           <div>
@@ -353,7 +353,7 @@ export default function ContractsPage() {
               value={form.memo}
               onChange={(e) => setForm({ ...form, memo: e.target.value })}
               rows={2}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none"
               placeholder="메모를 입력하세요..."
             />
           </div>
@@ -374,7 +374,7 @@ export default function ContractsPage() {
                       newP[idx].amount = e.target.value;
                       setPayments(newP);
                     }}
-                    className="px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
+                    className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:outline-none"
                   />
                   <input
                     type="date"
@@ -384,7 +384,7 @@ export default function ContractsPage() {
                       newP[idx].dueDate = e.target.value;
                       setPayments(newP);
                     }}
-                    className="px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
+                    className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:outline-none"
                   />
                 </div>
               ))}

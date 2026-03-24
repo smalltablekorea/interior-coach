@@ -32,7 +32,7 @@ export default function Modal({
           <h2 className="text-lg font-semibold">{title}</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06] text-[var(--muted)] transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--border)] text-[var(--muted)] transition-colors"
           >
             <X size={18} />
           </button>

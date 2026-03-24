@@ -95,7 +95,7 @@ export default function UpgradeModal({
           <div className="flex gap-3">
             <button
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04]"
+              className="flex-1 py-2.5 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)]"
             >
               나중에
             </button>

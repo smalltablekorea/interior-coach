@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { customers } from "@/lib/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { ok, serverError } from "@/lib/api/response";
 import { validateBody, customerSchema } from "@/lib/api/validate";
@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
     const pagination = parsePagination(request);
     const filters = parseFilters(request, ["status", "search"]);
 
-    // 기본 조건: userId 격리
-    const conditions = [eq(customers.userId, auth.userId)];
+    // 기본 조건: userId 격리 + soft delete 제외
+    const conditions = [eq(customers.userId, auth.userId), isNull(customers.deletedAt)];
 
     if (filters.status) {
       conditions.push(eq(customers.status, filters.status));

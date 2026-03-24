@@ -179,7 +179,7 @@ export default function ConstructionPage() {
                 "px-3 py-2 rounded-xl text-xs font-medium transition-colors",
                 statusFilter === s
                   ? "bg-[var(--green)]/10 text-[var(--green)]"
-                  : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04]"
+                  : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)]"
               )}
             >
               {s}
@@ -254,14 +254,14 @@ export default function ConstructionPage() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => openEdit(p)}
-                        className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                         title="편집"
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => setDeletePhaseId(p.id)}
-                        className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--red)] transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--red)] transition-colors"
                         title="삭제"
                       >
                         <Trash2 size={14} />
@@ -284,7 +284,7 @@ export default function ConstructionPage() {
               required
               value={form.siteId}
               onChange={(e) => setForm({ ...form, siteId: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
             >
               <option value="">선택</option>
               {sites.map((s) => (
@@ -297,7 +297,7 @@ export default function ConstructionPage() {
             <select
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
             >
               {TRADES.map((t) => (
                 <option key={t} value={t}>{t}</option>
@@ -311,7 +311,7 @@ export default function ConstructionPage() {
                 type="date"
                 value={form.plannedStart}
                 onChange={(e) => setForm({ ...form, plannedStart: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               />
             </div>
             <div>
@@ -320,7 +320,7 @@ export default function ConstructionPage() {
                 type="date"
                 value={form.plannedEnd}
                 onChange={(e) => setForm({ ...form, plannedEnd: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               />
             </div>
           </div>
@@ -329,7 +329,7 @@ export default function ConstructionPage() {
             <textarea
               value={form.memo}
               onChange={(e) => setForm({ ...form, memo: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
@@ -359,7 +359,7 @@ export default function ConstructionPage() {
             <select
               value={editForm.category}
               onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
             >
               {TRADES.map((t) => (
                 <option key={t} value={t}>{t}</option>
@@ -373,7 +373,7 @@ export default function ConstructionPage() {
                 type="date"
                 value={editForm.plannedStart}
                 onChange={(e) => setEditForm({ ...editForm, plannedStart: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               />
             </div>
             <div>
@@ -382,7 +382,7 @@ export default function ConstructionPage() {
                 type="date"
                 value={editForm.plannedEnd}
                 onChange={(e) => setEditForm({ ...editForm, plannedEnd: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               />
             </div>
           </div>
@@ -395,7 +395,7 @@ export default function ConstructionPage() {
                 max="100"
                 value={editForm.progress}
                 onChange={(e) => setEditForm({ ...editForm, progress: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               />
             </div>
             <div>
@@ -403,7 +403,7 @@ export default function ConstructionPage() {
               <select
                 value={editForm.status}
                 onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               >
                 {PHASE_STATUSES.map((s) => (
                   <option key={s} value={s}>{s}</option>
@@ -416,7 +416,7 @@ export default function ConstructionPage() {
             <textarea
               value={editForm.memo}
               onChange={(e) => setEditForm({ ...editForm, memo: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">

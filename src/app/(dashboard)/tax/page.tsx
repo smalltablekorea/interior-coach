@@ -224,19 +224,19 @@ export default function TaxDashboardPage() {
           <p className="text-sm text-[var(--muted)] mt-1">{year}년 세무/회계 현황</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/tax/revenue" className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04] transition-colors">
+          <Link href="/tax/revenue" className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors">
             <TrendingUp size={16} />
             매출
           </Link>
-          <Link href="/tax/expenses" className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04] transition-colors">
+          <Link href="/tax/expenses" className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors">
             <TrendingDown size={16} />
             매입/경비
           </Link>
-          <Link href="/tax/vendors" className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04] transition-colors">
+          <Link href="/tax/vendors" className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors">
             <Users size={16} />
             거래처
           </Link>
-          <Link href="/tax/payroll" className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04] transition-colors">
+          <Link href="/tax/payroll" className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors">
             <HardHat size={16} />
             급여
           </Link>
@@ -421,7 +421,7 @@ export default function TaxDashboardPage() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        <Link href="/tax/revenue" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-white/[0.04] transition-colors">
+        <Link href="/tax/revenue" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--border)] transition-colors">
           <div className="w-10 h-10 rounded-xl bg-[var(--green)]/10 flex items-center justify-center">
             <DollarSign size={20} className="text-[var(--green)]" />
           </div>
@@ -430,7 +430,7 @@ export default function TaxDashboardPage() {
             <p className="text-xs text-[var(--muted)]">매출 등록/조회</p>
           </div>
         </Link>
-        <Link href="/tax/expenses" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-white/[0.04] transition-colors">
+        <Link href="/tax/expenses" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--border)] transition-colors">
           <div className="w-10 h-10 rounded-xl bg-[var(--red)]/10 flex items-center justify-center">
             <Receipt size={20} className="text-[var(--red)]" />
           </div>
@@ -439,7 +439,7 @@ export default function TaxDashboardPage() {
             <p className="text-xs text-[var(--muted)]">경비 등록/영수증 분석</p>
           </div>
         </Link>
-        <Link href="/tax/vendors" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-white/[0.04] transition-colors">
+        <Link href="/tax/vendors" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--border)] transition-colors">
           <div className="w-10 h-10 rounded-xl bg-[var(--blue)]/10 flex items-center justify-center">
             <Users size={20} className="text-[var(--blue)]" />
           </div>
@@ -448,7 +448,7 @@ export default function TaxDashboardPage() {
             <p className="text-xs text-[var(--muted)]">거래처 등록/조회</p>
           </div>
         </Link>
-        <Link href="/tax/invoices" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-white/[0.04] transition-colors">
+        <Link href="/tax/invoices" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--border)] transition-colors">
           <div className="w-10 h-10 rounded-xl bg-[var(--orange)]/10 flex items-center justify-center">
             <FileText size={20} className="text-[var(--orange)]" />
           </div>
@@ -457,7 +457,7 @@ export default function TaxDashboardPage() {
             <p className="text-xs text-[var(--muted)]">발행/수취 관리</p>
           </div>
         </Link>
-        <Link href="/tax/payroll" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-white/[0.04] transition-colors">
+        <Link href="/tax/payroll" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--border)] transition-colors">
           <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
             <HardHat size={20} className="text-purple-400" />
           </div>
@@ -466,7 +466,7 @@ export default function TaxDashboardPage() {
             <p className="text-xs text-[var(--muted)]">급여/원천징수 관리</p>
           </div>
         </Link>
-        <Link href="/tax/ai-advisor" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-white/[0.04] transition-colors">
+        <Link href="/tax/ai-advisor" className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--border)] transition-colors">
           <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
             <Bot size={20} className="text-cyan-400" />
           </div>

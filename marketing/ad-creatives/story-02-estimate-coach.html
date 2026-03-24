@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920">
+<title>인테리어코치 스토리 광고 02 - 견적코치</title>
+<style>
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable.css');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: #0A0A0A;
+    font-family: 'Pretendard Variable', sans-serif;
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 60px;
+    overflow: hidden;
+  }
+
+  .top-label {
+    font-size: 28px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+
+  .hook {
+    font-size: 76px;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.25;
+    margin-bottom: 24px;
+  }
+
+  .hook .green {
+    color: #00C471;
+  }
+
+  .sub-hook {
+    font-size: 34px;
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    margin-bottom: 80px;
+    line-height: 1.5;
+  }
+
+  .steps {
+    width: 100%;
+    margin-bottom: 80px;
+  }
+
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+    margin-bottom: 40px;
+  }
+
+  .step-number {
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
+    background: rgba(0, 196, 113, 0.15);
+    border: 1px solid rgba(0, 196, 113, 0.3);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #00C471;
+  }
+
+  .step-content {
+    flex: 1;
+  }
+
+  .step-title {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .step-desc {
+    font-size: 28px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.4;
+  }
+
+  .connector {
+    width: 2px;
+    height: 24px;
+    background: rgba(0, 196, 113, 0.2);
+    margin-left: 31px;
+    margin-bottom: 16px;
+    margin-top: -16px;
+  }
+
+  .result-card {
+    width: 100%;
+    background: rgba(0, 196, 113, 0.08);
+    border: 2px solid rgba(0, 196, 113, 0.25);
+    border-radius: 28px;
+    padding: 48px;
+    text-align: center;
+    margin-bottom: 80px;
+  }
+
+  .result-label {
+    font-size: 28px;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 12px;
+  }
+
+  .result-value {
+    font-size: 56px;
+    font-weight: 800;
+    color: #00C471;
+    margin-bottom: 8px;
+  }
+
+  .result-sub {
+    font-size: 24px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  .cta {
+    background: #00C471;
+    color: #000000;
+    font-size: 40px;
+    font-weight: 700;
+    padding: 28px 80px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+
+  .sub-cta {
+    font-size: 28px;
+    color: rgba(255,255,255,0.4);
+  }
+</style>
+</head>
+<body>
+
+  <div class="top-label">견적코치 AI</div>
+
+  <div class="hook">
+    인테리어 견적<br>
+    <span class="green">바가지</span>인지<br>
+    3분 만에 확인
+  </div>
+
+  <div class="sub-hook">
+    받은 견적서를 AI가 분석해드립니다
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <div class="step-title">평수와 등급 선택</div>
+        <div class="step-desc">20평~60평, 실속/표준/프리미엄/하이엔드</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <div class="step-title">12개 공종별 AI 분석</div>
+        <div class="step-desc">도배, 바닥, 타일, 주방, 전기, 설비...</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-content">
+        <div class="step-title">적정가 비교 + 협상 팁</div>
+        <div class="step-desc">누락 항목 체크, 구체적 협상 방법까지</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <div class="result-label">프로 분석</div>
+    <div class="result-value">39,900원/건</div>
+    <div class="result-sub">기본 분석은 무료</div>
+  </div>
+
+  <div class="cta">내 견적 분석하기</div>
+  <div class="sub-cta">3분이면 충분합니다</div>
+
+</body>
+</html>

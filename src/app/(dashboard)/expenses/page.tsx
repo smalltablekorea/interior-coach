@@ -473,14 +473,14 @@ export default function ExpensesPage() {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => openEditExpense(expense)}
-                      className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                       title="편집"
                     >
                       <Pencil size={14} />
                     </button>
                     <button
                       onClick={() => setDeleteExpenseId(expense.id)}
-                      className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--red)] transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--red)] transition-colors"
                       title="삭제"
                     >
                       <Trash2 size={14} />
@@ -501,7 +501,7 @@ export default function ExpensesPage() {
             <select
               value={form.siteId}
               onChange={(e) => setForm({ ...form, siteId: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm"
             >
               <option value="">선택</option>
               {sites.map((s) => (
@@ -515,7 +515,7 @@ export default function ExpensesPage() {
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm"
               >
                 {EXPENSE_CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -527,7 +527,7 @@ export default function ExpensesPage() {
               <select
                 value={form.paymentMethod}
                 onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm"
               >
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -542,7 +542,7 @@ export default function ExpensesPage() {
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               placeholder="지출 내역을 입력하세요"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm placeholder:text-[var(--muted)]"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm placeholder:text-[var(--muted)]"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -553,7 +553,7 @@ export default function ExpensesPage() {
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 placeholder="0"
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm"
               />
             </div>
             <div>
@@ -562,7 +562,7 @@ export default function ExpensesPage() {
                 type="date"
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm"
               />
             </div>
           </div>
@@ -573,7 +573,7 @@ export default function ExpensesPage() {
               value={form.vendor}
               onChange={(e) => setForm({ ...form, vendor: e.target.value })}
               placeholder="거래처명"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm placeholder:text-[var(--muted)]"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm placeholder:text-[var(--muted)]"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
@@ -603,7 +603,7 @@ export default function ExpensesPage() {
             <select
               value={editForm.siteId}
               onChange={(e) => setEditForm({ ...editForm, siteId: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
             >
               <option value="">선택</option>
               {sites.map((s) => (
@@ -617,7 +617,7 @@ export default function ExpensesPage() {
               <select
                 value={editForm.category}
                 onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               >
                 {EXPENSE_CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -629,7 +629,7 @@ export default function ExpensesPage() {
               <select
                 value={editForm.paymentMethod}
                 onChange={(e) => setEditForm({ ...editForm, paymentMethod: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               >
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>{m}</option>
@@ -643,7 +643,7 @@ export default function ExpensesPage() {
               type="text"
               value={editForm.description}
               onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -653,7 +653,7 @@ export default function ExpensesPage() {
                 type="number"
                 value={editForm.amount}
                 onChange={(e) => setEditForm({ ...editForm, amount: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               />
             </div>
             <div>
@@ -662,7 +662,7 @@ export default function ExpensesPage() {
                 type="date"
                 value={editForm.date}
                 onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               />
             </div>
           </div>
@@ -673,7 +673,7 @@ export default function ExpensesPage() {
               value={editForm.vendor}
               onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value })}
               placeholder="거래처명"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">

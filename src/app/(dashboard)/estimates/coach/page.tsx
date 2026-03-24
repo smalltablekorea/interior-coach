@@ -244,7 +244,7 @@ export default function EstimateCoachPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/estimates"
-            className="p-2 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]"
+            className="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]"
           >
             <ArrowLeft size={20} />
           </Link>
@@ -261,7 +261,7 @@ export default function EstimateCoachPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
           >
             <Download size={16} />
             <span className="hidden sm:inline">PDF 저장</span>
@@ -286,7 +286,7 @@ export default function EstimateCoachPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setArea(Math.max(10, area - 1))}
-              className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-white/[0.06] text-[var(--muted)]"
+              className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--border)] text-[var(--muted)]"
             >
               <Minus size={16} />
             </button>
@@ -308,7 +308,7 @@ export default function EstimateCoachPage() {
             </div>
             <button
               onClick={() => setArea(Math.min(100, area + 1))}
-              className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-white/[0.06] text-[var(--muted)]"
+              className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--border)] text-[var(--muted)]"
             >
               <Plus size={16} />
             </button>
@@ -369,7 +369,7 @@ export default function EstimateCoachPage() {
             <select
               value={grade}
               onChange={(e) => setGrade(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
+              className="w-full px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
             >
               {GRADES.map((g) => (
                 <option key={g.key} value={g.key}>
@@ -431,7 +431,7 @@ export default function EstimateCoachPage() {
                 onClick={() => setVatOn(!vatOn)}
                 className={cn(
                   "w-10 h-5 rounded-full transition-colors relative",
-                  vatOn ? "bg-[var(--green)]" : "bg-white/10"
+                  vatOn ? "bg-[var(--green)]" : "bg-[var(--border)]"
                 )}
               >
                 <div
@@ -747,7 +747,7 @@ export default function EstimateCoachPage() {
                     key={i}
                     onClick={() => handleAsk(q)}
                     disabled={asking}
-                    className="w-full text-left p-2.5 rounded-xl border border-[var(--border)] hover:bg-white/[0.04] text-xs transition-colors disabled:opacity-50"
+                    className="w-full text-left p-2.5 rounded-xl border border-[var(--border)] hover:bg-[var(--border)] text-xs transition-colors disabled:opacity-50"
                   >
                     {q}
                   </button>
@@ -776,7 +776,7 @@ export default function EstimateCoachPage() {
                       <p className="whitespace-pre-wrap">{msg.content}</p>
                     </div>
                     {msg.role === "user" && (
-                      <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center shrink-0 mt-0.5">
+                      <div className="w-6 h-6 rounded-full bg-[var(--border)] flex items-center justify-center shrink-0 mt-0.5">
                         <User size={12} className="text-[var(--muted)]" />
                       </div>
                     )}

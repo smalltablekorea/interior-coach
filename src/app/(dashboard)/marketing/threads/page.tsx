@@ -108,9 +108,9 @@ interface Site {
 
 /* ── Helpers ── */
 const inputCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none";
 const selectCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none";
 
 const TABS: { key: TabKey; label: string; icon: typeof CalendarDays }[] = [
   { key: "calendar", label: "콘텐츠 캘린더", icon: CalendarDays },
@@ -540,7 +540,7 @@ export default function ThreadsPage() {
       <div className="flex items-center gap-3">
         <Link
           href="/marketing"
-          className="p-2 rounded-xl hover:bg-white/[0.06] text-[var(--muted)] hover:text-white transition-colors"
+          className="p-2 rounded-xl hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
         >
           <ArrowLeft size={20} />
         </Link>
@@ -587,7 +587,7 @@ export default function ThreadsPage() {
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               activeTab === tab.key
                 ? "border-[var(--green)] text-[var(--green)]"
-                : "border-transparent text-[var(--muted)] hover:text-white"
+                : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
             <tab.icon size={16} />
@@ -601,13 +601,13 @@ export default function ThreadsPage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]">
+              <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]">
                 <ChevronLeft size={18} />
               </button>
               <h2 className="text-lg font-semibold">
                 {calMonth.year}년 {calMonth.month + 1}월
               </h2>
-              <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]">
+              <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]">
                 <ChevronRight size={18} />
               </button>
             </div>
@@ -697,7 +697,7 @@ export default function ThreadsPage() {
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     onClick={() => openEditPost(p)}
-                    className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-white transition-colors"
+                    className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                   >
                     <Pencil size={14} />
                   </button>
@@ -750,7 +750,7 @@ export default function ThreadsPage() {
                     <div className="flex gap-1">
                       <button
                         onClick={() => openEditTemplate(t)}
-                        className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-white transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                       >
                         <Pencil size={14} />
                       </button>
@@ -1016,7 +1016,7 @@ export default function ThreadsPage() {
             {channelConnection?.hasToken ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-xl">🧵</div>
+                  <div className="w-12 h-12 rounded-full bg-[var(--border)] flex items-center justify-center text-xl">🧵</div>
                   <div>
                     <p className="font-semibold">{channelConnection.accountName || "연결된 계정"}</p>
                     <p className="text-xs text-[var(--green)]">연결됨</p>
@@ -1041,7 +1041,7 @@ export default function ThreadsPage() {
                         setOauthMessage({ type: "error", text: "토큰 갱신에 실패했습니다." });
                       }
                     }}
-                    className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+                    className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
                   >
                     토큰 갱신
                   </button>
@@ -1187,7 +1187,7 @@ export default function ThreadsPage() {
             <button
               type="button"
               onClick={() => setShowPostModal(false)}
-              className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
             >
               취소
             </button>
@@ -1257,7 +1257,7 @@ export default function ThreadsPage() {
             <button
               type="button"
               onClick={() => setShowTemplateModal(false)}
-              className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
             >
               취소
             </button>
@@ -1318,7 +1318,7 @@ export default function ThreadsPage() {
             <button
               type="button"
               onClick={() => setShowRuleModal(false)}
-              className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
             >
               취소
             </button>

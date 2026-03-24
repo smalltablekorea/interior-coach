@@ -383,7 +383,7 @@ export default function SiteDetailPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/sites"
-            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-white/[0.04] transition-colors"
+            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors"
           >
             <ArrowLeft size={18} />
           </Link>
@@ -422,14 +422,14 @@ export default function SiteDetailPage() {
               <>
                 <button
                   onClick={startEditing}
-                  className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                   title="편집"
                 >
                   <Pencil size={18} />
                 </button>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--red)] transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--red)] transition-colors"
                   title="삭제"
                 >
                   <Trash2 size={18} />
@@ -497,7 +497,7 @@ export default function SiteDetailPage() {
                     type="text"
                     value={editForm.name}
                     onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -506,7 +506,7 @@ export default function SiteDetailPage() {
                     type="text"
                     value={editForm.address}
                     onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -515,7 +515,7 @@ export default function SiteDetailPage() {
                     <select
                       value={editForm.buildingType}
                       onChange={(e) => setEditForm({ ...editForm, buildingType: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
                     >
                       <option value="">선택</option>
                       {BUILDING_TYPES.map((t) => (
@@ -529,7 +529,7 @@ export default function SiteDetailPage() {
                       type="number"
                       value={editForm.areaPyeong}
                       onChange={(e) => setEditForm({ ...editForm, areaPyeong: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -538,7 +538,7 @@ export default function SiteDetailPage() {
                   <select
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
                   >
                     {SITE_STATUSES.map((s) => (
                       <option key={s} value={s}>{s}</option>
@@ -552,7 +552,7 @@ export default function SiteDetailPage() {
                       type="date"
                       value={editForm.startDate}
                       onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
                     />
                   </div>
                   <div>
@@ -561,7 +561,7 @@ export default function SiteDetailPage() {
                       type="date"
                       value={editForm.endDate}
                       onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
-                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
                     />
                   </div>
                 </div>
@@ -570,7 +570,7 @@ export default function SiteDetailPage() {
                   <textarea
                     value={editForm.memo}
                     onChange={(e) => setEditForm({ ...editForm, memo: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
                   />
                 </div>
               </div>
@@ -665,7 +665,7 @@ export default function SiteDetailPage() {
       <Modal open={showDeleteConfirm} onClose={() => setShowDeleteConfirm(false)} title="현장 삭제">
         <div className="space-y-4">
           <p className="text-sm text-[var(--muted)]">
-            <span className="text-white font-medium">{site.name}</span> 현장을 삭제하시겠습니까?<br />
+            <span className="text-[var(--foreground)] font-medium">{site.name}</span> 현장을 삭제하시겠습니까?<br />
             이 작업은 되돌릴 수 없습니다.
           </p>
           <div className="flex justify-end gap-3">
@@ -702,8 +702,8 @@ export default function SiteDetailPage() {
                   onClick={() => setPhaseFilter(f.key)}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     phaseFilter === f.key
-                      ? "bg-white/10 text-white"
-                      : "text-[var(--muted)] hover:text-white hover:bg-white/[0.04]"
+                      ? "bg-[var(--border)] text-white"
+                      : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)]"
                   }`}
                 >
                   {f.label}
@@ -725,7 +725,7 @@ export default function SiteDetailPage() {
               />
               <button
                 onClick={() => cameraInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-white hover:bg-white/[0.04] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
               >
                 <Camera size={16} />
                 촬영
@@ -783,7 +783,7 @@ export default function SiteDetailPage() {
                   <select
                     value={uploadCategory}
                     onChange={(e) => setUploadCategory(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
                   >
                     {["현장", ...TRADES].map((c) => (
                       <option key={c} value={c}>{c}</option>
@@ -795,7 +795,7 @@ export default function SiteDetailPage() {
                   <select
                     value={uploadPhase}
                     onChange={(e) => setUploadPhase(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
                   >
                     <option value="before">시공 전</option>
                     <option value="during">시공 중</option>
@@ -808,7 +808,7 @@ export default function SiteDetailPage() {
                     type="text"
                     value={uploadCaption}
                     onChange={(e) => setUploadCaption(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                     placeholder="사진 설명 (선택)"
                   />
                 </div>
@@ -872,7 +872,7 @@ export default function SiteDetailPage() {
                         {photo.comments.length > 0 && (
                           <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-black/60 rounded-full px-1.5 py-0.5">
                             <MessageCircle size={10} className="text-white" />
-                            <span className="text-[10px] text-white font-medium">{photo.comments.length}</span>
+                            <span className="text-[10px] text-[var(--foreground)] font-medium">{photo.comments.length}</span>
                           </div>
                         )}
                       </button>
@@ -944,7 +944,7 @@ export default function SiteDetailPage() {
             {/* Close */}
             <button
               onClick={() => setSelectedPhoto(null)}
-              className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 z-10"
+              className="absolute top-4 left-4 w-9 h-9 rounded-full bg-[var(--border)] flex items-center justify-center hover:bg-white/20 z-10"
             >
               <X size={20} />
             </button>
@@ -952,13 +952,13 @@ export default function SiteDetailPage() {
             {/* Nav arrows */}
             <button
               onClick={() => navigatePhoto(-1)}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center hover:bg-white/20"
             >
               <ChevronLeft size={24} />
             </button>
             <button
               onClick={() => navigatePhoto(1)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20"
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-[var(--border)] flex items-center justify-center hover:bg-white/20"
             >
               <ChevronRight size={24} />
             </button>
@@ -971,7 +971,7 @@ export default function SiteDetailPage() {
 
             {/* Caption bar */}
             <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-6 py-3">
-              <p className="text-white font-medium">{selectedPhoto.caption}</p>
+              <p className="text-[var(--foreground)] font-medium">{selectedPhoto.caption}</p>
               <p className="text-sm text-white/60">
                 {selectedPhoto.uploadedBy} · {selectedPhoto.category} · {fmtDate(selectedPhoto.date)}
               </p>
@@ -1028,7 +1028,7 @@ export default function SiteDetailPage() {
                     }
                   }}
                   placeholder="댓글을 입력하세요..."
-                  className="flex-1 px-3 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+                  className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                 />
                 <button
                   onClick={() => addComment(selectedPhoto.id)}
@@ -1078,7 +1078,7 @@ export default function SiteDetailPage() {
                 const paid = c.payments.filter((p) => p.status === "완납").reduce((s, p) => s + p.amount, 0);
                 const paidPct = c.contractAmount > 0 ? Math.round((paid / c.contractAmount) * 100) : 0;
                 return (
-                  <Link key={c.id} href={`/contracts/${c.id}`} className="block p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                  <Link key={c.id} href={`/contracts/${c.id}`} className="block p-4 rounded-xl bg-white/[0.02] hover:bg-[var(--border)] transition-colors">
                     <div className="flex items-center justify-between mb-3">
                       <p className="font-medium">계약일 {fmtDate(c.contractDate)}</p>
                       <p className="text-lg font-bold">{fmt(c.contractAmount)}</p>

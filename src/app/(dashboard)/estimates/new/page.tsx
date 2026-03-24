@@ -115,7 +115,7 @@ export default function NewEstimatePage() {
         <div className="flex items-center gap-3">
           <Link
             href="/estimates"
-            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-white/[0.04] transition-colors"
+            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors"
           >
             <ArrowLeft size={18} />
           </Link>
@@ -124,7 +124,7 @@ export default function NewEstimatePage() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowPreview(!showPreview)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
           >
             <Eye size={16} />
             {showPreview ? "편집" : "미리보기"}
@@ -280,7 +280,7 @@ export default function NewEstimatePage() {
                 <select
                   value={form.siteId}
                   onChange={(e) => setForm({ ...form, siteId: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm"
                 >
                   <option value="">현장 선택</option>
                   {sites.map((s) => (
@@ -294,7 +294,7 @@ export default function NewEstimatePage() {
                   type="number"
                   value={form.profitRate}
                   onChange={(e) => setForm({ ...form, profitRate: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm"
                 />
               </div>
               <div>
@@ -303,7 +303,7 @@ export default function NewEstimatePage() {
                   type="number"
                   value={form.overheadRate}
                   onChange={(e) => setForm({ ...form, overheadRate: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none text-sm"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm"
                 />
               </div>
             </div>
@@ -343,28 +343,28 @@ export default function NewEstimatePage() {
                         placeholder="항목명"
                         value={item.itemName}
                         onChange={(e) => updateItem(globalIdx, "itemName", e.target.value)}
-                        className="col-span-4 px-3 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+                        className="col-span-4 px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                       />
                       <input
                         type="text"
                         placeholder="단위"
                         value={item.unit}
                         onChange={(e) => updateItem(globalIdx, "unit", e.target.value)}
-                        className="col-span-1 px-2 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm text-center focus:outline-none"
+                        className="col-span-1 px-2 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm text-center focus:outline-none"
                       />
                       <input
                         type="number"
                         placeholder="수량"
                         value={item.quantity || ""}
                         onChange={(e) => updateItem(globalIdx, "quantity", parseFloat(e.target.value) || 0)}
-                        className="col-span-2 px-3 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
+                        className="col-span-2 px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:outline-none"
                       />
                       <input
                         type="number"
                         placeholder="단가"
                         value={item.unitPrice || ""}
                         onChange={(e) => updateItem(globalIdx, "unitPrice", parseInt(e.target.value) || 0)}
-                        className="col-span-3 px-3 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:outline-none"
+                        className="col-span-3 px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:outline-none"
                       />
                       <div className="col-span-1 flex items-center justify-between">
                         <span className="text-xs text-[var(--muted)]">
@@ -390,7 +390,7 @@ export default function NewEstimatePage() {
               <button
                 key={trade}
                 onClick={() => addItem(trade)}
-                className="px-3 py-2 rounded-xl text-xs bg-white/[0.04] text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.06] transition-colors"
+                className="px-3 py-2 rounded-xl text-xs bg-white/[0.04] text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
               >
                 + {trade}
               </button>

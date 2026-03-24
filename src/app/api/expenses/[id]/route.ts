@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { expenses } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
+import { ok, notFound, serverError } from "@/lib/api/response";
 
 export async function PUT(
   request: NextRequest,
@@ -15,27 +16,28 @@ export async function PUT(
   const body = await request.json();
   const { siteId, category, description, amount, date, paymentMethod, vendor, receiptUrl } = body;
 
-  const [row] = await db
-    .update(expenses)
-    .set({
-      siteId: siteId || null,
-      category,
-      description: description || null,
-      amount,
-      date: date || null,
-      paymentMethod: paymentMethod || null,
-      vendor: vendor || null,
-      receiptUrl: receiptUrl || null,
-      updatedAt: new Date(),
-    })
-    .where(eq(expenses.id, id))
-    .returning();
+  try {
+    const [row] = await db
+      .update(expenses)
+      .set({
+        siteId: siteId || null,
+        category,
+        description: description || null,
+        amount,
+        date: date || null,
+        paymentMethod: paymentMethod || null,
+        vendor: vendor || null,
+        receiptUrl: receiptUrl || null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(expenses.id, id), eq(expenses.userId, auth.userId), isNull(expenses.deletedAt)))
+      .returning();
 
-  if (!row) {
-    return NextResponse.json({ error: "지출을 찾을 수 없습니다" }, { status: 404 });
+    if (!row) return notFound("지출을 찾을 수 없습니다");
+    return ok(row);
+  } catch (error) {
+    return serverError(error);
   }
-
-  return NextResponse.json(row);
 }
 
 export async function DELETE(
@@ -46,6 +48,13 @@ export async function DELETE(
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
-  await db.delete(expenses).where(eq(expenses.id, id));
-  return NextResponse.json({ success: true });
+
+  const [row] = await db
+    .update(expenses)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(expenses.id, id), eq(expenses.userId, auth.userId), isNull(expenses.deletedAt)))
+    .returning({ id: expenses.id });
+
+  if (!row) return notFound("지출을 찾을 수 없습니다");
+  return ok({ id: row.id });
 }

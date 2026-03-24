@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { estimates, estimateItems, sites, customers } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { ok, notFound, serverError } from "@/lib/api/response";
 
@@ -37,7 +37,7 @@ export async function GET(
     .from(estimates)
     .leftJoin(sites, eq(estimates.siteId, sites.id))
     .leftJoin(customers, eq(sites.customerId, customers.id))
-    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId)));
+    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId), isNull(estimates.deletedAt)));
 
   if (!row) return notFound("견적을 찾을 수 없습니다");
 
@@ -91,7 +91,7 @@ export async function PUT(
   const [existing] = await db
     .select({ id: estimates.id })
     .from(estimates)
-    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId)));
+    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId), isNull(estimates.deletedAt)));
 
   if (!existing) return notFound("견적을 찾을 수 없습니다");
 
@@ -155,8 +155,9 @@ export async function DELETE(
   const { id } = await params;
 
   const [row] = await db
-    .delete(estimates)
-    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId)))
+    .update(estimates)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId), isNull(estimates.deletedAt)))
     .returning({ id: estimates.id });
 
   if (!row) return notFound("견적을 찾을 수 없습니다");

@@ -211,10 +211,10 @@ const GRADIENT_COLORS = [
 
 /* ── Helpers ── */
 const inputCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
 
 const selectCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[#00C471] focus:outline-none";
 
 const cardCls = "rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6";
 
@@ -222,7 +222,7 @@ const btnPrimary =
   "rounded-lg bg-[#00C471] text-black px-4 py-2 text-sm font-medium hover:bg-[#00D47F] transition-colors";
 
 const btnSecondary =
-  "px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors";
+  "px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors";
 
 function fmtNumber(n: number): string {
   if (n >= 10000) return (n / 10000).toFixed(1) + "만";
@@ -517,7 +517,7 @@ export default function YouTubePage() {
       <div className="flex items-center gap-4">
         <Link
           href="/marketing"
-          className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center hover:bg-white/[0.04] transition-colors"
+          className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors"
         >
           <ArrowLeft size={16} />
         </Link>
@@ -536,7 +536,7 @@ export default function YouTubePage() {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap",
               activeTab === tab.key
-                ? "bg-white/[0.08] text-white font-medium"
+                ? "bg-[var(--border)] text-[var(--foreground)] font-medium"
                 : "text-neutral-500 hover:text-neutral-300"
             )}
           >
@@ -634,7 +634,7 @@ export default function YouTubePage() {
                           <td className="px-5 py-3.5 text-right">
                             <button
                               onClick={() => handleDeleteVideo(video.id)}
-                              className="p-1.5 rounded-lg hover:bg-white/[0.06] text-neutral-500 hover:text-red-400 transition-colors"
+                              className="p-1.5 rounded-lg hover:bg-[var(--border)] text-neutral-500 hover:text-red-400 transition-colors"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -880,7 +880,7 @@ export default function YouTubePage() {
                       <h4 className="text-sm font-medium text-[#00C471]">AI 생성 아웃라인</h4>
                       <button
                         onClick={() => handleCopy(generatedOutline.outline, `outline-${tmpl.id}`)}
-                        className="p-1.5 rounded-lg hover:bg-white/[0.06] text-neutral-500 transition-colors"
+                        className="p-1.5 rounded-lg hover:bg-[var(--border)] text-neutral-500 transition-colors"
                       >
                         {copiedField === `outline-${tmpl.id}` ? <Check size={14} className="text-[#00C471]" /> : <Copy size={14} />}
                       </button>
@@ -1233,7 +1233,7 @@ export default function YouTubePage() {
                         <td className="px-5 py-3.5 text-right">
                           <button
                             onClick={() => saveAnalytics(analyticsData.filter((r) => r.id !== row.id))}
-                            className="p-1.5 rounded-lg hover:bg-white/[0.06] text-neutral-500 hover:text-red-400 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-[var(--border)] text-neutral-500 hover:text-red-400 transition-colors"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -1363,7 +1363,7 @@ export default function YouTubePage() {
                         setOauthMessage({ type: "error", text: "토큰 갱신에 실패했습니다." });
                       }
                     }}
-                    className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+                    className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
                   >
                     토큰 갱신
                   </button>

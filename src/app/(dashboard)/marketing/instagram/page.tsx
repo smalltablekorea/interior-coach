@@ -211,16 +211,16 @@ const DUMMY_POSTS: FeedPost[] = Array.from({ length: 9 }, (_, i) => ({
 /* ── Styling Helpers ── */
 
 const inputCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
 
 const selectCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[#00C471] focus:outline-none";
 
 const btnPrimary =
   "rounded-lg bg-[#00C471] text-black px-4 py-2 text-sm font-medium hover:bg-[#00D47F] transition-colors";
 
 const btnSecondary =
-  "px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors";
+  "px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors";
 
 const cardCls = "rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6";
 
@@ -465,7 +465,7 @@ export default function InstagramPage() {
         {posts.slice(0, 9).map((post) => (
           <div
             key={post.id}
-            className="group relative rounded-xl overflow-hidden border border-[var(--border)] hover:border-white/[0.12] transition-colors cursor-pointer"
+            className="group relative rounded-xl overflow-hidden border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors cursor-pointer"
           >
             {/* Image Placeholder */}
             <div
@@ -583,7 +583,7 @@ export default function InstagramPage() {
                     "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-colors",
                     contentType === ct.value
                       ? "border-[#00C471] bg-[#00C471]/10 text-[#00C471]"
-                      : "border-[var(--border)] text-[var(--muted)] hover:bg-white/[0.04]"
+                      : "border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]"
                   )}
                 >
                   <ct.icon size={16} />
@@ -605,7 +605,7 @@ export default function InstagramPage() {
                     "flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm transition-colors",
                     format === fo.value
                       ? "border-[#00C471] bg-[#00C471]/10 text-[#00C471]"
-                      : "border-[var(--border)] text-[var(--muted)] hover:bg-white/[0.04]"
+                      : "border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)]"
                   )}
                 >
                   <fo.icon size={16} />
@@ -697,7 +697,7 @@ export default function InstagramPage() {
                       "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-colors",
                       captionCopied
                         ? "bg-[#00C471]/15 text-[#00C471]"
-                        : "bg-white/[0.06] text-[var(--muted)] hover:text-white"
+                        : "bg-white/[0.06] text-[var(--muted)] hover:text-[var(--foreground)]"
                     )}
                   >
                     {captionCopied ? <Check size={12} /> : <Copy size={12} />}
@@ -723,7 +723,7 @@ export default function InstagramPage() {
                       "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs transition-colors",
                       hashtagsCopied
                         ? "bg-[#00C471]/15 text-[#00C471]"
-                        : "bg-white/[0.06] text-[var(--muted)] hover:text-white"
+                        : "bg-white/[0.06] text-[var(--muted)] hover:text-[var(--foreground)]"
                     )}
                   >
                     {hashtagsCopied ? <Check size={12} /> : <Copy size={12} />}
@@ -959,7 +959,7 @@ export default function InstagramPage() {
                   <td className="px-4 py-3">
                     <button
                       onClick={() => deleteAnalyticsRow(row.id)}
-                      className="p-1 rounded-md hover:bg-white/[0.06] text-neutral-600 hover:text-red-400 transition-colors"
+                      className="p-1 rounded-md hover:bg-[var(--border)] text-neutral-600 hover:text-red-400 transition-colors"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -1094,7 +1094,7 @@ export default function InstagramPage() {
                     setOauthMessage({ type: "error", text: "토큰 갱신에 실패했습니다." });
                   }
                 }}
-                className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+                className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
               >
                 토큰 갱신
               </button>
@@ -1164,7 +1164,7 @@ export default function InstagramPage() {
                   <h4 className="text-sm font-medium">{group.name}</h4>
                   <button
                     onClick={() => deleteHashtagGroup(group.id)}
-                    className="p-1 rounded-md hover:bg-white/[0.06] text-neutral-600 hover:text-red-400 transition-colors"
+                    className="p-1 rounded-md hover:bg-[var(--border)] text-neutral-600 hover:text-red-400 transition-colors"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -1274,7 +1274,7 @@ export default function InstagramPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/marketing"
-          className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center hover:bg-white/[0.04] transition-colors"
+          className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors"
         >
           <ArrowLeft size={16} />
         </Link>
@@ -1293,7 +1293,7 @@ export default function InstagramPage() {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap",
               activeTab === tab.key
-                ? "bg-white/[0.08] text-white font-medium"
+                ? "bg-[var(--border)] text-[var(--foreground)] font-medium"
                 : "text-neutral-500 hover:text-neutral-300"
             )}
           >

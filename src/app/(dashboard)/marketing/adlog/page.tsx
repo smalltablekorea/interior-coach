@@ -106,7 +106,7 @@ const TABS: { key: TabKey; label: string; icon: typeof BarChart3 }[] = [
 ];
 
 const inputCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none";
 
 /* ══════════════════════════════════════════════════════════════════════════
    Component
@@ -245,7 +245,7 @@ export default function AdlogPage() {
       {/* ══════ Header ══════ */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/marketing" className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-white/[0.04] text-neutral-500 transition-colors">
+          <Link href="/marketing" className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[var(--border)] text-neutral-500 transition-colors">
             <ArrowLeft size={20} />
           </Link>
           <div>
@@ -256,11 +256,11 @@ export default function AdlogPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <a href={ADLOG_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[0.06] text-sm text-neutral-400 hover:bg-white/[0.04] transition-colors">
+          <a href={ADLOG_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[0.06] text-sm text-neutral-400 hover:bg-[var(--border)] transition-colors">
             애드로그 열기 <ExternalLink size={14} />
           </a>
           {connection.connected && (
-            <button onClick={syncFromAdlog} disabled={syncing} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[0.06] text-sm text-neutral-400 hover:bg-white/[0.04] transition-colors disabled:opacity-50">
+            <button onClick={syncFromAdlog} disabled={syncing} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-white/[0.06] text-sm text-neutral-400 hover:bg-[var(--border)] transition-colors disabled:opacity-50">
               {syncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               동기화
             </button>
@@ -275,7 +275,7 @@ export default function AdlogPage() {
           return (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={cn(
               "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
-              activeTab === tab.key ? "bg-[var(--green)]/10 text-[var(--green)]" : "text-neutral-500 hover:text-white hover:bg-white/[0.04]",
+              activeTab === tab.key ? "bg-[var(--green)]/10 text-[var(--green)]" : "text-neutral-500 hover:text-[var(--foreground)] hover:bg-[var(--border)]",
             )}>
               <Icon size={16} /> {tab.label}
             </button>
@@ -336,7 +336,7 @@ export default function AdlogPage() {
                   const prev = item.ranks.filter((r) => r.rank !== null)[1];
                   const rankDiff = latest && prev && latest.rank !== null && prev.rank !== null ? prev.rank - latest.rank : 0;
                   return (
-                    <div key={idx} className="flex items-center justify-between py-3 px-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                    <div key={idx} className="flex items-center justify-between py-3 px-4 rounded-xl bg-white/[0.02] hover:bg-[var(--border)] transition-colors">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
                           <span className="text-sm font-bold text-emerald-400">{latest?.rank ?? "-"}</span>
@@ -425,7 +425,7 @@ export default function AdlogPage() {
                   return (
                     <button key={idx} onClick={() => setSelectedRankIdx(idx)} className={cn(
                       "flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors shrink-0",
-                      selectedRankIdx === idx ? "bg-white/10 text-white" : "text-neutral-500 hover:text-white hover:bg-white/[0.04]",
+                      selectedRankIdx === idx ? "bg-[var(--border)] text-white" : "text-neutral-500 hover:text-[var(--foreground)] hover:bg-[var(--border)]",
                     )}>
                       <span className="text-xs font-bold text-emerald-400">{latest?.rank ?? "-"}위</span>
                       {item.keyword}

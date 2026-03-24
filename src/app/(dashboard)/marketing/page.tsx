@@ -74,10 +74,10 @@ const DEFAULT_CHANNELS: ChannelStat[] = [
 
 /* ── Helpers ── */
 const inputCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
 
 const selectCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[#00C471] focus:outline-none";
 
 /* ══════════════════════════════════ Page ══════════════════════════════════ */
 export default function MarketingPage() {
@@ -252,7 +252,7 @@ export default function MarketingPage() {
 
               {/* Post count */}
               <div className="text-sm text-neutral-500">
-                게시물 <span className="text-white font-medium">{ch.postCount}건</span>
+                게시물 <span className="text-[var(--foreground)] font-medium">{ch.postCount}건</span>
               </div>
 
               {/* Manage button */}
@@ -497,7 +497,7 @@ export default function MarketingPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 rounded-lg border border-white/[0.06] text-sm text-neutral-500 hover:bg-white/[0.04] transition-colors"
+                  className="px-4 py-2 rounded-lg border border-white/[0.06] text-sm text-neutral-500 hover:bg-[var(--border)] transition-colors"
                 >
                   취소
                 </button>

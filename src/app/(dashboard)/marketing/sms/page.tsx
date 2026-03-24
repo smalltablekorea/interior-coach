@@ -159,10 +159,10 @@ const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
 };
 
 const inputCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
 
 const selectCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[#00C471] focus:outline-none";
 
 /* ═══════════════ Page ═══════════════ */
 
@@ -421,7 +421,7 @@ export default function SmsAutomationPage() {
             onClick={() => setTab(t)}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
               tab === t
-                ? "bg-white/[0.08] text-white"
+                ? "bg-[var(--border)] text-[var(--foreground)]"
                 : "text-neutral-500 hover:text-neutral-300"
             }`}
           >
@@ -666,7 +666,7 @@ function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClos
 function ModalButtons({ onCancel, submitLabel }: { onCancel: () => void; submitLabel: string }) {
   return (
     <div className="flex justify-end gap-3 pt-2">
-      <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg border border-white/[0.06] text-sm text-neutral-500 hover:bg-white/[0.04] transition-colors">
+      <button type="button" onClick={onCancel} className="px-4 py-2 rounded-lg border border-white/[0.06] text-sm text-neutral-500 hover:bg-[var(--border)] transition-colors">
         취소
       </button>
       <button type="submit" className="rounded-lg bg-[#00C471] text-black px-4 py-2 text-sm font-medium hover:bg-[#00D47F] transition-colors">
@@ -827,7 +827,7 @@ function LeadManagementTab({
         <select
           value={gradeFilter}
           onChange={(e) => setGradeFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-white/5 border border-white/[0.06] text-sm text-white"
+          className="px-3 py-2 rounded-lg bg-[var(--card)] border border-white/[0.06] text-sm text-white"
         >
           <option value="">모든 등급</option>
           <option value="A">A등급</option>
@@ -837,7 +837,7 @@ function LeadManagementTab({
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 rounded-lg bg-white/5 border border-white/[0.06] text-sm text-white"
+          className="px-3 py-2 rounded-lg bg-[var(--card)] border border-white/[0.06] text-sm text-white"
         >
           <option value="">모든 상태</option>
           {Object.entries(STATUS_LABELS).map(([k, v]) => (
@@ -1365,7 +1365,7 @@ function SettingsTab() {
           <button
             onClick={() => setAutoScoring(!autoScoring)}
             className={`w-12 h-6 rounded-full transition-colors ${
-              autoScoring ? "bg-[#00C471]" : "bg-white/10"
+              autoScoring ? "bg-[#00C471]" : "bg-[var(--border)]"
             }`}
           >
             <div
@@ -1385,7 +1385,7 @@ function SettingsTab() {
           <button
             onClick={() => setAutoDrip(!autoDrip)}
             className={`w-12 h-6 rounded-full transition-colors ${
-              autoDrip ? "bg-[#00C471]" : "bg-white/10"
+              autoDrip ? "bg-[#00C471]" : "bg-[var(--border)]"
             }`}
           >
             <div

@@ -209,7 +209,7 @@ export default function CustomerDetailPage() {
   const totalContract = customer.contracts.reduce((s, c) => s + c.contractAmount, 0);
   const totalPaid = customer.contracts.reduce((s, c) => s + c.paidAmount, 0);
 
-  const inputClass = "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none";
+  const inputClass = "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none";
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     { key: "info", label: "기본정보", icon: <Phone size={16} /> },
@@ -234,7 +234,7 @@ export default function CustomerDetailPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/customers"
-            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-white/[0.04] transition-colors"
+            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors"
           >
             <ArrowLeft size={18} />
           </Link>
@@ -265,7 +265,7 @@ export default function CustomerDetailPage() {
                   status: customer.status || "상담중",
                 });
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
             >
               <Pencil size={16} /> 수정
             </button>
@@ -368,7 +368,7 @@ export default function CustomerDetailPage() {
             className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === tab.key
                 ? "border-[var(--green)] text-[var(--green)]"
-                : "border-transparent text-[var(--muted)] hover:text-white"
+                : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
             {tab.icon}
@@ -624,7 +624,7 @@ export default function CustomerDetailPage() {
                 required
                 value={commForm.date}
                 onChange={(e) => setCommForm({ ...commForm, date: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none transition-colors"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
               />
             </div>
             <div>
@@ -632,7 +632,7 @@ export default function CustomerDetailPage() {
               <select
                 value={commForm.type}
                 onChange={(e) => setCommForm({ ...commForm, type: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none transition-colors"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
               >
                 {COMMUNICATION_TYPES.map((t) => (
                   <option key={t} value={t} className="bg-[#111]">{t}</option>
@@ -646,7 +646,7 @@ export default function CustomerDetailPage() {
               type="text"
               value={commForm.staffName}
               onChange={(e) => setCommForm({ ...commForm, staffName: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
               placeholder="담당자명"
             />
           </div>
@@ -655,7 +655,7 @@ export default function CustomerDetailPage() {
             <textarea
               value={commForm.content}
               onChange={(e) => setCommForm({ ...commForm, content: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors resize-none h-24"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors resize-none h-24"
               placeholder="소통 내용을 기록하세요"
             />
           </div>
@@ -663,7 +663,7 @@ export default function CustomerDetailPage() {
             <button
               type="button"
               onClick={() => setShowCommModal(false)}
-              className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
             >
               취소
             </button>

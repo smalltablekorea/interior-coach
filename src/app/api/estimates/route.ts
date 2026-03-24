@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { estimates, estimateItems, sites } from "@/lib/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 
 // 견적 목록 조회
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const statusFilter = searchParams.get("status");
   const siteIdFilter = searchParams.get("siteId");
 
-  let conditions = eq(estimates.userId, auth.userId);
+  let conditions = and(eq(estimates.userId, auth.userId), isNull(estimates.deletedAt))!;
   if (statusFilter) {
     conditions = and(conditions, eq(estimates.status, statusFilter))!;
   }

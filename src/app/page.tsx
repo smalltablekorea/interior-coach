@@ -276,23 +276,23 @@ export default function LandingPage() {
             <span className="font-bold text-lg">인테리어코치</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6 text-sm text-[var(--muted)]">
-            <a href="#features" className="hover:text-white transition-colors">
+            <a href="#features" className="hover:text-[var(--foreground)] transition-colors">
               기능
             </a>
-            <a href="#demo" className="hover:text-white transition-colors">
+            <a href="#demo" className="hover:text-[var(--foreground)] transition-colors">
               데모
             </a>
-            <a href="#pricing-compare" className="hover:text-white transition-colors">
+            <a href="#pricing-compare" className="hover:text-[var(--foreground)] transition-colors">
               비용 비교
             </a>
-            <Link href="/pricing" className="hover:text-white transition-colors">
+            <Link href="/pricing" className="hover:text-[var(--foreground)] transition-colors">
               요금제
             </Link>
           </nav>
           <div className="flex items-center gap-3">
             <Link
               href="/auth/login"
-              className="px-4 py-2 text-sm text-[var(--muted)] hover:text-white transition-colors"
+              className="px-4 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
             >
               로그인
             </Link>
@@ -341,7 +341,7 @@ export default function LandingPage() {
             </Link>
             <a
               href="#demo"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04] transition-colors"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors"
             >
               <Play size={16} />
               견적코치 데모 보기
@@ -501,7 +501,7 @@ export default function LandingPage() {
 
               <Link
                 href="/pricing"
-                className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04] transition-colors"
+                className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors"
               >
                 전체 요금제 비교하기
                 <ArrowRight size={16} />
@@ -585,7 +585,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/pricing"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04] transition-colors"
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors"
             >
               요금제 비교하기
             </Link>
@@ -598,7 +598,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-4xl px-6">
           <div className="grid gap-6 sm:grid-cols-3">
             <div className="space-y-1.5">
-              <p className="font-medium text-sm text-white/80">스몰테이블</p>
+              <p className="font-medium text-sm text-[var(--foreground)]/80">스몰테이블</p>
               <p>사업자등록번호: 511-27-58367</p>
               <p>대표자명: 배다솜</p>
             </div>
@@ -607,13 +607,13 @@ export default function LandingPage() {
               <p>유선번호: 0507-1315-3173</p>
             </div>
             <div className="space-y-1.5">
-              <Link href="/pricing" className="hover:text-white transition-colors block">
+              <Link href="/pricing" className="hover:text-[var(--foreground)] transition-colors block">
                 요금제
               </Link>
-              <Link href="/auth/login" className="hover:text-white transition-colors block">
+              <Link href="/auth/login" className="hover:text-[var(--foreground)] transition-colors block">
                 로그인
               </Link>
-              <Link href="/estimates/coach" className="hover:text-white transition-colors block">
+              <Link href="/estimates/coach" className="hover:text-[var(--foreground)] transition-colors block">
                 견적코치 AI
               </Link>
             </div>

@@ -1,35 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { subscriptions, usageRecords, sites, customers } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, isNull } from "drizzle-orm";
 import { type PlanId, PLANS } from "@/lib/plans";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 
-const USER_ID = "demo";
-
-// GET: 현재 구독 정보 + 사용량
 export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
-    // 구독 정보
     const subRows = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, USER_ID))
+      .where(eq(subscriptions.userId, auth.userId))
       .limit(1);
 
     const subscription = subRows[0] || null;
     const plan = (subscription?.plan || "free") as PlanId;
     const planConfig = PLANS[plan];
 
-    // 사용량 집계
     const [siteCount] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(sites)
-      .where(eq(sites.userId, USER_ID));
+      .where(and(eq(sites.userId, auth.userId), isNull(sites.deletedAt)));
 
     const [customerCount] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(customers)
-      .where(eq(customers.userId, USER_ID));
+      .where(and(eq(customers.userId, auth.userId), isNull(customers.deletedAt)));
 
     const period = new Date().toISOString().slice(0, 7);
     const usageRows = await db
@@ -37,7 +37,7 @@ export async function GET() {
       .from(usageRecords)
       .where(
         and(
-          eq(usageRecords.userId, USER_ID),
+          eq(usageRecords.userId, auth.userId),
           eq(usageRecords.period, period)
         )
       );
@@ -47,7 +47,7 @@ export async function GET() {
       usageMap[row.feature] = row.count;
     }
 
-    return NextResponse.json({
+    return ok({
       subscription: subscription
         ? {
             plan: subscription.plan,
@@ -72,24 +72,25 @@ export async function GET() {
       limits: planConfig.limits,
     });
   } catch (error) {
-    console.error("Subscription GET error:", error);
-    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+    return serverError(error);
   }
 }
 
-// POST: 플랜 변경 (MVP: 즉시 적용, 결제 없음)
 export async function POST(req: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const { plan: newPlan } = await req.json();
 
     if (!["free", "starter", "pro", "enterprise"].includes(newPlan)) {
-      return NextResponse.json({ error: "유효하지 않은 플랜" }, { status: 400 });
+      return err("유효하지 않은 플랜입니다");
     }
 
     const existing = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, USER_ID))
+      .where(eq(subscriptions.userId, auth.userId))
       .limit(1);
 
     const now = new Date();
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
         .where(eq(subscriptions.id, existing[0].id));
     } else {
       await db.insert(subscriptions).values({
-        userId: USER_ID,
+        userId: auth.userId,
         plan: newPlan,
         billingCycle: "monthly",
         status: "active",
@@ -119,9 +120,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, plan: newPlan });
+    return ok({ plan: newPlan });
   } catch (error) {
-    console.error("Subscription POST error:", error);
-    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+    return serverError(error);
   }
 }

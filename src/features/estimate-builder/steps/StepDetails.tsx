@@ -184,7 +184,7 @@ export function StepDetails({
                               (catAdj[cat.id] || 0) + d
                             )
                           }
-                          className="text-[10px] px-2 py-1 rounded-md border border-[var(--border)] hover:bg-white/[0.04] transition-colors"
+                          className="text-[10px] px-2 py-1 rounded-md border border-[var(--border)] hover:bg-[var(--border)] transition-colors"
                         >
                           {d > 0 ? "+" : ""}
                           {fmtM(d)}

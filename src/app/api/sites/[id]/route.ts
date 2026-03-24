@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { sites, customers, estimates, contracts, contractPayments, constructionPhases } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { ok, notFound, serverError } from "@/lib/api/response";
 import { validateBody, siteSchema } from "@/lib/api/validate";
@@ -33,7 +33,7 @@ export async function GET(
     })
     .from(sites)
     .leftJoin(customers, eq(sites.customerId, customers.id))
-    .where(and(eq(sites.id, id), eq(sites.userId, auth.userId)))
+    .where(and(eq(sites.id, id), eq(sites.userId, auth.userId), isNull(sites.deletedAt)))
     .limit(1);
 
   if (!site) return notFound("현장을 찾을 수 없습니다");
@@ -47,7 +47,7 @@ export async function GET(
       createdAt: estimates.createdAt,
     })
     .from(estimates)
-    .where(and(eq(estimates.siteId, id), eq(estimates.userId, auth.userId)))
+    .where(and(eq(estimates.siteId, id), eq(estimates.userId, auth.userId), isNull(estimates.deletedAt)))
     .orderBy(desc(estimates.createdAt));
 
   const siteContracts = await db
@@ -57,7 +57,7 @@ export async function GET(
       contractDate: contracts.contractDate,
     })
     .from(contracts)
-    .where(and(eq(contracts.siteId, id), eq(contracts.userId, auth.userId)));
+    .where(and(eq(contracts.siteId, id), eq(contracts.userId, auth.userId), isNull(contracts.deletedAt)));
 
   const contractsWithPayments = await Promise.all(
     siteContracts.map(async (c) => {
@@ -111,7 +111,7 @@ export async function PUT(
     const [row] = await db
       .update(sites)
       .set({ ...validation.data, updatedAt: new Date() })
-      .where(and(eq(sites.id, id), eq(sites.userId, auth.userId)))
+      .where(and(eq(sites.id, id), eq(sites.userId, auth.userId), isNull(sites.deletedAt)))
       .returning();
 
     if (!row) return notFound("현장을 찾을 수 없습니다");
@@ -131,8 +131,9 @@ export async function DELETE(
   const { id } = await params;
 
   const [row] = await db
-    .delete(sites)
-    .where(and(eq(sites.id, id), eq(sites.userId, auth.userId)))
+    .update(sites)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(sites.id, id), eq(sites.userId, auth.userId), isNull(sites.deletedAt)))
     .returning({ id: sites.id });
 
   if (!row) return notFound("현장을 찾을 수 없습니다");

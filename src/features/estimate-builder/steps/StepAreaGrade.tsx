@@ -47,7 +47,7 @@ export function StepAreaGrade({
             onChange={(e) => onAreaChange(Number(e.target.value))}
             className="flex-1 accent-[var(--primary)] h-2"
           />
-          <div className="min-w-[80px] text-center rounded-lg border border-[var(--border)] bg-white/5 px-1 py-1.5">
+          <div className="min-w-[80px] text-center rounded-lg border border-[var(--border)] bg-[var(--card)] px-1 py-1.5">
             <input
               type="number"
               min={10}
@@ -88,7 +88,7 @@ export function StepAreaGrade({
                 className={`relative rounded-xl border p-3 text-left transition-all ${
                   isSelected
                     ? "shadow-md"
-                    : "border-[var(--border)] bg-white/[0.02] hover:border-[var(--primary)]/20 hover:bg-white/[0.04]"
+                    : "border-[var(--border)] bg-white/[0.02] hover:border-[var(--primary)]/20 hover:bg-[var(--border)]"
                 }`}
                 style={
                   isSelected

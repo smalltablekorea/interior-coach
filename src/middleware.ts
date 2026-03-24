@@ -8,8 +8,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Better Auth session cookie 확인
-  const sessionCookie = request.cookies.get("better-auth.session_token");
+  // Better Auth session cookie 확인 (HTTPS에서는 __Secure- 접두사가 붙음)
+  const sessionCookie =
+    request.cookies.get("__Secure-better-auth.session_token") ||
+    request.cookies.get("better-auth.session_token");
 
   if (!sessionCookie?.value) {
     // API 요청은 401 반환

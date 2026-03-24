@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { contracts, contractPayments, sites, customers, estimates } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { ok, notFound, serverError } from "@/lib/api/response";
 
@@ -32,7 +32,7 @@ export async function GET(
     .leftJoin(sites, eq(contracts.siteId, sites.id))
     .leftJoin(customers, eq(sites.customerId, customers.id))
     .leftJoin(estimates, eq(contracts.estimateId, estimates.id))
-    .where(and(eq(contracts.id, id), eq(contracts.userId, auth.userId)))
+    .where(and(eq(contracts.id, id), eq(contracts.userId, auth.userId), isNull(contracts.deletedAt)))
     .limit(1);
 
   if (!contract) return notFound("계약을 찾을 수 없습니다");
@@ -74,7 +74,7 @@ export async function PUT(
     const [row] = await db
       .update(contracts)
       .set(update)
-      .where(and(eq(contracts.id, id), eq(contracts.userId, auth.userId)))
+      .where(and(eq(contracts.id, id), eq(contracts.userId, auth.userId), isNull(contracts.deletedAt)))
       .returning();
 
     if (!row) return notFound("계약을 찾을 수 없습니다");
@@ -114,8 +114,9 @@ export async function DELETE(
   const { id } = await params;
 
   const [row] = await db
-    .delete(contracts)
-    .where(and(eq(contracts.id, id), eq(contracts.userId, auth.userId)))
+    .update(contracts)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(contracts.id, id), eq(contracts.userId, auth.userId), isNull(contracts.deletedAt)))
     .returning({ id: contracts.id });
 
   if (!row) return notFound("계약을 찾을 수 없습니다");

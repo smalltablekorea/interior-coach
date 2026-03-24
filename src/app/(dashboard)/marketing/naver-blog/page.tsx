@@ -127,16 +127,16 @@ const POST_STATUS_MAP: Record<string, string> = {
 };
 
 const inputCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-neutral-500 focus:border-[#00C471] focus:outline-none";
 
 const selectCls =
-  "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/[0.06] text-white text-sm focus:border-[#00C471] focus:outline-none appearance-none";
+  "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[#00C471] focus:outline-none appearance-none";
 
 const btnPrimary =
   "rounded-lg bg-[#00C471] text-black px-4 py-2 text-sm font-medium hover:bg-[#00D47F] transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
 
 const btnSecondary =
-  "px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors";
+  "px-4 py-2 rounded-lg border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors";
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Page Component
@@ -513,7 +513,7 @@ export default function NaverBlogPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/marketing"
-          className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center hover:bg-white/[0.04] transition-colors"
+          className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors"
         >
           <ArrowLeft size={16} />
         </Link>
@@ -532,7 +532,7 @@ export default function NaverBlogPage() {
             className={cn(
               "flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors",
               activeTab === tab.key
-                ? "bg-white/[0.08] text-white font-medium"
+                ? "bg-[var(--border)] text-[var(--foreground)] font-medium"
                 : "text-neutral-500 hover:text-neutral-300"
             )}
           >
@@ -597,7 +597,7 @@ export default function NaverBlogPage() {
                                 href={post.channelPostUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[var(--muted)] hover:text-white transition-colors shrink-0"
+                                className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors shrink-0"
                               >
                                 <ExternalLink size={14} />
                               </a>
@@ -620,7 +620,7 @@ export default function NaverBlogPage() {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => openPostModal(post)}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/[0.06] text-[var(--muted)] hover:text-white transition-colors"
+                              className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                             >
                               <Pencil size={14} />
                             </button>
@@ -773,7 +773,7 @@ export default function NaverBlogPage() {
                       "px-4 py-2.5 rounded-xl border text-sm transition-all",
                       selectedTemplate === tmpl.value
                         ? "border-[#00C471] bg-[#00C471]/10 text-[#00C471] font-medium"
-                        : "border-[var(--border)] text-[var(--muted)] hover:border-white/[0.12] hover:text-white"
+                        : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--border-hover)] hover:text-[var(--foreground)]"
                     )}
                   >
                     {tmpl.label}

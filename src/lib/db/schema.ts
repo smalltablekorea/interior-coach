@@ -491,6 +491,8 @@ export const subscriptions = pgTable("subscriptions", {
   plan: text("plan").notNull().default("free"),
   billingCycle: text("billing_cycle").default("monthly"),
   status: text("status").notNull().default("active"),
+  tossBillingKey: text("toss_billing_key"),
+  tossCustomerKey: text("toss_customer_key"),
   trialEndsAt: timestamp("trial_ends_at"),
   currentPeriodStart: timestamp("current_period_start"),
   currentPeriodEnd: timestamp("current_period_end"),
@@ -508,6 +510,24 @@ export const usageRecords = pgTable("usage_records", {
   period: text("period").notNull(),
   count: integer("count").notNull().default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const billingRecords = pgTable("billing_records", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
+  orderId: text("order_id").notNull().unique(),
+  paymentKey: text("payment_key"),
+  plan: text("plan").notNull(),
+  billingCycle: text("billing_cycle").notNull().default("monthly"),
+  amount: integer("amount").notNull(),
+  status: text("status").notNull().default("pending"), // pending, paid, failed, refunded, canceled
+  tossResponse: jsonb("toss_response"),
+  failReason: text("fail_reason"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // ─── 쓰레드 마케팅 자동화 ───
@@ -822,5 +842,21 @@ export const smsCrawlLog = pgTable("sms_crawl_log", {
   errorMessage: text("error_message"),
   startedAt: timestamp("started_at").notNull().defaultNow(),
   completedAt: timestamp("completed_at"),
+});
+
+// ─── 알림 시스템 ───
+
+export const notifications = pgTable("notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  type: text("type").notNull(), // payment_overdue, phase_delayed, material_needed, contract_signed, site_completed, system
+  title: text("title").notNull(),
+  message: text("message"),
+  link: text("link"), // 클릭 시 이동할 앱 내 경로
+  metadata: jsonb("metadata"), // 추가 데이터 (siteId, contractId 등)
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

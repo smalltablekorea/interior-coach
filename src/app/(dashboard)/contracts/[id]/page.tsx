@@ -168,7 +168,7 @@ export default function ContractDetailPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/contracts"
-            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-white/[0.04] transition-colors"
+            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors"
           >
             <ArrowLeft size={18} />
           </Link>
@@ -182,7 +182,7 @@ export default function ContractDetailPage() {
             <>
               <button
                 onClick={() => setIsEditing(false)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
               >
                 <X size={16} /> 취소
               </button>
@@ -198,7 +198,7 @@ export default function ContractDetailPage() {
             <>
               <button
                 onClick={startEditing}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
               >
                 <Pencil size={16} /> 수정
               </button>
@@ -222,7 +222,7 @@ export default function ContractDetailPage() {
               type="number"
               value={editForm.contractAmount}
               onChange={(e) => setEditForm({ ...editForm, contractAmount: e.target.value })}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-center text-2xl font-bold focus:border-[var(--green)] focus:outline-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-center text-2xl font-bold focus:border-[var(--green)] focus:outline-none"
             />
           ) : (
             <p className="text-2xl font-bold">{fmt(contract.contractAmount)}</p>
@@ -360,7 +360,7 @@ export default function ContractDetailPage() {
               value={editForm.memo}
               onChange={(e) => setEditForm({ ...editForm, memo: e.target.value })}
               rows={3}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm focus:border-[var(--green)] focus:outline-none resize-none"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none resize-none"
               placeholder="메모를 입력하세요..."
             />
           ) : (

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { contracts, contractPayments, sites } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { ok, serverError } from "@/lib/api/response";
 import { validateBody, contractSchema } from "@/lib/api/validate";
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const pagination = parsePagination(request);
-    const where = eq(contracts.userId, auth.userId);
+    const where = and(eq(contracts.userId, auth.userId), isNull(contracts.deletedAt));
 
     const [{ count: total }] = await db
       .select({ count: countSql() })

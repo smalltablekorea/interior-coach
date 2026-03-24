@@ -128,7 +128,7 @@ export default function TaxExpensesPage() {
     <div className="space-y-5 animate-fade-up">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/tax" className="p-2 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]"><ArrowLeft size={20} /></Link>
+          <Link href="/tax" className="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]"><ArrowLeft size={20} /></Link>
           <h1 className="text-2xl font-bold">매입/경비 관리</h1>
           {!loading && <span className="px-2.5 py-1 rounded-lg bg-[var(--red)]/10 text-[var(--red)] text-xs font-medium">{filtered.length}건</span>}
         </div>
@@ -143,11 +143,11 @@ export default function TaxExpensesPage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-sm focus:outline-none">
+        <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none">
           <option value="">카테고리 전체</option>
           {CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.icon} {c.label}</option>)}
         </select>
-        <select value={filterDeductible} onChange={(e) => setFilterDeductible(e.target.value)} className="px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-sm focus:outline-none">
+        <select value={filterDeductible} onChange={(e) => setFilterDeductible(e.target.value)} className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none">
           <option value="">공제 전체</option>
           <option value="yes">공제 가능</option>
           <option value="no">불공제</option>
@@ -192,8 +192,8 @@ export default function TaxExpensesPage() {
                     <p className="text-[10px] text-[var(--muted)]">공급가 {fmt(r.supplyAmount)} + VAT {fmt(r.vatAmount)}</p>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]"><Pencil size={14} /></button>
-                    <button onClick={() => setDeleteId(r.id)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--red)]"><Trash2 size={14} /></button>
+                    <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]"><Pencil size={14} /></button>
+                    <button onClick={() => setDeleteId(r.id)} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--red)]"><Trash2 size={14} /></button>
                   </div>
                 </div>
               </div>
@@ -208,40 +208,40 @@ export default function TaxExpensesPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">날짜 *</label>
-              <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">카테고리 *</label>
-              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
+              <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
                 {CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.icon} {c.label}</option>)}
               </select>
             </div>
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">설명</label>
-            <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="경비 내용" />
+            <input type="text" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="경비 내용" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">공급가액 *</label>
-              <input type="number" required value={form.supplyAmount} onChange={(e) => handleSupplyChange(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="원" />
+              <input type="number" required value={form.supplyAmount} onChange={(e) => handleSupplyChange(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="원" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">부가세 (자동)</label>
-              <input type="number" value={form.vatAmount} onChange={(e) => setForm({ ...form, vatAmount: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="number" value={form.vatAmount} onChange={(e) => setForm({ ...form, vatAmount: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">현장</label>
-              <select value={form.siteId} onChange={(e) => setForm({ ...form, siteId: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
+              <select value={form.siteId} onChange={(e) => setForm({ ...form, siteId: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
                 <option value="">선택</option>
                 {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">거래처</label>
-              <select value={form.vendorId} onChange={(e) => setForm({ ...form, vendorId: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
+              <select value={form.vendorId} onChange={(e) => setForm({ ...form, vendorId: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
                 <option value="">선택</option>
                 {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
               </select>
@@ -250,7 +250,7 @@ export default function TaxExpensesPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">결제수단</label>
-              <select value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
+              <select value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
                 <option value="">선택</option>
                 {Object.entries(METHOD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>

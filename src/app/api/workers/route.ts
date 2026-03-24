@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { workers } from "@/lib/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { ok, serverError } from "@/lib/api/response";
 import { validateBody, workerSchema } from "@/lib/api/validate";
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const pagination = parsePagination(request);
     const filters = parseFilters(request, ["trade", "search"]);
 
-    const conditions = [eq(workers.userId, auth.userId)];
+    const conditions = [eq(workers.userId, auth.userId), isNull(workers.deletedAt)];
 
     if (filters.trade) {
       conditions.push(eq(workers.trade, filters.trade));

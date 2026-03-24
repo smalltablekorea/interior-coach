@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { customers, sites, estimates, contracts, contractPayments } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, and, sql, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { ok, notFound, serverError } from "@/lib/api/response";
 import { validateBody, customerSchema } from "@/lib/api/validate";
@@ -18,7 +18,7 @@ export async function GET(
   const [customer] = await db
     .select()
     .from(customers)
-    .where(and(eq(customers.id, id), eq(customers.userId, auth.userId)))
+    .where(and(eq(customers.id, id), eq(customers.userId, auth.userId), isNull(customers.deletedAt)))
     .limit(1);
 
   if (!customer) {
@@ -33,7 +33,7 @@ export async function GET(
       areaPyeong: sites.areaPyeong,
     })
     .from(sites)
-    .where(and(eq(sites.customerId, id), eq(sites.userId, auth.userId)));
+    .where(and(eq(sites.customerId, id), eq(sites.userId, auth.userId), isNull(sites.deletedAt)));
 
   const customerEstimates = await db
     .select({
@@ -45,7 +45,7 @@ export async function GET(
     })
     .from(estimates)
     .leftJoin(sites, eq(estimates.siteId, sites.id))
-    .where(and(eq(sites.customerId, id), eq(estimates.userId, auth.userId)));
+    .where(and(eq(sites.customerId, id), eq(estimates.userId, auth.userId), isNull(estimates.deletedAt)));
 
   const customerContracts = await db
     .select({
@@ -57,7 +57,7 @@ export async function GET(
     .from(contracts)
     .leftJoin(sites, eq(contracts.siteId, sites.id))
     .leftJoin(contractPayments, eq(contractPayments.contractId, contracts.id))
-    .where(and(eq(sites.customerId, id), eq(contracts.userId, auth.userId)))
+    .where(and(eq(sites.customerId, id), eq(contracts.userId, auth.userId), isNull(contracts.deletedAt)))
     .groupBy(contracts.id, sites.name);
 
   return ok({
@@ -84,7 +84,7 @@ export async function PUT(
     const [row] = await db
       .update(customers)
       .set({ ...validation.data, updatedAt: new Date() })
-      .where(and(eq(customers.id, id), eq(customers.userId, auth.userId)))
+      .where(and(eq(customers.id, id), eq(customers.userId, auth.userId), isNull(customers.deletedAt)))
       .returning();
 
     if (!row) return notFound("고객을 찾을 수 없습니다");
@@ -104,8 +104,9 @@ export async function DELETE(
   const { id } = await params;
 
   const [row] = await db
-    .delete(customers)
-    .where(and(eq(customers.id, id), eq(customers.userId, auth.userId)))
+    .update(customers)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(customers.id, id), eq(customers.userId, auth.userId), isNull(customers.deletedAt)))
     .returning({ id: customers.id });
 
   if (!row) return notFound("고객을 찾을 수 없습니다");

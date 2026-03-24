@@ -8,7 +8,7 @@ export default function TaxInvoicesPage() {
   return (
     <div className="space-y-5 animate-fade-up">
       <div className="flex items-center gap-3">
-        <Link href="/tax" className="p-2 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]"><ArrowLeft size={20} /></Link>
+        <Link href="/tax" className="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]"><ArrowLeft size={20} /></Link>
         <h1 className="text-2xl font-bold">세금계산서</h1>
       </div>
 

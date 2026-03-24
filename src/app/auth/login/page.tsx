@@ -102,7 +102,7 @@ function LoginForm() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
             />
           )}
           <input
@@ -111,7 +111,7 @@ function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
+            className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
           />
           <div className="relative">
             <input
@@ -121,7 +121,7 @@ function LoginForm() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors pr-12"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors pr-12"
             />
             <button
               type="button"
@@ -161,7 +161,7 @@ function LoginForm() {
           <button
             onClick={() => handleSocialSignIn("google")}
             disabled={socialLoading !== null || loading}
-            className="w-full py-3 rounded-xl border border-[var(--border)] text-sm font-medium hover:bg-white/[0.04] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full py-3 rounded-xl border border-[var(--border)] text-sm font-medium hover:bg-[var(--border)] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {socialLoading === "google" ? (
               <span>처리 중...</span>

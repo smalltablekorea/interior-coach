@@ -197,7 +197,7 @@ export default function WorkersPage() {
                 required
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                 placeholder="이름"
               />
             </div>
@@ -207,7 +207,7 @@ export default function WorkersPage() {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                 placeholder="010-0000-0000"
               />
             </div>
@@ -218,7 +218,7 @@ export default function WorkersPage() {
               <select
                 value={form.trade}
                 onChange={(e) => setForm({ ...form, trade: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none"
               >
                 {TRADES.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -231,7 +231,7 @@ export default function WorkersPage() {
                 type="number"
                 value={form.dailyWage}
                 onChange={(e) => setForm({ ...form, dailyWage: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                 placeholder="원"
               />
             </div>
@@ -241,7 +241,7 @@ export default function WorkersPage() {
             <textarea
               value={form.memo}
               onChange={(e) => setForm({ ...form, memo: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">

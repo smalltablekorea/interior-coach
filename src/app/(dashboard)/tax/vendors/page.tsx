@@ -82,7 +82,7 @@ export default function TaxVendorsPage() {
     <div className="space-y-5 animate-fade-up">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/tax" className="p-2 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]"><ArrowLeft size={20} /></Link>
+          <Link href="/tax" className="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]"><ArrowLeft size={20} /></Link>
           <h1 className="text-2xl font-bold">거래처 관리</h1>
           {!loading && <span className="px-2.5 py-1 rounded-lg bg-[var(--blue)]/10 text-[var(--blue)] text-xs font-medium">{filtered.length}개</span>}
         </div>
@@ -123,8 +123,8 @@ export default function TaxVendorsPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => openEdit(v)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]"><Pencil size={14} /></button>
-                  <button onClick={() => setDeleteId(v.id)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--red)]"><Trash2 size={14} /></button>
+                  <button onClick={() => openEdit(v)} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]"><Pencil size={14} /></button>
+                  <button onClick={() => setDeleteId(v.id)} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--red)]"><Trash2 size={14} /></button>
                 </div>
               </div>
             </div>
@@ -138,52 +138,52 @@ export default function TaxVendorsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">거래처명 *</label>
-              <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="text" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">사업자등록번호</label>
-              <input type="text" value={form.businessNumber} onChange={(e) => setForm({ ...form, businessNumber: e.target.value.replace(/\D/g, "").slice(0, 10) })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="0000000000" maxLength={10} />
+              <input type="text" value={form.businessNumber} onChange={(e) => setForm({ ...form, businessNumber: e.target.value.replace(/\D/g, "").slice(0, 10) })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="0000000000" maxLength={10} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">대표자</label>
-              <input type="text" value={form.representative} onChange={(e) => setForm({ ...form, representative: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="text" value={form.representative} onChange={(e) => setForm({ ...form, representative: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">업태/종목</label>
               <div className="flex gap-2">
-                <input type="text" value={form.businessType} onChange={(e) => setForm({ ...form, businessType: e.target.value })} className="w-1/2 px-3 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:outline-none" placeholder="업태" />
-                <input type="text" value={form.businessItem} onChange={(e) => setForm({ ...form, businessItem: e.target.value })} className="w-1/2 px-3 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:outline-none" placeholder="종목" />
+                <input type="text" value={form.businessType} onChange={(e) => setForm({ ...form, businessType: e.target.value })} className="w-1/2 px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none" placeholder="업태" />
+                <input type="text" value={form.businessItem} onChange={(e) => setForm({ ...form, businessItem: e.target.value })} className="w-1/2 px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none" placeholder="종목" />
               </div>
             </div>
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">주소</label>
-            <input type="text" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
+            <input type="text" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">담당자</label>
-              <input type="text" value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:outline-none" />
+              <input type="text" value={form.contactName} onChange={(e) => setForm({ ...form, contactName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">연락처</label>
-              <input type="text" value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:outline-none" />
+              <input type="text" value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">이메일</label>
-              <input type="email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:outline-none" />
+              <input type="email" value={form.contactEmail} onChange={(e) => setForm({ ...form, contactEmail: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">은행명</label>
-              <input type="text" value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:outline-none" />
+              <input type="text" value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">계좌번호</label>
-              <input type="text" value={form.bankAccount} onChange={(e) => setForm({ ...form, bankAccount: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:outline-none" />
+              <input type="text" value={form.bankAccount} onChange={(e) => setForm({ ...form, bankAccount: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none" />
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">

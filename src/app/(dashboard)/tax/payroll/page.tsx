@@ -167,7 +167,7 @@ export default function TaxPayrollPage() {
     <div className="space-y-5 animate-fade-up">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/tax" className="p-2 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]"><ArrowLeft size={20} /></Link>
+          <Link href="/tax" className="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]"><ArrowLeft size={20} /></Link>
           <h1 className="text-2xl font-bold">급여 관리</h1>
           {!loading && <span className="px-2.5 py-1 rounded-lg bg-[var(--blue)]/10 text-[var(--blue)] text-xs font-medium">{filtered.length}건</span>}
         </div>
@@ -182,11 +182,11 @@ export default function TaxPayrollPage() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-sm focus:outline-none">
+        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none">
           <option value="">작업자 유형 전체</option>
           {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-3 py-2 rounded-lg bg-white/5 border border-[var(--border)] text-sm focus:outline-none">
+        <select value={filterPaid} onChange={(e) => setFilterPaid(e.target.value)} className="px-3 py-2 rounded-lg bg-[var(--card)] border border-[var(--border)] text-sm focus:outline-none">
           <option value="">지급 전체</option>
           <option value="yes">지급 완료</option>
           <option value="no">미지급</option>
@@ -237,8 +237,8 @@ export default function TaxPayrollPage() {
                   </p>
                 </div>
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]"><Pencil size={14} /></button>
-                  <button onClick={() => setDeleteId(r.id)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[var(--muted)] hover:text-[var(--red)]"><Trash2 size={14} /></button>
+                  <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]"><Pencil size={14} /></button>
+                  <button onClick={() => setDeleteId(r.id)} className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--red)]"><Trash2 size={14} /></button>
                 </div>
               </div>
             </div>
@@ -252,11 +252,11 @@ export default function TaxPayrollPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">작업자명 *</label>
-              <input type="text" required value={form.workerName} onChange={(e) => setForm({ ...form, workerName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="이름" />
+              <input type="text" required value={form.workerName} onChange={(e) => setForm({ ...form, workerName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="이름" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">작업자 유형 *</label>
-              <select value={form.workerType} onChange={(e) => setForm({ ...form, workerType: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
+              <select value={form.workerType} onChange={(e) => setForm({ ...form, workerType: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
                 <option value="일용직">일용직</option>
                 <option value="프리랜서">프리랜서</option>
                 <option value="정규직">정규직</option>
@@ -266,24 +266,24 @@ export default function TaxPayrollPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">급여 기간</label>
-              <input type="month" value={form.payPeriod} onChange={(e) => setForm({ ...form, payPeriod: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
+              <input type="month" value={form.payPeriod} onChange={(e) => setForm({ ...form, payPeriod: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">근무일수</label>
-              <input type="number" value={form.workDays} onChange={(e) => setForm({ ...form, workDays: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="일" />
+              <input type="number" value={form.workDays} onChange={(e) => setForm({ ...form, workDays: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="일" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">현장</label>
-              <select value={form.siteId} onChange={(e) => setForm({ ...form, siteId: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
+              <select value={form.siteId} onChange={(e) => setForm({ ...form, siteId: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
                 <option value="">선택</option>
                 {sites.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">결제수단</label>
-              <select value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
+              <select value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none">
                 <option value="">선택</option>
                 {Object.entries(METHOD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
@@ -291,7 +291,7 @@ export default function TaxPayrollPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">총 급여 *</label>
-            <input type="number" required value={form.grossAmount} onChange={(e) => setForm({ ...form, grossAmount: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="원" />
+            <input type="number" required value={form.grossAmount} onChange={(e) => setForm({ ...form, grossAmount: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="원" />
           </div>
 
           {/* Tax Preview */}
@@ -323,7 +323,7 @@ export default function TaxPayrollPage() {
 
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">메모</label>
-            <input type="text" value={form.memo} onChange={(e) => setForm({ ...form, memo: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="메모" />
+            <input type="text" value={form.memo} onChange={(e) => setForm({ ...form, memo: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="메모" />
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)]">취소</button>

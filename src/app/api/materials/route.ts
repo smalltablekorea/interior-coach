@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { materials, materialOrders, sites, user } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, isNull } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
 import { parsePagination, buildPaginationMeta, countSql } from "@/lib/api/query-helpers";
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         unitPrice: materials.unitPrice,
       })
       .from(materials)
-      .where(eq(materials.isStandard, true))
+      .where(and(eq(materials.isStandard, true), isNull(materials.deletedAt)))
       .orderBy(materials.category, materials.name);
 
     return ok(rows);

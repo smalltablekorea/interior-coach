@@ -96,7 +96,7 @@ export default function CustomersPage() {
         <button
           onClick={() => setStatusFilter("")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-            statusFilter === "" ? "bg-white/10 text-white" : "text-[var(--muted)] hover:text-white hover:bg-white/[0.04]"
+            statusFilter === "" ? "bg-[var(--border)] text-white" : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)]"
           }`}
         >
           전체
@@ -106,7 +106,7 @@ export default function CustomersPage() {
             key={s}
             onClick={() => setStatusFilter(s)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-              statusFilter === s ? "bg-white/10 text-white" : "text-[var(--muted)] hover:text-white hover:bg-white/[0.04]"
+              statusFilter === s ? "bg-[var(--border)] text-white" : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)]"
             }`}
           >
             {s}
@@ -198,7 +198,7 @@ export default function CustomersPage() {
               required
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
               placeholder="고객명"
             />
           </div>
@@ -209,7 +209,7 @@ export default function CustomersPage() {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
                 placeholder="010-0000-0000"
               />
             </div>
@@ -219,7 +219,7 @@ export default function CustomersPage() {
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
                 placeholder="email@example.com"
               />
             </div>
@@ -229,7 +229,7 @@ export default function CustomersPage() {
             <select
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white focus:border-[var(--green)] focus:outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
             >
               {CUSTOMER_STATUSES.map((s) => (
                 <option key={s} value={s} className="bg-[#111]">{s}</option>
@@ -242,7 +242,7 @@ export default function CustomersPage() {
               type="text"
               value={form.address}
               onChange={(e) => setForm({ ...form, address: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
               placeholder="주소"
             />
           </div>
@@ -251,7 +251,7 @@ export default function CustomersPage() {
             <textarea
               value={form.memo}
               onChange={(e) => setForm({ ...form, memo: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-white placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors resize-none h-20"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors resize-none h-20"
               placeholder="참고사항"
             />
           </div>
@@ -259,7 +259,7 @@ export default function CustomersPage() {
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-white/[0.04] transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
             >
               취소
             </button>

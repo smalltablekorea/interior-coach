@@ -324,7 +324,7 @@ function BillingToggle({ yearly, setYearly }: { yearly: boolean; setYearly: (v: 
       </span>
       <button
         onClick={() => setYearly(!yearly)}
-        className={`relative w-14 h-7 rounded-full transition-colors ${yearly ? "bg-[var(--green)]" : "bg-white/10"}`}
+        className={`relative w-14 h-7 rounded-full transition-colors ${yearly ? "bg-[var(--green)]" : "bg-[var(--border)]"}`}
         role="switch"
         aria-checked={yearly}
         aria-label="연간 결제 토글"
@@ -367,7 +367,7 @@ function PlanCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
       ? "bg-amber-500 text-black font-semibold hover:bg-amber-400 py-2.5"
       : plan.id === "starter"
         ? "border border-blue-400/50 text-blue-400 hover:bg-blue-500/10 py-2.5"
-        : "border border-[var(--border)] text-[var(--muted)] hover:bg-white/[0.04] py-2.5";
+        : "border border-[var(--border)] text-[var(--muted)] hover:bg-[var(--border)] py-2.5";
 
   let currentSection = "";
 
@@ -543,7 +543,7 @@ function CostCalculator() {
                   value={items[i].value}
                   onChange={(e) => updateValue(i, Number(e.target.value))}
                   disabled={!items[i].checked}
-                  className="w-full h-1.5 rounded-full appearance-none bg-white/10 accent-[var(--green)] disabled:opacity-30"
+                  className="w-full h-1.5 rounded-full appearance-none bg-[var(--border)] accent-[var(--green)] disabled:opacity-30"
                 />
                 <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1">
                   <span>{formatPrice(item.min)}</span>
@@ -652,7 +652,7 @@ function ComparisonTable() {
             <div key={ci}>
               <button
                 onClick={() => toggleCategory(ci)}
-                className="w-full flex items-center justify-between py-3 px-4 bg-white/[0.02] border-b border-[var(--border)] hover:bg-white/[0.04] transition-colors"
+                className="w-full flex items-center justify-between py-3 px-4 bg-white/[0.02] border-b border-[var(--border)] hover:bg-[var(--border)] transition-colors"
               >
                 <span className="text-sm font-semibold">{cat.name}</span>
                 <ChevronDown
@@ -735,7 +735,7 @@ function EstimateCoachSection() {
             </ul>
             <Link
               href="/auth/login"
-              className="w-full py-2.5 rounded-xl border border-[var(--border)] text-sm text-center block hover:bg-white/[0.04] transition-colors"
+              className="w-full py-2.5 rounded-xl border border-[var(--border)] text-sm text-center block hover:bg-[var(--border)] transition-colors"
             >
               무료로 분석하기
             </Link>
@@ -847,7 +847,7 @@ function CTASection() {
           </Link>
           <Link
             href="/auth/login"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04] transition-colors"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors"
           >
             도입 문의하기
           </Link>

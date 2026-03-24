@@ -100,7 +100,7 @@ export default function Sidebar() {
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all",
                   isActive
                     ? "bg-[var(--green)]/10 text-[var(--green)]"
-                    : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04]"
+                    : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)]"
                 )}
               >
                 <item.icon size={20} />
@@ -129,14 +129,14 @@ export default function Sidebar() {
           )}
           <Link
             href="/settings"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-all"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-all"
           >
             <Settings size={20} />
             {!collapsed && <span>설정</span>}
           </Link>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-all"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-all"
           >
             {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
             {!collapsed && <span>접기</span>}

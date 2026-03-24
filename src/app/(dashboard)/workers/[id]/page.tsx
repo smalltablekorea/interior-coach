@@ -107,7 +107,7 @@ export default function WorkerDetailPage() {
   const totalEarnings = worker.assignments.reduce((s, a) => s + a.totalWage, 0);
   const totalDays = worker.assignments.reduce((s, a) => s + a.days, 0);
 
-  const inputClass = "w-full px-4 py-2.5 rounded-xl bg-white/5 border border-[var(--border)] text-white text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none";
+  const inputClass = "w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none";
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -116,7 +116,7 @@ export default function WorkerDetailPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/workers"
-            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-white/[0.04] transition-colors"
+            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors"
           >
             <ArrowLeft size={18} />
           </Link>
@@ -145,7 +145,7 @@ export default function WorkerDetailPage() {
                   memo: worker.memo || "",
                 });
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.04] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
             >
               <Pencil size={16} /> 수정
             </button>
@@ -285,7 +285,7 @@ export default function WorkerDetailPage() {
               <Link
                 key={idx}
                 href={`/sites/${a.siteId}`}
-                className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
+                className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] hover:bg-[var(--border)] transition-colors"
               >
                 <div>
                   <p className="font-medium">{a.siteName}</p>

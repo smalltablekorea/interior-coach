@@ -134,7 +134,7 @@ export function StepDocSettings({
                     [f.key]: e.target.value,
                   })
                 }
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:outline-none"
               />
             </div>
           ))}
@@ -216,7 +216,7 @@ export function StepDocSettings({
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
           rows={3}
-          className="w-full px-4 py-3 rounded-xl bg-white/5 border border-[var(--border)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:outline-none resize-none"
+          className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:outline-none resize-none"
         />
       </div>
     </div>

@@ -78,7 +78,7 @@ export default function TaxAiAdvisorPage() {
   return (
     <div className="space-y-5 animate-fade-up">
       <div className="flex items-center gap-3">
-        <Link href="/tax" className="p-2 rounded-lg hover:bg-white/[0.06] text-[var(--muted)]"><ArrowLeft size={20} /></Link>
+        <Link href="/tax" className="p-2 rounded-lg hover:bg-[var(--border)] text-[var(--muted)]"><ArrowLeft size={20} /></Link>
         <div>
           <h1 className="text-2xl font-bold">AI 세무 상담</h1>
           <p className="text-xs text-[var(--muted)] mt-0.5">인테리어 사업 세무/회계 전문 AI 상담</p>
@@ -95,7 +95,7 @@ export default function TaxAiAdvisorPage() {
                 key={i}
                 onClick={() => handleAsk(q)}
                 disabled={asking}
-                className="text-left p-3 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:bg-white/[0.04] text-sm transition-colors disabled:opacity-50"
+                className="text-left p-3 rounded-xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--border)] text-sm transition-colors disabled:opacity-50"
               >
                 {q}
               </button>
@@ -120,7 +120,7 @@ export default function TaxAiAdvisorPage() {
                 <div className="max-w-[80%] p-3.5 rounded-2xl rounded-tr-md bg-[var(--green)]/10 border border-[var(--green)]/20">
                   <p className="text-sm whitespace-pre-wrap">{item.question}</p>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-[var(--border)] flex items-center justify-center shrink-0">
                   <User size={16} className="text-[var(--muted)]" />
                 </div>
               </div>
