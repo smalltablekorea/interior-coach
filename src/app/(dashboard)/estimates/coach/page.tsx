@@ -28,6 +28,7 @@ import {
   RotateCcw,
   Trash2,
   PlusCircle,
+  Camera,
 } from "lucide-react";
 import {
   BarChart,
@@ -155,6 +156,57 @@ export default function EstimateCoachPage() {
     }
     setAiGenerating(null);
   }, [aiGenerating, catGrades, grade, buildingType, area]);
+
+  // ─── 영수증 OCR ───
+  const [receiptParsing, setReceiptParsing] = useState(false);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
+
+  const handleReceiptUpload = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0 || receiptParsing) return;
+    setReceiptParsing(true);
+    try {
+      const images: { data: string; mimeType: string }[] = [];
+      for (let i = 0; i < Math.min(files.length, 10); i++) {
+        const file = files[i];
+        if (!file.type.startsWith("image/")) continue;
+        const data = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            resolve(result.split(",")[1]); // base64 only
+          };
+          reader.readAsDataURL(file);
+        });
+        images.push({ data, mimeType: file.type });
+      }
+      if (images.length === 0) { setReceiptParsing(false); return; }
+
+      const res = await fetch("/api/estimate-coach/parse-receipt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images }),
+      });
+      if (res.ok) {
+        const { grouped } = await res.json() as { grouped: Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]> };
+        // 공종별로 customSubs에 추가
+        setCustomSubs((prev) => {
+          const next = { ...prev };
+          for (const [catId, items] of Object.entries(grouped)) {
+            const existing = next[catId] || [];
+            next[catId] = [...existing, ...items];
+          }
+          return next;
+        });
+        // 해당 공종 펼치기 (첫 번째 공종)
+        const firstCat = Object.keys(grouped)[0];
+        if (firstCat) setExpandedCat(firstCat);
+      }
+    } catch {
+      // silent
+    }
+    setReceiptParsing(false);
+    if (receiptInputRef.current) receiptInputRef.current.value = "";
+  }, [receiptParsing]);
 
   // ─── 크레딧 & 프로 분석 상태 ───
   const [credits, setCredits] = useState<{ total: number; used: number; remaining: number } | null>(null);
@@ -825,14 +877,37 @@ export default function EstimateCoachPage() {
                 <Lightbulb size={16} className="text-[var(--green)]" />
                 공종별 상세 내역
               </h2>
-              {Object.values(catAdj).some((v) => v !== 0) && (
+              <div className="flex items-center gap-2">
+                <input
+                  ref={receiptInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => handleReceiptUpload(e.target.files)}
+                />
                 <button
-                  onClick={() => setCatAdj({})}
-                  className="text-[10px] px-2 py-1 rounded-lg bg-[var(--orange)]/10 text-[var(--orange)] hover:bg-[var(--orange)]/20 transition-colors"
+                  onClick={() => receiptInputRef.current?.click()}
+                  disabled={receiptParsing}
+                  className={cn(
+                    "flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg transition-colors",
+                    receiptParsing
+                      ? "bg-[var(--green)]/20 text-[var(--green)] animate-pulse"
+                      : "bg-[var(--green)]/10 text-[var(--green)] hover:bg-[var(--green)]/20"
+                  )}
                 >
-                  조정 초기화
+                  <Camera size={12} />
+                  {receiptParsing ? "분석중..." : "영수증 첨부"}
                 </button>
-              )}
+                {Object.values(catAdj).some((v) => v !== 0) && (
+                  <button
+                    onClick={() => setCatAdj({})}
+                    className="text-[10px] px-2 py-1 rounded-lg bg-[var(--orange)]/10 text-[var(--orange)] hover:bg-[var(--orange)]/20 transition-colors"
+                  >
+                    조정 초기화
+                  </button>
+                )}
+              </div>
             </div>
             <div className="space-y-1">
               {breakdown.map((cat) => (
