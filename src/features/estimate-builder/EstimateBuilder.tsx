@@ -86,6 +86,14 @@ export function EstimateBuilder() {
       { name: string; qty: number; unit: string; amount: number }[]
     >
   >({});
+  const [matOverrides, setMatOverrides] = useState<
+    Record<
+      string,
+      { name: string; qty: number; unit: string; unitPrice: number }[]
+    >
+  >({});
+  const [deletedSubs, setDeletedSubs] = useState<Record<string, boolean>>({});
+  const [hiddenCats, setHiddenCats] = useState<Record<string, boolean>>({});
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
     companyName: "",
     representative: "",
@@ -101,13 +109,18 @@ export function EstimateBuilder() {
   const amounts = useMemo(() => {
     const m: Record<string, number> = {};
     CATS.forEach((cat) => {
-      if (enabled[cat.id] !== false) {
+      if (enabled[cat.id] !== false && !hiddenCats[cat.id]) {
         const cg = catGrades[cat.id] || grade;
         const adj = catAdj[cat.id] || 0;
         const base = calcCatTotal(cat, area, grade, cg);
         let overrideDiff = 0;
         cat.subs.forEach((sub, i) => {
-          const ov = subOverrides[`${cat.id}-${i}`];
+          const key = `${cat.id}-${i}`;
+          if (deletedSubs[key]) {
+            overrideDiff -= calcSub(sub, area);
+            return;
+          }
+          const ov = subOverrides[key];
           if (ov?.amount != null)
             overrideDiff += ov.amount - calcSub(sub, area);
         });
@@ -115,9 +128,13 @@ export function EstimateBuilder() {
           (s, cs) => s + cs.amount,
           0
         );
+        const matTotal = (matOverrides[cat.id] || []).reduce(
+          (s, mo) => s + mo.qty * mo.unitPrice,
+          0
+        );
         m[cat.id] = Math.max(
           0,
-          base + overrideDiff + customTotal + adj
+          base + overrideDiff + customTotal + matTotal + adj
         );
       }
     });
@@ -130,6 +147,9 @@ export function EstimateBuilder() {
     catAdj,
     subOverrides,
     customSubs,
+    deletedSubs,
+    hiddenCats,
+    matOverrides,
   ]);
 
   const subtotal = useMemo(
@@ -177,6 +197,9 @@ export function EstimateBuilder() {
             catAdj,
             subOverrides,
             customSubs,
+            deletedSubs,
+            hiddenCats,
+            matOverrides,
             companyInfo,
             profitRate,
             overheadRate,
@@ -208,6 +231,9 @@ export function EstimateBuilder() {
     catAdj,
     subOverrides,
     customSubs,
+    deletedSubs,
+    hiddenCats,
+    matOverrides,
     companyInfo,
     profitRate,
     overheadRate,
@@ -241,6 +267,9 @@ export function EstimateBuilder() {
       if (d.catAdj) setCatAdj(d.catAdj);
       if (d.subOverrides) setSubOverrides(d.subOverrides);
       if (d.customSubs) setCustomSubs(d.customSubs);
+      if (d.deletedSubs) setDeletedSubs(d.deletedSubs);
+      if (d.hiddenCats) setHiddenCats(d.hiddenCats);
+      if (d.matOverrides) setMatOverrides(d.matOverrides);
       if (d.companyInfo) setCompanyInfo(d.companyInfo);
       if (d.profitRate != null) setProfitRate(d.profitRate);
       if (d.overheadRate != null) setOverheadRate(d.overheadRate);
@@ -408,11 +437,15 @@ export function EstimateBuilder() {
               <StepDetails
                 area={area}
                 grade={grade}
+                buildingType="apt"
                 enabled={enabled}
                 catGrades={catGrades}
                 catAdj={catAdj}
                 subOverrides={subOverrides}
                 customSubs={customSubs}
+                matOverrides={matOverrides}
+                deletedSubs={deletedSubs}
+                hiddenCats={hiddenCats}
                 onCatGradeChange={(id, g) =>
                   setCatGrades((p) => ({ ...p, [id]: g }))
                 }
@@ -428,6 +461,11 @@ export function EstimateBuilder() {
                     [catId]: subs,
                   }))
                 }
+                onMatOverridesChange={(catId, mats) =>
+                  setMatOverrides((p) => ({ ...p, [catId]: mats }))
+                }
+                onDeletedSubsChange={setDeletedSubs}
+                onHiddenCatsChange={setHiddenCats}
               />
             )}
             {step === 4 && (
