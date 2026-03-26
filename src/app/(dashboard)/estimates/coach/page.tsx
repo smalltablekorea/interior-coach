@@ -324,10 +324,10 @@ export default function EstimateCoachPage() {
       });
 
       // 커스텀 항목 합산
-      const customTotal = (customSubs[cat.id] || []).reduce((s, cs) => s + cs.qty * cs.unitPrice, 0);
+      const customTotal = (customSubs[cat.id] || []).reduce((s, cs) => s + Math.round(cs.qty * cs.unitPrice / 100) * 100, 0);
 
       // 자재 오버라이드 합산
-      const matOverrideTotal = (matOverrides[cat.id] || []).reduce((s, mo) => s + mo.qty * mo.unitPrice, 0);
+      const matOverrideTotal = (matOverrides[cat.id] || []).reduce((s, mo) => s + Math.round(mo.qty * mo.unitPrice / 100) * 100, 0);
 
       // 금액 조정
       const adj = catAdj[cat.id] || 0;
@@ -1074,7 +1074,7 @@ export default function EstimateCoachPage() {
                                 <input type="number" value={cs.unitPrice} placeholder="단가"
                                   onChange={(e) => updateCustom({ unitPrice: Number(e.target.value) || 0 })}
                                   className="w-20 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-right tabular-nums focus:outline-none focus:border-[var(--green)]" />
-                                <span className="text-[10px] text-[var(--muted)] w-16 text-right tabular-nums shrink-0">{fmtShort(cs.qty * cs.unitPrice)}</span>
+                                <span className="text-[10px] text-[var(--muted)] w-16 text-right tabular-nums shrink-0">{fmtShort(Math.round(cs.qty * cs.unitPrice / 100) * 100)}</span>
                                 <button onClick={() => setCustomSubs((prev) => { const arr = [...(prev[cat.id] || [])]; arr.splice(ci, 1); return { ...prev, [cat.id]: arr }; })}
                                   className="p-0.5 text-[var(--muted)] hover:text-[var(--red)] shrink-0"><Trash2 size={12} /></button>
                               </div>
@@ -1233,7 +1233,7 @@ export default function EstimateCoachPage() {
                                 <input type="number" value={mo.unitPrice} placeholder="단가"
                                   onChange={(e) => updateMat({ unitPrice: Number(e.target.value) || 0 })}
                                   className="w-20 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-right tabular-nums focus:outline-none focus:border-[var(--green)]" />
-                                <span className="text-[10px] text-[var(--muted)] w-16 text-right tabular-nums shrink-0">{fmtShort(mo.qty * mo.unitPrice)}</span>
+                                <span className="text-[10px] text-[var(--muted)] w-16 text-right tabular-nums shrink-0">{fmtShort(Math.round(mo.qty * mo.unitPrice / 100) * 100)}</span>
                                 <button onClick={() => setMatOverrides((prev) => { const arr = [...(prev[cat.id] || [])]; arr.splice(mi, 1); return { ...prev, [cat.id]: arr }; })}
                                   className="p-0.5 text-[var(--muted)] hover:text-[var(--red)] shrink-0"><Trash2 size={12} /></button>
                               </div>
@@ -1242,7 +1242,7 @@ export default function EstimateCoachPage() {
                           {(matOverrides[cat.id]?.length ?? 0) > 0 && (
                             <div className="flex justify-end text-xs font-medium pt-1 border-t border-[var(--border)]">
                               <span className="text-[var(--muted)] mr-2">자재 소계:</span>
-                              <span className="text-[var(--green)] tabular-nums">{fmtShort((matOverrides[cat.id] || []).reduce((s, mo) => s + mo.qty * mo.unitPrice, 0))}</span>
+                              <span className="text-[var(--green)] tabular-nums">{fmtShort((matOverrides[cat.id] || []).reduce((s, mo) => s + Math.round(mo.qty * mo.unitPrice / 100) * 100, 0))}</span>
                             </div>
                           )}
                           <button onClick={() => setMatOverrides((prev) => ({ ...prev, [cat.id]: [...(prev[cat.id] || []), { name: "", qty: 1, unit: "개", unitPrice: 0 }] }))}
