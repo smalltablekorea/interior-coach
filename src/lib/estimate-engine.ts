@@ -91,7 +91,7 @@ export const CATS: Cat[] = [
       { name: "폐기물 처리 (1t차량)", base: 825000, scale: "partial", ratio: 0.5, type: "material" },
       { name: "바닥철거 및 샌딩", base: 625000, scale: "linear", type: "work" },
     ],
-    gradeAdj: { basic: -800000, economy: -400000, standard: 0, comfort: 150000, premium: 350000, highend: 600000, luxury: 900000, ultralux: 1300000 },
+    gradeAdj: { basic: -1800000, economy: -1400000, standard: -1000000, comfort: -850000, premium: -650000, highend: -400000, luxury: -100000, ultralux: 300000 },
   },
   {
     id: "plumbing", name: "설비공사", icon: "设", color: "#6B9DC2", essential: true,

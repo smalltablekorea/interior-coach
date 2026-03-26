@@ -25,6 +25,10 @@ import {
   Zap,
   Shield,
   AlertTriangle,
+  RotateCcw,
+  Trash2,
+  PlusCircle,
+  Settings2,
 } from "lucide-react";
 import {
   BarChart,
@@ -40,6 +44,7 @@ import {
   GRADES,
   GRADE_SPECS,
   calcCatTotal,
+  calcSub,
   rooms,
   baths,
   getDuration,
@@ -85,6 +90,12 @@ export default function EstimateCoachPage() {
   const [vatOn, setVatOn] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [showAllGrades, setShowAllGrades] = useState(false);
+
+  // ─── 공종별 커스터마이징 ───
+  const [catGrades, setCatGrades] = useState<Record<string, string>>({});
+  const [catAdj, setCatAdj] = useState<Record<string, number>>({});
+  const [subOverrides, setSubOverrides] = useState<Record<string, { amount: number }>>({});
+  const [customSubs, setCustomSubs] = useState<Record<string, { name: string; amount: number }[]>>({});
 
   // ─── 크레딧 & 프로 분석 상태 ───
   const [credits, setCredits] = useState<{ total: number; used: number; remaining: number } | null>(null);
@@ -188,10 +199,29 @@ export default function EstimateCoachPage() {
 
   const breakdown = useMemo(() => {
     return CATS.map((cat) => {
-      const baseTotal = calcCatTotal(cat, area, grade);
-      const total = Math.round(baseTotal * buildingAdj);
+      const cg = catGrades[cat.id] || grade;
+      const baseTotal = calcCatTotal(cat, area, grade, cg);
+      const engineTotal = Math.round(baseTotal * buildingAdj);
+
+      // 세부항목 오버라이드 차이
+      let overrideDiff = 0;
+      cat.subs.forEach((sub, i) => {
+        const ov = subOverrides[`${cat.id}-${i}`];
+        if (ov?.amount != null) {
+          overrideDiff += ov.amount - calcSub(sub, area);
+        }
+      });
+
+      // 커스텀 항목 합산
+      const customTotal = (customSubs[cat.id] || []).reduce((s, cs) => s + cs.amount, 0);
+
+      // 금액 조정
+      const adj = catAdj[cat.id] || 0;
+      const total = Math.max(0, engineTotal + overrideDiff + customTotal + adj);
+
+      const effectiveGrade = cg;
       const duration = getDuration(cat.id, area);
-      const spec = GRADE_SPECS[cat.id]?.[grade] || "";
+      const spec = GRADE_SPECS[cat.id]?.[effectiveGrade] || "";
       return {
         id: cat.id,
         name: cat.name,
@@ -199,6 +229,11 @@ export default function EstimateCoachPage() {
         color: cat.color,
         essential: cat.essential,
         total,
+        engineTotal,
+        adj,
+        overrideDiff,
+        customTotal,
+        effectiveGrade,
         duration,
         spec,
         subs: cat.subs,
@@ -206,7 +241,7 @@ export default function EstimateCoachPage() {
         gradeAdj: cat.gradeAdj,
       };
     });
-  }, [area, grade, buildingAdj]);
+  }, [area, grade, buildingAdj, catGrades, catAdj, subOverrides, customSubs]);
 
   const directTotal = useMemo(
     () => breakdown.reduce((s, c) => s + c.total, 0),
@@ -722,15 +757,28 @@ export default function EstimateCoachPage() {
 
           {/* 전체 공종 상세 */}
           <div className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)]">
-            <h2 className="text-sm font-medium mb-4 flex items-center gap-2">
-              <Lightbulb size={16} className="text-[var(--green)]" />
-              공종별 상세 내역
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-medium flex items-center gap-2">
+                <Lightbulb size={16} className="text-[var(--green)]" />
+                공종별 상세 내역
+              </h2>
+              {Object.values(catAdj).some((v) => v !== 0) && (
+                <button
+                  onClick={() => setCatAdj({})}
+                  className="text-[10px] px-2 py-1 rounded-lg bg-[var(--orange)]/10 text-[var(--orange)] hover:bg-[var(--orange)]/20 transition-colors"
+                >
+                  조정 초기화
+                </button>
+              )}
+            </div>
             <div className="space-y-1">
               {breakdown.map((cat) => (
                 <div
                   key={cat.id}
-                  className="rounded-xl border border-[var(--border)] overflow-hidden"
+                  className={cn(
+                    "rounded-xl border overflow-hidden",
+                    cat.adj !== 0 ? "border-[var(--green)]/30" : "border-[var(--border)]"
+                  )}
                 >
                   <button
                     onClick={() =>
@@ -754,6 +802,14 @@ export default function EstimateCoachPage() {
                           필수
                         </span>
                       )}
+                      {cat.adj !== 0 && (
+                        <span className={cn(
+                          "px-1.5 py-0.5 rounded text-[9px] font-medium",
+                          cat.adj > 0 ? "bg-red-500/10 text-red-400" : "bg-[var(--green)]/10 text-[var(--green)]"
+                        )}>
+                          {cat.adj > 0 ? "+" : ""}{fmtShort(cat.adj)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium tabular-nums">
@@ -768,6 +824,90 @@ export default function EstimateCoachPage() {
                   </button>
                   {expandedCat === cat.id && (
                     <div className="px-3 pb-3 space-y-2">
+                      {/* 금액 조정 */}
+                      <div className="p-2.5 rounded-lg bg-white/[0.04] border border-[var(--border)]">
+                        <p className="text-xs text-[var(--muted)] mb-2">금액 조정</p>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCatAdj((prev) => ({
+                                ...prev,
+                                [cat.id]: (prev[cat.id] || 0) - 1000000,
+                              }));
+                            }}
+                            className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCatAdj((prev) => ({
+                                ...prev,
+                                [cat.id]: (prev[cat.id] || 0) - 500000,
+                              }));
+                            }}
+                            className="px-2 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-[10px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                          >
+                            -50만
+                          </button>
+                          <div className="flex-1 text-center">
+                            <span className={cn(
+                              "text-sm font-medium tabular-nums",
+                              cat.adj !== 0
+                                ? cat.adj > 0 ? "text-red-400" : "text-[var(--green)]"
+                                : "text-[var(--muted)]"
+                            )}>
+                              {cat.adj === 0 ? "기본" : `${cat.adj > 0 ? "+" : ""}${fmtShort(cat.adj)}`}
+                            </span>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCatAdj((prev) => ({
+                                ...prev,
+                                [cat.id]: (prev[cat.id] || 0) + 500000,
+                              }));
+                            }}
+                            className="px-2 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-[10px] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                          >
+                            +50만
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCatAdj((prev) => ({
+                                ...prev,
+                                [cat.id]: (prev[cat.id] || 0) + 1000000,
+                              }));
+                            }}
+                            className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                          >
+                            <Plus size={14} />
+                          </button>
+                          {cat.adj !== 0 && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCatAdj((prev) => {
+                                  const next = { ...prev };
+                                  delete next[cat.id];
+                                  return next;
+                                });
+                              }}
+                              className="w-8 h-8 rounded-lg bg-[var(--orange)]/10 hover:bg-[var(--orange)]/20 flex items-center justify-center text-[var(--orange)] transition-colors text-[10px] font-medium"
+                            >
+                              X
+                            </button>
+                          )}
+                        </div>
+                        {cat.adj !== 0 && (
+                          <p className="text-[10px] text-[var(--muted)] mt-1.5">
+                            기본 {fmtShort(cat.engineTotal)} → 조정 후 {fmtShort(cat.total)}
+                          </p>
+                        )}
+                      </div>
                       {/* 등급별 스펙 */}
                       <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--border)]">
                         <p className="text-xs text-[var(--muted)] mb-0.5">
