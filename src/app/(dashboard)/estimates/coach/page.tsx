@@ -93,9 +93,68 @@ export default function EstimateCoachPage() {
   // ─── 공종별 커스터마이징 ───
   const [catGrades, setCatGrades] = useState<Record<string, string>>({});
   const [catAdj, setCatAdj] = useState<Record<string, number>>({});
-  const [subOverrides, setSubOverrides] = useState<Record<string, { amount: number }>>({});
+  const [subOverrides, setSubOverrides] = useState<Record<string, { amount?: number; name?: string }>>({});
   const [customSubs, setCustomSubs] = useState<Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]>>({});
   const [matOverrides, setMatOverrides] = useState<Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]>>({});
+  const [aiGenerating, setAiGenerating] = useState<string | null>(null);
+
+  // AI 세부내역 자동생성
+  const handleAiGenerate = useCallback(async (catId: string) => {
+    if (aiGenerating) return;
+    setAiGenerating(catId);
+    try {
+      const cat = CATS.find((c) => c.id === catId);
+      if (!cat) return;
+      const cg = catGrades[catId] || grade;
+      const gradeLabel = GRADES.find((g) => g.key === cg)?.label || cg;
+      const bt = BUILDING_TYPES.find((b) => b.key === buildingType)?.label || buildingType;
+
+      const res = await fetch("/api/estimate-coach/generate-subs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ catId, catName: cat.name, area, grade: cg, gradeLabel, buildingType: bt }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.subs && Array.isArray(data.subs)) {
+          // 엔진 세부항목명 오버라이드
+          const namePatches: Record<string, { name?: string; amount?: number }> = {};
+          data.subs.forEach((s: { index?: number; name?: string; amount?: number }) => {
+            if (s.index != null && s.index < cat.subs.length) {
+              const key = `${catId}-${s.index}`;
+              namePatches[key] = {};
+              if (s.name) namePatches[key].name = s.name;
+              if (s.amount != null) namePatches[key].amount = s.amount;
+            }
+          });
+          if (Object.keys(namePatches).length > 0) {
+            setSubOverrides((prev) => ({ ...prev, ...namePatches }));
+          }
+          // 추가 항목
+          if (data.customSubs && Array.isArray(data.customSubs)) {
+            setCustomSubs((prev) => ({
+              ...prev,
+              [catId]: data.customSubs.map((cs: { name: string; qty: number; unit: string; unitPrice: number }) => ({
+                name: cs.name, qty: cs.qty || 1, unit: cs.unit || "식", unitPrice: cs.unitPrice || 0,
+              })),
+            }));
+          }
+          // 추가 자재
+          if (data.matOverrides && Array.isArray(data.matOverrides)) {
+            setMatOverrides((prev) => ({
+              ...prev,
+              [catId]: data.matOverrides.map((mo: { name: string; qty: number; unit: string; unitPrice: number }) => ({
+                name: mo.name, qty: mo.qty || 1, unit: mo.unit || "개", unitPrice: mo.unitPrice || 0,
+              })),
+            }));
+          }
+        }
+      }
+    } catch {
+      // silent
+    }
+    setAiGenerating(null);
+  }, [aiGenerating, catGrades, grade, buildingType, area]);
 
   // ─── 크레딧 & 프로 분석 상태 ───
   const [credits, setCredits] = useState<{ total: number; used: number; remaining: number } | null>(null);
@@ -867,28 +926,53 @@ export default function EstimateCoachPage() {
 
                       {/* ── 세부항목 오버라이드 ── */}
                       <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--border)]">
-                        <p className="text-[10px] text-[var(--muted)] mb-1.5 font-semibold uppercase tracking-wider">세부 항목</p>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <p className="text-[10px] text-[var(--muted)] font-semibold uppercase tracking-wider">세부 항목</p>
+                          <button
+                            onClick={() => handleAiGenerate(cat.id)}
+                            disabled={aiGenerating !== null}
+                            className={cn(
+                              "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors",
+                              aiGenerating === cat.id
+                                ? "bg-[var(--green)]/20 text-[var(--green)] animate-pulse"
+                                : "bg-[var(--green)]/10 text-[var(--green)] hover:bg-[var(--green)]/20"
+                            )}
+                          >
+                            <Sparkles size={10} />
+                            {aiGenerating === cat.id ? "생성중..." : "AI 자동기입"}
+                          </button>
+                        </div>
                         <div className="space-y-1">
                           {cat.subs.map((sub, i) => {
                             const key = `${cat.id}-${i}`;
                             const computed = Math.round(calcSub(sub, area));
                             const ov = subOverrides[key];
-                            const isOverridden = ov?.amount != null;
+                            const displayName = ov?.name ?? sub.name;
+                            const isAmountOverridden = ov?.amount != null;
                             return (
                               <div key={key} className="flex items-center justify-between gap-2 text-xs">
-                                <span className="text-[var(--muted)] truncate flex-1">{sub.name}</span>
-                                {isOverridden ? (
+                                <input
+                                  type="text"
+                                  value={displayName}
+                                  onChange={(e) => setSubOverrides((prev) => ({ ...prev, [key]: { ...prev[key], name: e.target.value } }))}
+                                  className="text-[var(--muted)] truncate flex-1 bg-transparent border-b border-transparent hover:border-[var(--border)] focus:border-[var(--green)] outline-none px-0.5 py-0.5 min-w-0"
+                                />
+                                {isAmountOverridden ? (
                                   <div className="flex items-center gap-1">
                                     <input type="number" value={ov.amount}
-                                      onChange={(e) => setSubOverrides((prev) => ({ ...prev, [key]: { amount: Number(e.target.value) || 0 } }))}
+                                      onChange={(e) => setSubOverrides((prev) => ({ ...prev, [key]: { ...prev[key], amount: Number(e.target.value) || 0 } }))}
                                       className="w-24 px-2 py-1 rounded bg-[var(--card)] border border-[var(--green)]/30 text-xs text-right tabular-nums focus:outline-none focus:border-[var(--green)]"
                                     />
-                                    <button onClick={() => setSubOverrides((prev) => { const n = { ...prev }; delete n[key]; return n; })}
+                                    <button onClick={() => setSubOverrides((prev) => {
+                                      const n = { ...prev };
+                                      if (n[key]?.name) { n[key] = { name: n[key].name }; } else { delete n[key]; }
+                                      return n;
+                                    })}
                                       className="p-0.5 text-[var(--muted)] hover:text-[var(--red)]"><RotateCcw size={12} /></button>
                                   </div>
                                 ) : (
-                                  <button onClick={() => setSubOverrides((prev) => ({ ...prev, [key]: { amount: computed } }))}
-                                    className="tabular-nums text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">{fmtShort(computed)}</button>
+                                  <button onClick={() => setSubOverrides((prev) => ({ ...prev, [key]: { ...prev[key], amount: computed } }))}
+                                    className="tabular-nums text-[var(--muted)] hover:text-[var(--foreground)] transition-colors shrink-0">{fmtShort(computed)}</button>
                                 )}
                               </div>
                             );
@@ -1080,6 +1164,12 @@ export default function EstimateCoachPage() {
                               </div>
                             );
                           })}
+                          {(matOverrides[cat.id]?.length ?? 0) > 0 && (
+                            <div className="flex justify-end text-xs font-medium pt-1 border-t border-[var(--border)]">
+                              <span className="text-[var(--muted)] mr-2">자재 소계:</span>
+                              <span className="text-[var(--green)] tabular-nums">{fmtShort((matOverrides[cat.id] || []).reduce((s, mo) => s + mo.qty * mo.unitPrice, 0))}</span>
+                            </div>
+                          )}
                           <button onClick={() => setMatOverrides((prev) => ({ ...prev, [cat.id]: [...(prev[cat.id] || []), { name: "", qty: 1, unit: "개", unitPrice: 0 }] }))}
                             className="flex items-center gap-1 text-[10px] text-[var(--green)] hover:text-[var(--green)]/80 mt-1">
                             <PlusCircle size={12} /> 자재 추가
