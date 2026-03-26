@@ -28,9 +28,6 @@ import {
   RotateCcw,
   Trash2,
   PlusCircle,
-  Camera,
-  Upload,
-  FileText,
 } from "lucide-react";
 import {
   BarChart,
@@ -160,56 +157,7 @@ export default function EstimateCoachPage() {
     setAiGenerating(null);
   }, [aiGenerating, catGrades, grade, buildingType, area]);
 
-  // ─── 영수증 OCR ───
-  const [receiptParsing, setReceiptParsing] = useState(false);
-  const receiptInputRef = useRef<HTMLInputElement>(null);
 
-  const handleReceiptUpload = useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0 || receiptParsing) return;
-    setReceiptParsing(true);
-    try {
-      const images: { data: string; mimeType: string }[] = [];
-      for (let i = 0; i < Math.min(files.length, 10); i++) {
-        const file = files[i];
-        if (!file.type.startsWith("image/")) continue;
-        const data = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
-            resolve(result.split(",")[1]); // base64 only
-          };
-          reader.readAsDataURL(file);
-        });
-        images.push({ data, mimeType: file.type });
-      }
-      if (images.length === 0) { setReceiptParsing(false); return; }
-
-      const res = await fetch("/api/estimate-coach/parse-receipt", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images }),
-      });
-      if (res.ok) {
-        const { grouped } = await res.json() as { grouped: Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]> };
-        // 공종별로 customSubs에 추가
-        setCustomSubs((prev) => {
-          const next = { ...prev };
-          for (const [catId, items] of Object.entries(grouped)) {
-            const existing = next[catId] || [];
-            next[catId] = [...existing, ...items];
-          }
-          return next;
-        });
-        // 해당 공종 펼치기 (첫 번째 공종)
-        const firstCat = Object.keys(grouped)[0];
-        if (firstCat) setExpandedCat(firstCat);
-      }
-    } catch {
-      // silent
-    }
-    setReceiptParsing(false);
-    if (receiptInputRef.current) receiptInputRef.current.value = "";
-  }, [receiptParsing]);
 
   // ─── 크레딧 & 프로 분석 상태 ───
   const [credits, setCredits] = useState<{ total: number; used: number; remaining: number } | null>(null);
@@ -745,48 +693,6 @@ export default function EstimateCoachPage() {
         </div>
       </div>
 
-      {/* ─── 견적서 첨부하기 ─── */}
-      <div className="p-5 rounded-2xl bg-[var(--card)] border border-dashed border-[var(--green)]/30 hover:border-[var(--green)]/50 transition-colors">
-        <input
-          ref={receiptInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => handleReceiptUpload(e.target.files)}
-        />
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--green)]/10 flex items-center justify-center">
-              <FileText size={20} className="text-[var(--green)]" />
-            </div>
-            <div>
-              <h2 className="text-sm font-medium">견적서 첨부하기</h2>
-              <p className="text-xs text-[var(--muted)] mt-0.5">
-                업체 견적서·영수증 사진을 첨부하면 AI가 자동으로 공종별 항목을 분류합니다
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => receiptInputRef.current?.click()}
-            disabled={receiptParsing}
-            className={cn(
-              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors",
-              receiptParsing
-                ? "bg-[var(--green)]/20 text-[var(--green)] animate-pulse"
-                : "bg-[var(--green)] text-black hover:opacity-90"
-            )}
-          >
-            {receiptParsing ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Upload size={16} />
-            )}
-            {receiptParsing ? "분석 중..." : "사진 첨부"}
-          </button>
-        </div>
-      </div>
-
       {/* ─── 프로분석 잠금해제 ─── */}
       <div className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)]">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -928,19 +834,6 @@ export default function EstimateCoachPage() {
                 공종별 상세 내역
               </h2>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => receiptInputRef.current?.click()}
-                  disabled={receiptParsing}
-                  className={cn(
-                    "flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-xl font-medium transition-colors border",
-                    receiptParsing
-                      ? "bg-[var(--green)]/20 text-[var(--green)] border-[var(--green)]/30 animate-pulse"
-                      : "bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/20 hover:bg-[var(--green)]/20"
-                  )}
-                >
-                  {receiptParsing ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
-                  {receiptParsing ? "분석중..." : "견적서/영수증 첨부"}
-                </button>
                 {Object.values(catAdj).some((v) => v !== 0) && (
                   <button
                     onClick={() => setCatAdj({})}
@@ -1045,19 +938,21 @@ export default function EstimateCoachPage() {
                       <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--border)]">
                         <div className="flex items-center justify-between mb-1.5">
                           <p className="text-[10px] text-[var(--muted)] font-semibold uppercase tracking-wider">세부 항목</p>
-                          <button
-                            onClick={() => handleAiGenerate(cat.id)}
-                            disabled={aiGenerating !== null}
-                            className={cn(
-                              "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors",
-                              aiGenerating === cat.id
-                                ? "bg-[var(--green)]/20 text-[var(--green)] animate-pulse"
-                                : "bg-[var(--green)]/10 text-[var(--green)] hover:bg-[var(--green)]/20"
-                            )}
-                          >
-                            <Sparkles size={10} />
-                            {aiGenerating === cat.id ? "생성중..." : "AI 자동기입"}
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleAiGenerate(cat.id)}
+                              disabled={aiGenerating !== null}
+                              className={cn(
+                                "flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors",
+                                aiGenerating === cat.id
+                                  ? "bg-[var(--green)]/20 text-[var(--green)] animate-pulse"
+                                  : "bg-[var(--green)]/10 text-[var(--green)] hover:bg-[var(--green)]/20"
+                              )}
+                            >
+                              <Sparkles size={10} />
+                              {aiGenerating === cat.id ? "생성중..." : "AI 자동기입"}
+                            </button>
+                          </div>
                         </div>
                         <div className="space-y-1">
                           {cat.subs.map((sub, i) => {
