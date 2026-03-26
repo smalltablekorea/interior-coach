@@ -12,7 +12,6 @@ import {
   GRADES,
   gradeMap,
   GRADE_SPECS,
-  calcCatTotal,
   calcSub,
   fmtM,
 } from "@/lib/estimate-engine";
@@ -157,22 +156,19 @@ export function StepDetails({
           const cg = catGrades[cat.id] || grade;
           const cgD = gradeMap[cg];
           const adj = catAdj[cat.id] || 0;
-          const baseAmt = calcCatTotal(cat, area, grade, cg);
 
-          // 세부항목 오버라이드 + 삭제 차이
-          let overrideDiff = 0;
+          // 세부항목 실제 합계 (화면에 보이는 값 그대로)
+          let subsTotal = 0;
           cat.subs.forEach((sub, i) => {
             const key = `${cat.id}-${i}`;
-            if (deletedSubs[key]) {
-              overrideDiff -= calcSub(sub, area);
-              return;
-            }
+            if (deletedSubs[key]) return;
             const ov = subOverrides[key];
-            if (ov?.amount != null) overrideDiff += ov.amount - calcSub(sub, area);
+            subsTotal += ov?.amount != null ? ov.amount : Math.round(calcSub(sub, area));
           });
           const customTotal = (customSubs[cat.id] || []).reduce((s, cs) => s + cs.amount, 0);
           const matTotal = (matOverrides[cat.id] || []).reduce((s, mo) => s + Math.round(mo.qty * mo.unitPrice / 100) * 100, 0);
-          const finalAmt = isHidden ? 0 : Math.max(0, baseAmt + overrideDiff + customTotal + matTotal + adj);
+          const displayTotal = subsTotal + customTotal + matTotal + adj;
+          const finalAmt = isHidden ? 0 : Math.max(0, displayTotal);
           const isExpanded = expanded === cat.id;
 
           // 숨긴 공종
@@ -224,8 +220,8 @@ export function StepDetails({
                     >
                       {cgD.label}
                     </span>
-                    {(adj !== 0 || overrideDiff !== 0 || customTotal !== 0 || matTotal !== 0) && (() => {
-                      const diff = adj + overrideDiff + customTotal + matTotal;
+                    {(adj !== 0 || customTotal !== 0 || matTotal !== 0 || displayTotal !== subsTotal) && (() => {
+                      const diff = displayTotal - subsTotal;
                       return (
                         <span className={`text-[9px] ml-1.5 px-1.5 py-0.5 rounded-full font-medium ${diff > 0 ? "bg-red-500/10 text-red-400" : "bg-green-500/10 text-green-400"}`}>
                           {diff > 0 ? "+" : ""}{fmtShort(diff)}

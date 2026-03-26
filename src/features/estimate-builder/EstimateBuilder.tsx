@@ -17,7 +17,6 @@ import {
 import {
   CATS,
   gradeMap,
-  calcCatTotal,
   calcSub,
   fmtShort,
   fmtM,
@@ -110,40 +109,33 @@ export function EstimateBuilder() {
     const m: Record<string, number> = {};
     CATS.forEach((cat) => {
       if (enabled[cat.id] !== false && !hiddenCats[cat.id]) {
-        const cg = catGrades[cat.id] || grade;
         const adj = catAdj[cat.id] || 0;
-        const base = calcCatTotal(cat, area, grade, cg);
-        let overrideDiff = 0;
+        // 세부항목 실제 합계 (화면에 보이는 금액 그대로)
+        let subsTotal = 0;
         cat.subs.forEach((sub, i) => {
           const key = `${cat.id}-${i}`;
-          if (deletedSubs[key]) {
-            overrideDiff -= calcSub(sub, area);
-            return;
-          }
+          if (deletedSubs[key]) return;
           const ov = subOverrides[key];
-          if (ov?.amount != null)
-            overrideDiff += ov.amount - calcSub(sub, area);
+          subsTotal += ov?.amount != null ? ov.amount : Math.round(calcSub(sub, area));
         });
         const customTotal = (customSubs[cat.id] || []).reduce(
           (s, cs) => s + cs.amount,
           0
         );
         const matTotal = (matOverrides[cat.id] || []).reduce(
-          (s, mo) => s + mo.qty * mo.unitPrice,
+          (s, mo) => s + Math.round(mo.qty * mo.unitPrice / 100) * 100,
           0
         );
         m[cat.id] = Math.max(
           0,
-          base + overrideDiff + customTotal + matTotal + adj
+          subsTotal + customTotal + matTotal + adj
         );
       }
     });
     return m;
   }, [
     area,
-    grade,
     enabled,
-    catGrades,
     catAdj,
     subOverrides,
     customSubs,
