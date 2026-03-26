@@ -59,6 +59,7 @@ export default function ContractsPage() {
   });
   const [payments, setPayments] = useState([
     { type: "계약금", amount: "", dueDate: "" },
+    { type: "착수금", amount: "", dueDate: "" },
     { type: "중도금", amount: "", dueDate: "" },
     { type: "잔금", amount: "", dueDate: "" },
   ]);
@@ -107,6 +108,7 @@ export default function ContractsPage() {
       setForm({ siteId: "", contractAmount: "", contractDate: "", memo: "" });
       setPayments([
         { type: "계약금", amount: "", dueDate: "" },
+        { type: "착수금", amount: "", dueDate: "" },
         { type: "중도금", amount: "", dueDate: "" },
         { type: "잔금", amount: "", dueDate: "" },
       ]);
