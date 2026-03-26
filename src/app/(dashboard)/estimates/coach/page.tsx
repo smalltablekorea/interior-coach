@@ -97,6 +97,7 @@ export default function EstimateCoachPage() {
   const [customSubs, setCustomSubs] = useState<Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]>>({});
   const [matOverrides, setMatOverrides] = useState<Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]>>({});
   const [deletedSubs, setDeletedSubs] = useState<Record<string, boolean>>({});
+  const [hiddenCats, setHiddenCats] = useState<Record<string, boolean>>({});
   const [aiGenerating, setAiGenerating] = useState<string | null>(null);
 
   // AI 세부내역 자동생성
@@ -261,6 +262,7 @@ export default function EstimateCoachPage() {
 
   const breakdown = useMemo(() => {
     return CATS.map((cat) => {
+      const hidden = !!hiddenCats[cat.id];
       const cg = catGrades[cat.id] || grade;
       const baseTotal = calcCatTotal(cat, area, grade, cg);
       const engineTotal = Math.round(baseTotal * buildingAdj);
@@ -287,7 +289,7 @@ export default function EstimateCoachPage() {
 
       // 금액 조정
       const adj = catAdj[cat.id] || 0;
-      const total = Math.max(0, engineTotal + overrideDiff + customTotal + matOverrideTotal + adj);
+      const total = hidden ? 0 : Math.max(0, engineTotal + overrideDiff + customTotal + matOverrideTotal + adj);
 
       const effectiveGrade = cg;
       const duration = getDuration(cat.id, area);
@@ -298,6 +300,7 @@ export default function EstimateCoachPage() {
         icon: cat.icon,
         color: cat.color,
         essential: cat.essential,
+        hidden,
         total,
         engineTotal,
         adj,
@@ -312,11 +315,11 @@ export default function EstimateCoachPage() {
         gradeAdj: cat.gradeAdj,
       };
     });
-  }, [area, grade, buildingAdj, catGrades, catAdj, subOverrides, customSubs, matOverrides, deletedSubs]);
+  }, [area, grade, buildingAdj, catGrades, catAdj, subOverrides, customSubs, matOverrides, deletedSubs, hiddenCats]);
 
   const directTotal = useMemo(
-    () => breakdown.reduce((s, c) => s + c.total, 0),
-    [breakdown]
+    () => breakdown.reduce((s, c) => hiddenCats[c.id] ? s : s + c.total, 0),
+    [breakdown, hiddenCats]
   );
 
   const profit = Math.round(directTotal * (profitRate / 100));
@@ -849,15 +852,36 @@ export default function EstimateCoachPage() {
                 <div
                   key={cat.id}
                   className={cn(
-                    "rounded-xl border overflow-hidden",
-                    cat.adj !== 0 ? "border-[var(--green)]/30" : "border-[var(--border)]"
+                    "rounded-xl border overflow-hidden transition-opacity",
+                    cat.hidden ? "opacity-40 border-[var(--border)]" : cat.adj !== 0 ? "border-[var(--green)]/30" : "border-[var(--border)]"
                   )}
                 >
+                  {cat.hidden ? (
+                    <div className="flex items-center justify-between p-3">
+                      <div className="flex items-center gap-2.5">
+                        <span
+                          className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold"
+                          style={{ backgroundColor: cat.color + "20", color: cat.color }}
+                        >
+                          {cat.icon}
+                        </span>
+                        <span className="text-sm font-medium line-through">{cat.name}</span>
+                        <span className="px-1.5 py-0.5 rounded text-[9px] bg-red-500/10 text-red-400">제외됨</span>
+                      </div>
+                      <button
+                        onClick={() => setHiddenCats((p) => { const n = { ...p }; delete n[cat.id]; return n; })}
+                        className="flex items-center gap-1 text-[10px] text-[var(--green)] hover:text-[var(--green)]/80"
+                      >
+                        <RotateCcw size={11} /> 복원
+                      </button>
+                    </div>
+                  ) : (<>
+                  <div className="flex items-center">
                   <button
                     onClick={() =>
                       setExpandedCat(expandedCat === cat.id ? null : cat.id)
                     }
-                    className="w-full flex items-center justify-between p-3 hover:bg-white/[0.02] transition-colors"
+                    className="flex-1 flex items-center justify-between p-3 hover:bg-white/[0.02] transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
                       <span
@@ -1228,8 +1252,18 @@ export default function EstimateCoachPage() {
                           <RotateCcw size={11} /> 이 공종 초기화
                         </button>
                       )}
+                      <button
+                        onClick={() => {
+                          setHiddenCats((p) => ({ ...p, [cat.id]: true }));
+                          setExpandedCat(null);
+                        }}
+                        className="flex items-center gap-1 text-[10px] text-red-400 hover:text-red-300"
+                      >
+                        <Trash2 size={11} /> 이 공종 제거
+                      </button>
                     </div>
                   )}
+                  </>)}
                 </div>
               ))}
             </div>
