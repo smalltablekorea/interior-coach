@@ -28,7 +28,6 @@ import {
   RotateCcw,
   Trash2,
   PlusCircle,
-  Settings2,
 } from "lucide-react";
 import {
   BarChart,
@@ -95,7 +94,8 @@ export default function EstimateCoachPage() {
   const [catGrades, setCatGrades] = useState<Record<string, string>>({});
   const [catAdj, setCatAdj] = useState<Record<string, number>>({});
   const [subOverrides, setSubOverrides] = useState<Record<string, { amount: number }>>({});
-  const [customSubs, setCustomSubs] = useState<Record<string, { name: string; amount: number }[]>>({});
+  const [customSubs, setCustomSubs] = useState<Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]>>({});
+  const [matOverrides, setMatOverrides] = useState<Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]>>({});
 
   // ─── 크레딧 & 프로 분석 상태 ───
   const [credits, setCredits] = useState<{ total: number; used: number; remaining: number } | null>(null);
@@ -213,11 +213,14 @@ export default function EstimateCoachPage() {
       });
 
       // 커스텀 항목 합산
-      const customTotal = (customSubs[cat.id] || []).reduce((s, cs) => s + cs.amount, 0);
+      const customTotal = (customSubs[cat.id] || []).reduce((s, cs) => s + cs.qty * cs.unitPrice, 0);
+
+      // 자재 오버라이드 합산
+      const matOverrideTotal = (matOverrides[cat.id] || []).reduce((s, mo) => s + mo.qty * mo.unitPrice, 0);
 
       // 금액 조정
       const adj = catAdj[cat.id] || 0;
-      const total = Math.max(0, engineTotal + overrideDiff + customTotal + adj);
+      const total = Math.max(0, engineTotal + overrideDiff + customTotal + matOverrideTotal + adj);
 
       const effectiveGrade = cg;
       const duration = getDuration(cat.id, area);
@@ -233,6 +236,7 @@ export default function EstimateCoachPage() {
         adj,
         overrideDiff,
         customTotal,
+        matOverrideTotal,
         effectiveGrade,
         duration,
         spec,
@@ -241,7 +245,7 @@ export default function EstimateCoachPage() {
         gradeAdj: cat.gradeAdj,
       };
     });
-  }, [area, grade, buildingAdj, catGrades, catAdj, subOverrides, customSubs]);
+  }, [area, grade, buildingAdj, catGrades, catAdj, subOverrides, customSubs, matOverrides]);
 
   const directTotal = useMemo(
     () => breakdown.reduce((s, c) => s + c.total, 0),
@@ -802,14 +806,22 @@ export default function EstimateCoachPage() {
                           필수
                         </span>
                       )}
-                      {cat.adj !== 0 && (
-                        <span className={cn(
-                          "px-1.5 py-0.5 rounded text-[9px] font-medium",
-                          cat.adj > 0 ? "bg-red-500/10 text-red-400" : "bg-[var(--green)]/10 text-[var(--green)]"
-                        )}>
-                          {cat.adj > 0 ? "+" : ""}{fmtShort(cat.adj)}
+                      {cat.effectiveGrade !== grade && (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-500/10 text-blue-400">
+                          {GRADES.find(g => g.key === cat.effectiveGrade)?.label}
                         </span>
                       )}
+                      {(cat.adj !== 0 || cat.overrideDiff !== 0 || cat.customTotal !== 0 || cat.matOverrideTotal !== 0) && (() => {
+                        const diff = cat.adj + cat.overrideDiff + cat.customTotal + cat.matOverrideTotal;
+                        return (
+                          <span className={cn(
+                            "px-1.5 py-0.5 rounded text-[9px] font-medium",
+                            diff > 0 ? "bg-red-500/10 text-red-400" : "bg-[var(--green)]/10 text-[var(--green)]"
+                          )}>
+                            {diff > 0 ? "+" : ""}{fmtShort(diff)}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium tabular-nums">
@@ -824,9 +836,101 @@ export default function EstimateCoachPage() {
                   </button>
                   {expandedCat === cat.id && (
                     <div className="px-3 pb-3 space-y-2">
-                      {/* 금액 조정 */}
+                      {/* ── 공종 등급 변경 ── */}
+                      <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--border)]">
+                        <p className="text-[10px] text-[var(--muted)] mb-1.5 font-semibold uppercase tracking-wider">공종 등급 변경</p>
+                        <div className="flex flex-wrap gap-1">
+                          {GRADES.map((g) => {
+                            const isActive = cat.effectiveGrade === g.key;
+                            return (
+                              <button
+                                key={g.key}
+                                onClick={() => setCatGrades((prev) => {
+                                  const next = { ...prev };
+                                  if (g.key === grade) delete next[cat.id];
+                                  else next[cat.id] = g.key;
+                                  return next;
+                                })}
+                                className={cn(
+                                  "text-[10px] px-2 py-1 rounded-md border transition-colors",
+                                  isActive ? "font-bold" : "border-[var(--border)] text-[var(--muted)] hover:border-white/20"
+                                )}
+                                style={isActive ? { color: g.color, borderColor: g.color } : undefined}
+                              >
+                                {g.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs mt-1.5">{cat.spec}</p>
+                      </div>
+
+                      {/* ── 세부항목 오버라이드 ── */}
+                      <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--border)]">
+                        <p className="text-[10px] text-[var(--muted)] mb-1.5 font-semibold uppercase tracking-wider">세부 항목</p>
+                        <div className="space-y-1">
+                          {cat.subs.map((sub, i) => {
+                            const key = `${cat.id}-${i}`;
+                            const computed = Math.round(calcSub(sub, area));
+                            const ov = subOverrides[key];
+                            const isOverridden = ov?.amount != null;
+                            return (
+                              <div key={key} className="flex items-center justify-between gap-2 text-xs">
+                                <span className="text-[var(--muted)] truncate flex-1">{sub.name}</span>
+                                {isOverridden ? (
+                                  <div className="flex items-center gap-1">
+                                    <input type="number" value={ov.amount}
+                                      onChange={(e) => setSubOverrides((prev) => ({ ...prev, [key]: { amount: Number(e.target.value) || 0 } }))}
+                                      className="w-24 px-2 py-1 rounded bg-[var(--card)] border border-[var(--green)]/30 text-xs text-right tabular-nums focus:outline-none focus:border-[var(--green)]"
+                                    />
+                                    <button onClick={() => setSubOverrides((prev) => { const n = { ...prev }; delete n[key]; return n; })}
+                                      className="p-0.5 text-[var(--muted)] hover:text-[var(--red)]"><RotateCcw size={12} /></button>
+                                  </div>
+                                ) : (
+                                  <button onClick={() => setSubOverrides((prev) => ({ ...prev, [key]: { amount: computed } }))}
+                                    className="tabular-nums text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">{fmtShort(computed)}</button>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {(customSubs[cat.id] || []).map((cs, ci) => {
+                            const updateCustom = (patch: Partial<typeof cs>) => {
+                              setCustomSubs((prev) => {
+                                const arr = [...(prev[cat.id] || [])];
+                                arr[ci] = { ...arr[ci], ...patch };
+                                return { ...prev, [cat.id]: arr };
+                              });
+                            };
+                            return (
+                              <div key={`custom-${ci}`} className="flex items-center gap-1.5 text-xs">
+                                <input type="text" value={cs.name} placeholder="항목명"
+                                  onChange={(e) => updateCustom({ name: e.target.value })}
+                                  className="flex-1 min-w-0 px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs focus:outline-none focus:border-[var(--green)]" />
+                                <input type="number" value={cs.qty} placeholder="수량"
+                                  onChange={(e) => updateCustom({ qty: Number(e.target.value) || 0 })}
+                                  className="w-14 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-right tabular-nums focus:outline-none focus:border-[var(--green)]" />
+                                <input type="text" value={cs.unit} placeholder="단위"
+                                  onChange={(e) => updateCustom({ unit: e.target.value })}
+                                  className="w-12 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-center focus:outline-none focus:border-[var(--green)]" />
+                                <input type="number" value={cs.unitPrice} placeholder="단가"
+                                  onChange={(e) => updateCustom({ unitPrice: Number(e.target.value) || 0 })}
+                                  className="w-20 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-right tabular-nums focus:outline-none focus:border-[var(--green)]" />
+                                <span className="text-[10px] text-[var(--muted)] w-16 text-right tabular-nums shrink-0">{fmtShort(cs.qty * cs.unitPrice)}</span>
+                                <button onClick={() => setCustomSubs((prev) => { const arr = [...(prev[cat.id] || [])]; arr.splice(ci, 1); return { ...prev, [cat.id]: arr }; })}
+                                  className="p-0.5 text-[var(--muted)] hover:text-[var(--red)] shrink-0"><Trash2 size={12} /></button>
+                              </div>
+                            );
+                          })}
+                          <button onClick={() => setCustomSubs((prev) => ({ ...prev, [cat.id]: [...(prev[cat.id] || []), { name: "", qty: 1, unit: "식", unitPrice: 0 }] }))}
+                            className="flex items-center gap-1 text-[10px] text-[var(--green)] hover:text-[var(--green)]/80 mt-1">
+                            <PlusCircle size={12} /> 항목 추가
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* ── 금액 직접 조정 ── */}
                       <div className="p-2.5 rounded-lg bg-white/[0.04] border border-[var(--border)]">
-                        <p className="text-xs text-[var(--muted)] mb-2">금액 조정</p>
+                        <p className="text-[10px] text-[var(--muted)] mb-2 font-semibold uppercase tracking-wider">금액 조정</p>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={(e) => {
@@ -902,52 +1006,88 @@ export default function EstimateCoachPage() {
                             </button>
                           )}
                         </div>
-                        {cat.adj !== 0 && (
+                        {(cat.adj !== 0 || cat.overrideDiff !== 0 || cat.customTotal !== 0) && (
                           <p className="text-[10px] text-[var(--muted)] mt-1.5">
                             기본 {fmtShort(cat.engineTotal)} → 조정 후 {fmtShort(cat.total)}
                           </p>
                         )}
                       </div>
-                      {/* 등급별 스펙 */}
+
+                      {/* ── 자재 옵션 ── */}
                       <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--border)]">
-                        <p className="text-xs text-[var(--muted)] mb-0.5">
-                          {selectedGrade.label} 등급 사양
-                        </p>
-                        <p className="text-xs">{cat.spec}</p>
-                      </div>
-                      {/* 자재 옵션 */}
-                      {cat.matOptions && (
-                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-[var(--border)]">
-                          <p className="text-xs text-[var(--muted)] mb-1.5">
-                            자재 옵션 (등급별)
-                          </p>
-                          <div className="grid grid-cols-2 gap-1">
-                            {cat.matOptions
-                              .filter((m) =>
-                                ["economy", "standard", "comfort", "premium"].includes(
-                                  m.grade
-                                )
-                              )
-                              .map((m) => (
-                                <div
-                                  key={m.grade}
-                                  className={cn(
-                                    "px-2 py-1.5 rounded text-xs",
-                                    m.grade === grade
-                                      ? "bg-[var(--green)]/10 border border-[var(--green)]/20"
-                                      : "bg-white/[0.02]"
-                                  )}
-                                >
-                                  <span className="text-[var(--muted)]">
-                                    {GRADES.find((g) => g.key === m.grade)?.label}:{" "}
-                                  </span>
-                                  <span className="font-medium">{m.name}</span>
-                                </div>
-                              ))}
+                        <p className="text-[10px] text-[var(--muted)] mb-1.5 font-semibold uppercase tracking-wider">자재 옵션</p>
+                        {cat.matOptions && (
+                          <div className="grid grid-cols-2 gap-1 mb-2">
+                            {cat.matOptions.map((m) => (
+                              <div
+                                key={m.grade}
+                                className={cn(
+                                  "px-2 py-1.5 rounded text-xs",
+                                  m.grade === cat.effectiveGrade
+                                    ? "bg-[var(--green)]/10 border border-[var(--green)]/20"
+                                    : "bg-white/[0.02]"
+                                )}
+                              >
+                                <span className="text-[var(--muted)]">
+                                  {GRADES.find((g) => g.key === m.grade)?.label}:{" "}
+                                </span>
+                                <span className="font-medium">{m.name}</span>
+                                <span className="text-[var(--muted)] ml-1">({fmtShort(m.price)})</span>
+                              </div>
+                            ))}
                           </div>
+                        )}
+                        {/* 자재 추가/수정 */}
+                        {(matOverrides[cat.id] || []).length > 0 && (
+                          <>
+                            <div className="text-[10px] text-[var(--muted)] mb-1 mt-2 font-semibold">추가 자재</div>
+                            <div className="flex items-center gap-1.5 text-[9px] text-[var(--muted)] uppercase tracking-wider px-0.5 mb-0.5">
+                              <span className="flex-1">자재명</span>
+                              <span className="w-14 text-right">갯수</span>
+                              <span className="w-12 text-center">단위</span>
+                              <span className="w-20 text-right">단가</span>
+                              <span className="w-16 text-right">소계</span>
+                              <span className="w-5" />
+                            </div>
+                          </>
+                        )}
+                        <div className="space-y-1">
+                          {(matOverrides[cat.id] || []).map((mo, mi) => {
+                            const updateMat = (patch: Partial<typeof mo>) => {
+                              setMatOverrides((prev) => {
+                                const arr = [...(prev[cat.id] || [])];
+                                arr[mi] = { ...arr[mi], ...patch };
+                                return { ...prev, [cat.id]: arr };
+                              });
+                            };
+                            return (
+                              <div key={`mat-${mi}`} className="flex items-center gap-1.5 text-xs">
+                                <input type="text" value={mo.name} placeholder="자재명"
+                                  onChange={(e) => updateMat({ name: e.target.value })}
+                                  className="flex-1 min-w-0 px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs focus:outline-none focus:border-[var(--green)]" />
+                                <input type="number" value={mo.qty} placeholder="수량"
+                                  onChange={(e) => updateMat({ qty: Number(e.target.value) || 0 })}
+                                  className="w-14 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-right tabular-nums focus:outline-none focus:border-[var(--green)]" />
+                                <input type="text" value={mo.unit} placeholder="단위"
+                                  onChange={(e) => updateMat({ unit: e.target.value })}
+                                  className="w-12 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-center focus:outline-none focus:border-[var(--green)]" />
+                                <input type="number" value={mo.unitPrice} placeholder="단가"
+                                  onChange={(e) => updateMat({ unitPrice: Number(e.target.value) || 0 })}
+                                  className="w-20 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-right tabular-nums focus:outline-none focus:border-[var(--green)]" />
+                                <span className="text-[10px] text-[var(--muted)] w-16 text-right tabular-nums shrink-0">{fmtShort(mo.qty * mo.unitPrice)}</span>
+                                <button onClick={() => setMatOverrides((prev) => { const arr = [...(prev[cat.id] || [])]; arr.splice(mi, 1); return { ...prev, [cat.id]: arr }; })}
+                                  className="p-0.5 text-[var(--muted)] hover:text-[var(--red)] shrink-0"><Trash2 size={12} /></button>
+                              </div>
+                            );
+                          })}
+                          <button onClick={() => setMatOverrides((prev) => ({ ...prev, [cat.id]: [...(prev[cat.id] || []), { name: "", qty: 1, unit: "개", unitPrice: 0 }] }))}
+                            className="flex items-center gap-1 text-[10px] text-[var(--green)] hover:text-[var(--green)]/80 mt-1">
+                            <PlusCircle size={12} /> 자재 추가
+                          </button>
                         </div>
-                      )}
-                      {/* 공사기간 */}
+                      </div>
+
+                      {/* ── 공사기간 ── */}
                       <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
                         <Clock size={12} />
                         <span>
@@ -955,6 +1095,22 @@ export default function EstimateCoachPage() {
                           {cat.duration.note && ` (${cat.duration.note})`}
                         </span>
                       </div>
+
+                      {/* ── 이 공종 초기화 ── */}
+                      {(catGrades[cat.id] || catAdj[cat.id] || Object.keys(subOverrides).some(k => k.startsWith(cat.id)) || (customSubs[cat.id]?.length ?? 0) > 0 || (matOverrides[cat.id]?.length ?? 0) > 0) && (
+                        <button
+                          onClick={() => {
+                            setCatGrades((p) => { const n = { ...p }; delete n[cat.id]; return n; });
+                            setCatAdj((p) => { const n = { ...p }; delete n[cat.id]; return n; });
+                            setSubOverrides((p) => { const n = { ...p }; Object.keys(n).filter(k => k.startsWith(cat.id)).forEach(k => delete n[k]); return n; });
+                            setCustomSubs((p) => { const n = { ...p }; delete n[cat.id]; return n; });
+                            setMatOverrides((p) => { const n = { ...p }; delete n[cat.id]; return n; });
+                          }}
+                          className="flex items-center gap-1 text-[10px] text-[var(--orange)] hover:text-[var(--orange)]/80"
+                        >
+                          <RotateCcw size={11} /> 이 공종 초기화
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
