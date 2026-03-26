@@ -468,10 +468,10 @@ export default function EstimateCoachPage() {
               onChange={(e) => setGrade(e.target.value)}
               className="w-full px-3 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm focus:border-[var(--green)] focus:outline-none"
             >
-              {GRADES.map((g) => (
+              {gradeComparison.map((g) => (
                 <option key={g.key} value={g.key}>
-                  {GRADE_EMOJI[g.key]} {g.label} ({g.tag}) — 60평 기준{" "}
-                  {fmtShort(g.target60)}
+                  {GRADE_EMOJI[g.key]} {g.label} ({g.tag}) — {area}평 기준{" "}
+                  {fmtShort(g.total)}
                 </option>
               ))}
             </select>
