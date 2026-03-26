@@ -890,14 +890,14 @@ export default function EstimateCoachPage() {
                   onClick={() => receiptInputRef.current?.click()}
                   disabled={receiptParsing}
                   className={cn(
-                    "flex items-center gap-1 text-[10px] px-2.5 py-1 rounded-lg transition-colors",
+                    "flex items-center gap-1.5 text-xs px-3.5 py-2 rounded-xl font-medium transition-colors border",
                     receiptParsing
-                      ? "bg-[var(--green)]/20 text-[var(--green)] animate-pulse"
-                      : "bg-[var(--green)]/10 text-[var(--green)] hover:bg-[var(--green)]/20"
+                      ? "bg-[var(--green)]/20 text-[var(--green)] border-[var(--green)]/30 animate-pulse"
+                      : "bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/20 hover:bg-[var(--green)]/20"
                   )}
                 >
-                  <Camera size={12} />
-                  {receiptParsing ? "분석중..." : "영수증 첨부"}
+                  {receiptParsing ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+                  {receiptParsing ? "분석중..." : "견적서/영수증 첨부"}
                 </button>
                 {Object.values(catAdj).some((v) => v !== 0) && (
                   <button
