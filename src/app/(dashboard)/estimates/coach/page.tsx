@@ -29,6 +29,8 @@ import {
   Trash2,
   PlusCircle,
   Camera,
+  Upload,
+  FileText,
 } from "lucide-react";
 import {
   BarChart,
@@ -97,6 +99,7 @@ export default function EstimateCoachPage() {
   const [subOverrides, setSubOverrides] = useState<Record<string, { amount?: number; name?: string }>>({});
   const [customSubs, setCustomSubs] = useState<Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]>>({});
   const [matOverrides, setMatOverrides] = useState<Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]>>({});
+  const [deletedSubs, setDeletedSubs] = useState<Record<string, boolean>>({});
   const [aiGenerating, setAiGenerating] = useState<string | null>(null);
 
   // AI 세부내역 자동생성
@@ -314,10 +317,15 @@ export default function EstimateCoachPage() {
       const baseTotal = calcCatTotal(cat, area, grade, cg);
       const engineTotal = Math.round(baseTotal * buildingAdj);
 
-      // 세부항목 오버라이드 차이
+      // 세부항목 오버라이드 차이 + 삭제된 항목 차감
       let overrideDiff = 0;
       cat.subs.forEach((sub, i) => {
-        const ov = subOverrides[`${cat.id}-${i}`];
+        const key = `${cat.id}-${i}`;
+        if (deletedSubs[key]) {
+          overrideDiff -= calcSub(sub, area);
+          return;
+        }
+        const ov = subOverrides[key];
         if (ov?.amount != null) {
           overrideDiff += ov.amount - calcSub(sub, area);
         }
@@ -356,7 +364,7 @@ export default function EstimateCoachPage() {
         gradeAdj: cat.gradeAdj,
       };
     });
-  }, [area, grade, buildingAdj, catGrades, catAdj, subOverrides, customSubs, matOverrides]);
+  }, [area, grade, buildingAdj, catGrades, catAdj, subOverrides, customSubs, matOverrides, deletedSubs]);
 
   const directTotal = useMemo(
     () => breakdown.reduce((s, c) => s + c.total, 0),
@@ -737,6 +745,48 @@ export default function EstimateCoachPage() {
         </div>
       </div>
 
+      {/* ─── 견적서 첨부하기 ─── */}
+      <div className="p-5 rounded-2xl bg-[var(--card)] border border-dashed border-[var(--green)]/30 hover:border-[var(--green)]/50 transition-colors">
+        <input
+          ref={receiptInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => handleReceiptUpload(e.target.files)}
+        />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--green)]/10 flex items-center justify-center">
+              <FileText size={20} className="text-[var(--green)]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-medium">견적서 첨부하기</h2>
+              <p className="text-xs text-[var(--muted)] mt-0.5">
+                업체 견적서·영수증 사진을 첨부하면 AI가 자동으로 공종별 항목을 분류합니다
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => receiptInputRef.current?.click()}
+            disabled={receiptParsing}
+            className={cn(
+              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium transition-colors",
+              receiptParsing
+                ? "bg-[var(--green)]/20 text-[var(--green)] animate-pulse"
+                : "bg-[var(--green)] text-black hover:opacity-90"
+            )}
+          >
+            {receiptParsing ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Upload size={16} />
+            )}
+            {receiptParsing ? "분석 중..." : "사진 첨부"}
+          </button>
+        </div>
+      </div>
+
       {/* ─── 프로분석 잠금해제 ─── */}
       <div className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)]">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -878,14 +928,6 @@ export default function EstimateCoachPage() {
                 공종별 상세 내역
               </h2>
               <div className="flex items-center gap-2">
-                <input
-                  ref={receiptInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => handleReceiptUpload(e.target.files)}
-                />
                 <button
                   onClick={() => receiptInputRef.current?.click()}
                   disabled={receiptParsing}
@@ -1022,8 +1064,20 @@ export default function EstimateCoachPage() {
                             const key = `${cat.id}-${i}`;
                             const computed = Math.round(calcSub(sub, area));
                             const ov = subOverrides[key];
+                            const isDeleted = !!deletedSubs[key];
                             const displayName = ov?.name ?? sub.name;
                             const isAmountOverridden = ov?.amount != null;
+
+                            if (isDeleted) {
+                              return (
+                                <div key={key} className="flex items-center justify-between gap-2 text-xs opacity-40">
+                                  <span className="line-through text-[var(--muted)] truncate flex-1">{displayName}</span>
+                                  <button onClick={() => setDeletedSubs((prev) => { const n = { ...prev }; delete n[key]; return n; })}
+                                    className="p-0.5 text-[var(--muted)] hover:text-[var(--green)]"><RotateCcw size={12} /></button>
+                                </div>
+                              );
+                            }
+
                             return (
                               <div key={key} className="flex items-center justify-between gap-2 text-xs">
                                 <input
@@ -1049,6 +1103,8 @@ export default function EstimateCoachPage() {
                                   <button onClick={() => setSubOverrides((prev) => ({ ...prev, [key]: { ...prev[key], amount: computed } }))}
                                     className="tabular-nums text-[var(--muted)] hover:text-[var(--foreground)] transition-colors shrink-0">{fmtShort(computed)}</button>
                                 )}
+                                <button onClick={() => setDeletedSubs((prev) => ({ ...prev, [key]: true }))}
+                                  className="p-0.5 text-[var(--muted)] hover:text-[var(--red)] shrink-0"><Trash2 size={12} /></button>
                               </div>
                             );
                           })}
@@ -1262,12 +1318,13 @@ export default function EstimateCoachPage() {
                       </div>
 
                       {/* ── 이 공종 초기화 ── */}
-                      {(catGrades[cat.id] || catAdj[cat.id] || Object.keys(subOverrides).some(k => k.startsWith(cat.id)) || (customSubs[cat.id]?.length ?? 0) > 0 || (matOverrides[cat.id]?.length ?? 0) > 0) && (
+                      {(catGrades[cat.id] || catAdj[cat.id] || Object.keys(subOverrides).some(k => k.startsWith(cat.id)) || Object.keys(deletedSubs).some(k => k.startsWith(cat.id)) || (customSubs[cat.id]?.length ?? 0) > 0 || (matOverrides[cat.id]?.length ?? 0) > 0) && (
                         <button
                           onClick={() => {
                             setCatGrades((p) => { const n = { ...p }; delete n[cat.id]; return n; });
                             setCatAdj((p) => { const n = { ...p }; delete n[cat.id]; return n; });
                             setSubOverrides((p) => { const n = { ...p }; Object.keys(n).filter(k => k.startsWith(cat.id)).forEach(k => delete n[k]); return n; });
+                            setDeletedSubs((p) => { const n = { ...p }; Object.keys(n).filter(k => k.startsWith(cat.id)).forEach(k => delete n[k]); return n; });
                             setCustomSubs((p) => { const n = { ...p }; delete n[cat.id]; return n; });
                             setMatOverrides((p) => { const n = { ...p }; delete n[cat.id]; return n; });
                           }}
