@@ -4,13 +4,8 @@ import React, { forwardRef } from "react";
 import {
   CATS,
   gradeMap,
-  GRADE_SPECS,
-  CAT_DURATION,
   calcSub,
-  getDuration,
   fmt,
-  fmtM,
-  fmtShort,
 } from "@/lib/estimate-engine";
 import type { CompanyInfo } from "../steps/StepDocSettings";
 import type { SubOverride, CustomSub } from "../steps/StepDetails";
@@ -71,23 +66,6 @@ export const EstimateDocument = forwardRef<HTMLDivElement, Props>(
   ) {
     const gd = gradeMap[grade];
     const activeCats = CATS.filter((c) => enabled[c.id] !== false);
-    const durations = activeCats
-      .map((c) => ({
-        cat: c,
-        ...getDuration(c.id, area),
-        seq: CAT_DURATION[c.id]?.seq || 99,
-      }))
-      .sort((a, b) => a.seq - b.seq);
-    const totalDurMin =
-      Math.max(...durations.map((d) => (d.seq === 1 ? d.min : 0))) +
-      durations.reduce(
-        (s, d) => (d.seq > 1 ? s + d.min * 0.4 : s),
-        0
-      );
-    const totalDurMax = durations.reduce(
-      (s, d) => s + d.max * 0.6,
-      0
-    );
 
     const formatDate = (d: string) => {
       if (!d) return "-";
@@ -620,53 +598,6 @@ export const EstimateDocument = forwardRef<HTMLDivElement, Props>(
                 >
                   100%
                 </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Duration */}
-        <div style={S.section}>
-          <div style={S.sectionTitle}>예상 공사 기간</div>
-          <table style={S.table}>
-            <thead>
-              <tr>
-                <th style={{ ...S.th, width: 30 }}>순서</th>
-                <th style={S.th}>공종</th>
-                <th style={{ ...S.th, width: 100 }}>예상 기간</th>
-                <th style={S.th}>비고</th>
-              </tr>
-            </thead>
-            <tbody>
-              {durations.map((d, i) => (
-                <tr key={d.cat.id}>
-                  <td
-                    style={{ ...S.td, textAlign: "center" }}
-                  >
-                    {i + 1}
-                  </td>
-                  <td style={S.td}>{d.cat.name}</td>
-                  <td
-                    style={{ ...S.td, textAlign: "center" }}
-                  >
-                    {d.min === d.max
-                      ? `${d.min}일`
-                      : `${d.min}~${d.max}일`}
-                  </td>
-                  <td style={S.td}>{d.note}</td>
-                </tr>
-              ))}
-              <tr style={S.totalRow}>
-                <td style={S.td} colSpan={2}>
-                  총 예상 공사 기간
-                </td>
-                <td
-                  style={{ ...S.td, textAlign: "center" }}
-                >
-                  약 {Math.round(totalDurMin)}~
-                  {Math.round(totalDurMax)}일
-                </td>
-                <td style={S.td}>동시 진행 공종 감안</td>
               </tr>
             </tbody>
           </table>
