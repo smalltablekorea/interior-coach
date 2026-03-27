@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { threadsTemplates } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 
-const USER_ID = "system";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
 
-  const conditions = [eq(threadsTemplates.userId, USER_ID)];
+  const conditions = [eq(threadsTemplates.userId, auth.userId)];
   if (category) {
     conditions.push(eq(threadsTemplates.category, category));
   }
@@ -24,6 +27,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const body = await request.json();
   const { name, category, contentTemplate, hashtagTemplate } = body;
 
@@ -33,13 +39,16 @@ export async function POST(request: NextRequest) {
 
   const [created] = await db
     .insert(threadsTemplates)
-    .values({ userId: USER_ID, name, category, contentTemplate, hashtagTemplate: hashtagTemplate || null })
+    .values({ userId: auth.userId, name, category, contentTemplate, hashtagTemplate: hashtagTemplate || null })
     .returning();
 
   return NextResponse.json(created);
 }
 
 export async function PUT(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const body = await request.json();
   const { id, ...updates } = body;
 
@@ -50,13 +59,16 @@ export async function PUT(request: NextRequest) {
   const [updated] = await db
     .update(threadsTemplates)
     .set({ ...updates, updatedAt: new Date() })
-    .where(and(eq(threadsTemplates.id, id), eq(threadsTemplates.userId, USER_ID)))
+    .where(and(eq(threadsTemplates.id, id), eq(threadsTemplates.userId, auth.userId)))
     .returning();
 
   return NextResponse.json(updated || null);
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 
@@ -66,7 +78,7 @@ export async function DELETE(request: NextRequest) {
 
   await db
     .delete(threadsTemplates)
-    .where(and(eq(threadsTemplates.id, id), eq(threadsTemplates.userId, USER_ID)));
+    .where(and(eq(threadsTemplates.id, id), eq(threadsTemplates.userId, auth.userId)));
 
   return NextResponse.json({ success: true });
 }

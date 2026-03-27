@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { threadsPosts, sites } from "@/lib/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 
-const USER_ID = "system";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
   const month = searchParams.get("month"); // YYYY-MM
@@ -33,7 +36,7 @@ export async function GET(request: NextRequest) {
     .leftJoin(sites, eq(threadsPosts.siteId, sites.id))
     .where(
       and(
-        eq(threadsPosts.userId, USER_ID),
+        eq(threadsPosts.userId, auth.userId),
         status ? eq(threadsPosts.status, status) : undefined,
         month
           ? sql`to_char(COALESCE(${threadsPosts.scheduledAt}, ${threadsPosts.createdAt}), 'YYYY-MM') = ${month}`
@@ -46,6 +49,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const body = await request.json();
   const { siteId, title, content, hashtags, status, scheduledAt, templateId } = body;
 
@@ -56,7 +62,7 @@ export async function POST(request: NextRequest) {
   const [created] = await db
     .insert(threadsPosts)
     .values({
-      userId: USER_ID,
+      userId: auth.userId,
       siteId: siteId || null,
       title: title || null,
       content,
@@ -71,6 +77,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const body = await request.json();
   const { id, ...updates } = body;
 
@@ -88,13 +97,16 @@ export async function PUT(request: NextRequest) {
   const [updated] = await db
     .update(threadsPosts)
     .set({ ...updates, updatedAt: new Date() })
-    .where(and(eq(threadsPosts.id, id), eq(threadsPosts.userId, USER_ID)))
+    .where(and(eq(threadsPosts.id, id), eq(threadsPosts.userId, auth.userId)))
     .returning();
 
   return NextResponse.json(updated || null);
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 
@@ -104,7 +116,7 @@ export async function DELETE(request: NextRequest) {
 
   await db
     .delete(threadsPosts)
-    .where(and(eq(threadsPosts.id, id), eq(threadsPosts.userId, USER_ID)));
+    .where(and(eq(threadsPosts.id, id), eq(threadsPosts.userId, auth.userId)));
 
   return NextResponse.json({ success: true });
 }

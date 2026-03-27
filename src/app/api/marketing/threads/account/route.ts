@@ -1,21 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { threadsAccount } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-const USER_ID = "system";
 
 export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const accounts = await db
     .select()
     .from(threadsAccount)
-    .where(eq(threadsAccount.userId, USER_ID))
+    .where(eq(threadsAccount.userId, auth.userId))
     .limit(1);
 
   return NextResponse.json(accounts[0] || null);
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const body = await request.json();
   const { username } = body as { username: string };
 
@@ -27,7 +33,7 @@ export async function POST(request: NextRequest) {
   const existing = await db
     .select()
     .from(threadsAccount)
-    .where(eq(threadsAccount.userId, USER_ID))
+    .where(eq(threadsAccount.userId, auth.userId))
     .limit(1);
 
   if (existing.length > 0) {
@@ -41,17 +47,20 @@ export async function POST(request: NextRequest) {
 
   const [created] = await db
     .insert(threadsAccount)
-    .values({ userId: USER_ID, username, isConnected: true, connectedAt: new Date() })
+    .values({ userId: auth.userId, username, isConnected: true, connectedAt: new Date() })
     .returning();
 
   return NextResponse.json(created);
 }
 
 export async function DELETE() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const existing = await db
     .select()
     .from(threadsAccount)
-    .where(eq(threadsAccount.userId, USER_ID))
+    .where(eq(threadsAccount.userId, auth.userId))
     .limit(1);
 
   if (existing.length > 0) {

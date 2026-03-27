@@ -1,13 +1,26 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { db } from "@/lib/db";
-import { sites, constructionPhases, estimates, estimateItems, expenses, contracts, contractPayments } from "@/lib/db/schema";
+import { sites, constructionPhases, estimates, expenses, contracts, contractPayments } from "@/lib/db/schema";
 import { eq, sql, and } from "drizzle-orm";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id: siteId } = await params;
+
+  // 본인 현장인지 확인
+  const [site] = await db
+    .select({ id: sites.id })
+    .from(sites)
+    .where(and(eq(sites.id, siteId), eq(sites.userId, auth.userId)));
+  if (!site) {
+    return NextResponse.json({ error: "접근 권한이 없습니다" }, { status: 403 });
+  }
 
   // 1. 공정 진행률 (30점)
   const phases = await db

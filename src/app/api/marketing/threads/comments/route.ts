@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { threadsComments, threadsPosts } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
 
-const USER_ID = "system";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { searchParams } = new URL(request.url);
   const postId = searchParams.get("postId");
   const replyStatus = searchParams.get("replyStatus");
 
-  const conditions = [eq(threadsComments.userId, USER_ID)];
+  const conditions = [eq(threadsComments.userId, auth.userId)];
   if (postId) conditions.push(eq(threadsComments.postId, postId));
   if (replyStatus) conditions.push(eq(threadsComments.replyStatus, replyStatus));
 
@@ -36,6 +39,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY가 설정되지 않았습니다." }, { status: 500 });
@@ -105,6 +111,9 @@ Threads 게시물에 달린 댓글에 친절하고 전문적으로 답변해주�
 }
 
 export async function PUT(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const body = await request.json();
   const { id, replyText, replyStatus } = body;
 
@@ -119,7 +128,7 @@ export async function PUT(request: NextRequest) {
   const [updated] = await db
     .update(threadsComments)
     .set(updates)
-    .where(and(eq(threadsComments.id, id), eq(threadsComments.userId, USER_ID)))
+    .where(and(eq(threadsComments.id, id), eq(threadsComments.userId, auth.userId)))
     .returning();
 
   return NextResponse.json(updated || null);

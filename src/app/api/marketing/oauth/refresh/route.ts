@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { getValidToken } from "@/lib/marketing-oauth/token-manager";
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { channel } = await request.json();
   if (!channel) {
     return NextResponse.json(

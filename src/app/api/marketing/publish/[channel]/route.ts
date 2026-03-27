@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/api-auth";
 import { getValidToken } from "@/lib/marketing-oauth/token-manager";
 import { db } from "@/lib/db";
 import { marketingPosts } from "@/lib/db/schema";
@@ -8,6 +9,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ channel: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { channel } = await params;
   const body = await request.json();
   const { postId, content, mediaUrls, title, hashtags } = body;
