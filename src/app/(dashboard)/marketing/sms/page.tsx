@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { fmtDate } from "@/lib/utils";
+import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
 import FeatureGate from "@/components/subscription/FeatureGate";
 
 /* ═══════════════ Types ═══════════════ */
@@ -225,6 +226,31 @@ export default function SmsAutomationPage() {
   const [leadGradeFilter, setLeadGradeFilter] = useState("");
   const [leadStatusFilter, setLeadStatusFilter] = useState("");
 
+  /* ── Solapi Platform Stats ── */
+  const [smsConnected, setSmsConnected] = useState(false);
+  const [solapiStats, setSolapiStats] = useState<{
+    account: { senderPhone: string; balance: number };
+    stats: { totalSent: number; delivered: number; failed: number; pending: number };
+    recentMessages: Array<{ messageId: string; to: string; text: string; status: string; sentAt: string }>;
+  } | null>(null);
+  const [solapiLoading, setSolapiLoading] = useState(false);
+
+  const fetchSolapiStats = useCallback(async () => {
+    setSolapiLoading(true);
+    try {
+      const res = await fetch("/api/marketing/sms/stats");
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.error) setSolapiStats(data);
+      }
+    } catch { /* */ }
+    finally { setSolapiLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (smsConnected) fetchSolapiStats();
+  }, [smsConnected, fetchSolapiStats]);
+
   /* ── Fetch ── */
   const fetchLeads = useCallback(async () => {
     try {
@@ -413,6 +439,15 @@ export default function SmsAutomationPage() {
         </p>
       </div>
 
+      {/* ── Account Connection ── */}
+      <AccountConnectionBanner
+        channel="sms"
+        channelLabel="SMS 자동화"
+        channelIcon="💬"
+        connectionType="api_key"
+        onConnectionChange={(connected) => setSmsConnected(connected)}
+      />
+
       {/* ── Tabs ── */}
       <div className="flex gap-1 p-1 rounded-xl bg-white/[0.03] overflow-x-auto">
         {TABS.map((t) => (
@@ -480,6 +515,9 @@ export default function SmsAutomationPage() {
           outreachStats={outreachStats}
           campaigns={campaigns}
           leads={leads}
+          solapiStats={solapiStats}
+          solapiLoading={solapiLoading}
+          onRefreshSolapi={fetchSolapiStats}
         />
       )}
 
@@ -1178,11 +1216,21 @@ function AnalyticsTab({
   outreachStats,
   campaigns,
   leads,
+  solapiStats,
+  solapiLoading,
+  onRefreshSolapi,
 }: {
   leadStats: LeadStats;
   outreachStats: Record<string, number>;
   campaigns: Campaign[];
   leads: Lead[];
+  solapiStats: {
+    account: { senderPhone: string; balance: number };
+    stats: { totalSent: number; delivered: number; failed: number; pending: number };
+    recentMessages: Array<{ messageId: string; to: string; text: string; status: string; sentAt: string }>;
+  } | null;
+  solapiLoading: boolean;
+  onRefreshSolapi: () => void;
 }) {
   const totalSent = Object.values(outreachStats).reduce((a, b) => a + b, 0);
   const delivered = outreachStats["delivered"] || 0;
@@ -1207,6 +1255,54 @@ function AnalyticsTab({
         <KPI label="클릭률" value={`${clickRate}%`} sub={`${clicked}/${opened}건`} />
         <KPI label="전환" value={leadStats.byStatus["converted"] || 0} />
       </div>
+
+      {/* Solapi Real Stats */}
+      {solapiStats && (
+        <div className="rounded-2xl border border-[#00C471]/20 bg-[#00C471]/[0.04] p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold">Solapi 실시간 데이터</h3>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#00C471]/15 text-[#00C471] text-[10px] font-medium">
+                실시간
+              </span>
+            </div>
+            <button
+              onClick={onRefreshSolapi}
+              disabled={solapiLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.06] text-xs text-neutral-400 hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+            >
+              새로고침
+            </button>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <KPI label="발송 (30일)" value={solapiStats.stats.totalSent} sub="Solapi 실시간" />
+            <KPI label="성공" value={solapiStats.stats.delivered} sub={`${solapiStats.stats.totalSent > 0 ? Math.round((solapiStats.stats.delivered / solapiStats.stats.totalSent) * 100) : 0}%`} />
+            <KPI label="실패" value={solapiStats.stats.failed} sub={solapiStats.stats.failed > 0 ? "확인 필요" : "정상"} />
+            <KPI label="잔액" value={`${solapiStats.account.balance.toLocaleString()}원`} sub={solapiStats.account.senderPhone} />
+          </div>
+          {solapiStats.recentMessages.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-neutral-400 mb-2">최근 발송 내역</h4>
+              <div className="space-y-1.5">
+                {solapiStats.recentMessages.slice(0, 5).map((m) => (
+                  <div key={m.messageId} className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.03] text-xs">
+                    <div className="flex items-center gap-3">
+                      <span className="text-neutral-500">{m.to}</span>
+                      <span className="text-neutral-400 truncate max-w-[200px]">{m.text}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={m.status === "4000" || m.status === "delivered" ? "text-emerald-400" : m.status === "failed" ? "text-red-400" : "text-neutral-500"}>
+                        {m.status === "4000" || m.status === "delivered" ? "전달됨" : m.status === "failed" ? "실패" : m.status}
+                      </span>
+                      {m.sentAt && <span className="text-neutral-600">{fmtDate(m.sentAt)}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Source Breakdown */}
       <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-6">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
 import {
   ArrowLeft,
   BarChart3,
@@ -267,6 +268,14 @@ export default function AdlogPage() {
           )}
         </div>
       </div>
+
+      {/* ══════ Account Connection ══════ */}
+      <AccountConnectionBanner
+        channel="adlog"
+        channelLabel="애드로그"
+        channelIcon="📊"
+        connectionType="credentials"
+      />
 
       {/* ══════ Tabs ══════ */}
       <div className="flex gap-1 overflow-x-auto pb-1">

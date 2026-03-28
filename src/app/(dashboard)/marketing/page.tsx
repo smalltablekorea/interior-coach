@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { fmtDate } from "@/lib/utils";
 import FeatureGate from "@/components/subscription/FeatureGate";
+import { RefreshCw } from "lucide-react";
 
 /* ── Types ── */
 interface Inquiry {
@@ -92,6 +93,70 @@ export default function MarketingPage() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [channels, setChannels] = useState<ChannelStat[]>(DEFAULT_CHANNELS);
 
+  /* ── Real-time channel metrics ── */
+  const [channelMetrics, setChannelMetrics] = useState<Record<string, { label: string; value: string }[]>>({});
+  const [metricsLoading, setMetricsLoading] = useState(false);
+
+  const fetchChannelMetrics = useCallback(async (channelList: ChannelStat[]) => {
+    const connected = channelList.filter((ch) => ch.connected);
+    if (connected.length === 0) return;
+    setMetricsLoading(true);
+
+    const endpoints: Record<string, string> = {
+      threads: "/api/marketing/threads/stats",
+      instagram: "/api/marketing/instagram/stats",
+      youtube: "/api/marketing/youtube/stats",
+      "naver-blog": "/api/marketing/naver-blog/stats",
+      "meta-ads": "/api/marketing/meta-ads/stats",
+    };
+
+    const results: Record<string, { label: string; value: string }[]> = {};
+
+    await Promise.allSettled(
+      connected.map(async (ch) => {
+        const url = endpoints[ch.slug];
+        if (!url) return;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) return;
+          const data = await res.json();
+
+          if (ch.slug === "threads") {
+            results.threads = [
+              { label: "게시물", value: `${data.totalPosts ?? 0}건` },
+              { label: "조회", value: `${(data.insights?.totalViews ?? 0).toLocaleString()}` },
+            ];
+          } else if (ch.slug === "instagram") {
+            results.instagram = [
+              { label: "팔로워", value: `${(data.profile?.followersCount ?? 0).toLocaleString()}` },
+              { label: "도달", value: `${(data.insights?.reach ?? 0).toLocaleString()}` },
+            ];
+          } else if (ch.slug === "youtube") {
+            results.youtube = [
+              { label: "구독자", value: `${(data.channel?.subscriberCount ?? 0).toLocaleString()}` },
+              { label: "조회수", value: `${(data.channel?.viewCount ?? 0).toLocaleString()}` },
+            ];
+          } else if (ch.slug === "naver-blog") {
+            results["naver-blog"] = [
+              { label: "포스트", value: `${data.totalPosts ?? 0}건` },
+              { label: "오늘 방문", value: `${(data.todayVisitors ?? 0).toLocaleString()}` },
+            ];
+          } else if (ch.slug === "meta-ads") {
+            results["meta-ads"] = [
+              { label: "노출", value: `${(data.insights?.impressions ?? 0).toLocaleString()}` },
+              { label: "클릭", value: `${(data.insights?.clicks ?? 0).toLocaleString()}` },
+            ];
+          }
+        } catch {
+          /* silent */
+        }
+      })
+    );
+
+    setChannelMetrics(results);
+    setMetricsLoading(false);
+  }, []);
+
   /* ── Modal State ── */
   const [showModal, setShowModal] = useState(false);
   const [inquiryForm, setInquiryForm] = useState({
@@ -117,6 +182,7 @@ export default function MarketingPage() {
           setInquiries(data.recentInquiries ?? []);
           if (data.channelStats && data.channelStats.length > 0) {
             setChannels(data.channelStats);
+            fetchChannelMetrics(data.channelStats);
           }
         }
       } catch {
@@ -226,7 +292,16 @@ export default function MarketingPage() {
 
       {/* ══════════════════ 3. 채널 카드 그리드 ══════════════════ */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">채널 관리</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">채널 관리</h2>
+          <button
+            onClick={() => fetchChannelMetrics(channels)}
+            disabled={metricsLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-white/[0.06] text-xs text-neutral-500 hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={metricsLoading ? "animate-spin" : ""} /> 실시간 데이터
+          </button>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {channels.map((ch) => (
             <div
@@ -250,10 +325,21 @@ export default function MarketingPage() {
                 </span>
               </div>
 
-              {/* Post count */}
-              <div className="text-sm text-neutral-500">
-                게시물 <span className="text-[var(--foreground)] font-medium">{ch.postCount}건</span>
-              </div>
+              {/* Metrics */}
+              {channelMetrics[ch.slug] ? (
+                <div className="flex gap-4 text-sm">
+                  {channelMetrics[ch.slug].map((m) => (
+                    <div key={m.label}>
+                      <span className="text-neutral-500">{m.label}</span>{" "}
+                      <span className="text-[var(--foreground)] font-medium">{m.value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-neutral-500">
+                  게시물 <span className="text-[var(--foreground)] font-medium">{ch.postCount}건</span>
+                </div>
+              )}
 
               {/* Manage button */}
               <button

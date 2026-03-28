@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
 import {
   ArrowLeft,
   BarChart3,
@@ -187,6 +188,14 @@ export default function MetaAdsPage() {
   } | null>(null);
   const [oauthMessage, setOauthMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  /* ── Platform Stats (real data from Meta Ads API) ── */
+  const [platformStats, setPlatformStats] = useState<{
+    account: { id: string; name: string; status: number; currency: string; timezone: string };
+    insights: { impressions: number; clicks: number; spend: number; ctr: number; cpc: number; cpm: number; reach: number } | null;
+    campaigns: Array<{ id: string; name: string; status: string; objective: string }>;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
   /* ── Fetch campaigns ── */
   const fetchCampaigns = useCallback(async () => {
     try {
@@ -225,15 +234,38 @@ export default function MetaAdsPage() {
       .catch(() => {});
   }, []);
 
-  /* ── Derived KPI values ── */
-  const totalSpent = campaigns.reduce((s, c) => s + (c.spent || 0), 0);
-  const totalImpressions = campaigns.reduce((s, c) => s + (c.metrics?.impressions || 0), 0);
-  const totalClicks = campaigns.reduce((s, c) => s + (c.metrics?.clicks || 0), 0);
+  // Fetch real platform stats when connected
+  const fetchPlatformStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch("/api/marketing/meta-ads/stats");
+      if (res.ok) {
+        const data = await res.json();
+        setPlatformStats(data);
+      }
+    } catch {
+      // silent
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (channelConnection?.hasToken) {
+      fetchPlatformStats();
+    }
+  }, [channelConnection, fetchPlatformStats]);
+
+  /* ── Derived KPI values (real data from platform when available) ── */
+  const pi = platformStats?.insights;
+  const totalSpent = pi ? pi.spend : campaigns.reduce((s, c) => s + (c.spent || 0), 0);
+  const totalImpressions = pi ? pi.impressions : campaigns.reduce((s, c) => s + (c.metrics?.impressions || 0), 0);
+  const totalClicks = pi ? pi.clicks : campaigns.reduce((s, c) => s + (c.metrics?.clicks || 0), 0);
   const totalInquiries = campaigns.reduce((s, c) => s + (c.inquiries || 0), 0);
   const totalContracts = campaigns.reduce((s, c) => s + (c.contracts || 0), 0);
   const totalContractAmount = campaigns.reduce((s, c) => s + (c.contractAmount || 0), 0);
   const roi = totalSpent > 0 ? Math.round((totalContractAmount / totalSpent) * 100) / 100 : 0;
-  const overallCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+  const overallCTR = pi ? pi.ctr : (totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0);
 
   /* ── Funnel data ── */
   const funnelStages: FunnelStage[] = [
@@ -353,6 +385,14 @@ export default function MetaAdsPage() {
         </div>
       </div>
 
+      {/* ══════════ Account Connection ══════════ */}
+      <AccountConnectionBanner
+        channel="meta_ads"
+        channelLabel="메타 광고"
+        channelIcon="📢"
+        connectionType="oauth_meta"
+      />
+
       {/* ══════════ Tab Bar ══════════ */}
       <div className="flex gap-1 bg-white/[0.03] rounded-xl p-1 overflow-x-auto">
         {tabs.map((tab) => (
@@ -399,25 +439,25 @@ export default function MetaAdsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <KPICard
               title="이번 달 광고비"
-              value={fmt(totalSpent || 3200000)}
-              subtitle="예산 대비 87% 집행"
+              value={pi ? `₩${fmtNum(Math.round(pi.spend))}` : fmt(totalSpent || 3200000)}
+              subtitle={pi ? "실시간 Meta Ads" : "예산 대비 87% 집행"}
               icon={Wallet}
               color="#1877F2"
-              trend={{ direction: "up", label: "전월 대비 +6.7%" }}
+              trend={pi ? undefined : { direction: "up" as const, label: "전월 대비 +6.7%" }}
             />
             <KPICard
               title="노출수"
               value={fmtNum(totalImpressions || 125400) + "회"}
-              subtitle="일평균 4,180회"
+              subtitle={pi ? `도달: ${fmtNum(pi.reach)}명` : "일평균 4,180회"}
               icon={Eye}
-              trend={{ direction: "up", label: "+12.3%" }}
+              trend={pi ? undefined : { direction: "up" as const, label: "+12.3%" }}
             />
             <KPICard
               title="클릭수"
               value={fmtNum(totalClicks || 2508) + "회"}
               subtitle={`CTR ${fmtPercent(overallCTR || 2.0)}`}
               icon={MousePointerClick}
-              trend={{ direction: "up", label: "+8.5%" }}
+              trend={pi ? undefined : { direction: "up" as const, label: "+8.5%" }}
             />
             <KPICard
               title="문의 전환"
@@ -836,7 +876,36 @@ export default function MetaAdsPage() {
          ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === "costs" && (
         <div className="space-y-6">
-          <h2 className="text-lg font-semibold">월별 비용 분석</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">월별 비용 분석</h2>
+            {channelConnection?.hasToken && (
+              <button
+                onClick={fetchPlatformStats}
+                disabled={statsLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--muted)] hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={statsLoading ? "animate-spin" : ""} /> 새로고침
+              </button>
+            )}
+          </div>
+
+          {/* Real data summary from Meta Ads API */}
+          {platformStats?.insights && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: "광고비", value: `₩${fmtNum(Math.round(platformStats.insights.spend))}` },
+                { label: "노출수", value: fmtNum(platformStats.insights.impressions) },
+                { label: "클릭수", value: fmtNum(platformStats.insights.clicks) },
+                { label: "도달", value: fmtNum(platformStats.insights.reach) },
+              ].map((s) => (
+                <div key={s.label} className="p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+                  <p className="text-xs text-[var(--muted)]">{s.label}</p>
+                  <p className="text-xl font-bold mt-1">{s.value}</p>
+                  <p className="text-[10px] text-[var(--green)] mt-0.5">실시간 데이터</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Monthly cost table */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">

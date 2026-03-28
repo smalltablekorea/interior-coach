@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
 import {
   ArrowLeft,
   Grid3X3,
@@ -39,6 +40,7 @@ import {
   Clapperboard,
   Bookmark,
   Zap,
+  RefreshCw,
 } from "lucide-react";
 import KPICard from "@/components/ui/KPICard";
 import Modal from "@/components/ui/Modal";
@@ -233,7 +235,7 @@ export default function InstagramPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("feed");
 
   /* ── Feed State ── */
-  const [posts, setPosts] = useState<FeedPost[]>(DUMMY_POSTS);
+  const [posts, setPosts] = useState<FeedPost[]>([]);
   const [showNewPostModal, setShowNewPostModal] = useState(false);
 
   /* ── Content Generator State ── */
@@ -250,13 +252,17 @@ export default function InstagramPage() {
   const [saved, setSaved] = useState(false);
 
   /* ── Analytics State ── */
-  const [analyticsRows, setAnalyticsRows] = useState<AnalyticsRow[]>([
-    { id: "1", month: "2026-01", followers: 1250, reach: 15400, engagement: 4.2, posts: 12 },
-    { id: "2", month: "2026-02", followers: 1380, reach: 18200, engagement: 4.5, posts: 15 },
-    { id: "3", month: "2026-03", followers: 1520, reach: 22100, engagement: 4.8, posts: 18 },
-  ]);
+  const [analyticsRows, setAnalyticsRows] = useState<AnalyticsRow[]>([]);
   const [showAddRow, setShowAddRow] = useState(false);
   const [newRow, setNewRow] = useState({ month: "", followers: "", reach: "", engagement: "", posts: "" });
+
+  /* ── Platform Stats (real data from Instagram API) ── */
+  const [platformStats, setPlatformStats] = useState<{
+    profile: { id: string; username: string; name?: string; profilePicture?: string; followersCount: number; followsCount: number; mediaCount: number; biography?: string };
+    insights: { reach: number; impressions: number; profileViews: number };
+    recentPosts: Array<{ id: string; caption?: string; timestamp?: string; likes: number; comments: number; mediaType?: string; permalink?: string; mediaUrl?: string }>;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   /* ── Settings State ── */
   const [igUsername, setIgUsername] = useState("");
@@ -323,6 +329,55 @@ export default function InstagramPage() {
       .then(data => { if (data) setChannelConnection(data); })
       .catch(() => {});
   }, []);
+
+  // Fetch real platform stats when connected
+  const fetchPlatformStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch("/api/marketing/instagram/stats");
+      if (res.ok) {
+        const data = await res.json();
+        setPlatformStats(data);
+        // Populate feed posts from real data
+        if (data.recentPosts?.length) {
+          setPosts(data.recentPosts.map((m: { id: string; caption?: string; timestamp?: string; likes: number; comments: number }, i: number) => ({
+            id: m.id,
+            caption: m.caption || "(미디어)",
+            status: "published" as const,
+            likes: m.likes,
+            comments: m.comments,
+            reach: 0,
+            gradient: FEED_GRADIENTS[i % FEED_GRADIENTS.length],
+            createdAt: m.timestamp || new Date().toISOString(),
+          })));
+        }
+        // Populate analytics summary
+        if (data.profile) {
+          const totalLikes = data.recentPosts?.reduce((s: number, p: { likes: number }) => s + p.likes, 0) ?? 0;
+          const avgLikes = data.recentPosts?.length ? Math.round(totalLikes / data.recentPosts.length) : 0;
+          const now = new Date();
+          setAnalyticsRows([{
+            id: "live",
+            month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+            followers: data.profile.followersCount ?? 0,
+            reach: data.insights?.reach ?? 0,
+            engagement: avgLikes ? Math.round(avgLikes / Math.max(data.profile.followersCount, 1) * 100 * 10) / 10 : 0,
+            posts: data.profile.mediaCount ?? 0,
+          }]);
+        }
+      }
+    } catch {
+      // silent
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (channelConnection?.hasToken) {
+      fetchPlatformStats();
+    }
+  }, [channelConnection, fetchPlatformStats]);
 
   /* ══════════════════ Content Generation ══════════════════ */
   const handleGenerate = async () => {
@@ -451,17 +506,61 @@ export default function InstagramPage() {
   const renderFeed = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-[var(--muted)]">최근 게시물 미리보기</p>
-        <button onClick={() => setShowNewPostModal(true)} className={btnPrimary}>
-          <span className="flex items-center gap-2">
-            <Plus size={16} />
-            새 게시물
-          </span>
-        </button>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-[var(--muted)]">최근 게시물 미리보기</p>
+          {platformStats && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--green)]/15 text-[var(--green)] text-[10px] font-medium">
+              실시간 연동
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {channelConnection?.hasToken && (
+            <button
+              onClick={fetchPlatformStats}
+              disabled={statsLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--muted)] hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+            >
+              <RefreshCw size={12} className={statsLoading ? "animate-spin" : ""} /> 새로고침
+            </button>
+          )}
+          <button onClick={() => setShowNewPostModal(true)} className={btnPrimary}>
+            <span className="flex items-center gap-2">
+              <Plus size={16} />
+              새 게시물
+            </span>
+          </button>
+        </div>
       </div>
 
+      {/* Loading state */}
+      {statsLoading && posts.length === 0 && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 size={24} className="animate-spin text-[var(--muted)]" />
+          <span className="ml-2 text-sm text-[var(--muted)]">인스타그램 데이터를 불러오는 중...</span>
+        </div>
+      )}
+
+      {/* Empty state when not connected */}
+      {!statsLoading && posts.length === 0 && !channelConnection?.hasToken && (
+        <EmptyState
+          icon={Instagram}
+          title="인스타그램 계정을 연결해주세요"
+          description="계정을 연결하면 실제 게시물과 통계를 확인할 수 있습니다."
+        />
+      )}
+
+      {/* Empty state when connected but no posts */}
+      {!statsLoading && posts.length === 0 && channelConnection?.hasToken && (
+        <EmptyState
+          icon={Instagram}
+          title="게시물이 없습니다"
+          description="인스타그램에 게시물을 올려보세요."
+        />
+      )}
+
       {/* 3x3 Grid */}
-      <div className="grid grid-cols-3 gap-3">
+      {posts.length > 0 && <div className="grid grid-cols-3 gap-3">
         {posts.slice(0, 9).map((post) => (
           <div
             key={post.id}
@@ -505,7 +604,7 @@ export default function InstagramPage() {
             </div>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Post Stats Summary */}
       <div className={cardCls}>
@@ -888,41 +987,82 @@ export default function InstagramPage() {
   /* ── 5. Analytics ── */
   const renderAnalytics = () => (
     <div className="space-y-6">
-      {/* KPI Cards */}
+      {/* Refresh button */}
+      {channelConnection?.hasToken && (
+        <div className="flex justify-end">
+          <button
+            onClick={fetchPlatformStats}
+            disabled={statsLoading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--muted)] hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={statsLoading ? "animate-spin" : ""} /> 실시간 데이터 새로고침
+          </button>
+        </div>
+      )}
+
+      {/* KPI Cards — real data if available */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="팔로워"
-          value={latestRow ? latestRow.followers.toLocaleString() : "0"}
-          subtitle={
-            analyticsRows.length >= 2
-              ? `전월 대비 +${latestRow.followers - analyticsRows[analyticsRows.length - 2].followers}`
-              : undefined
-          }
+          value={platformStats ? platformStats.profile.followersCount.toLocaleString() : (latestRow ? latestRow.followers.toLocaleString() : "0")}
+          subtitle={platformStats ? "실시간" : (analyticsRows.length >= 2 ? `전월 대비 +${latestRow.followers - analyticsRows[analyticsRows.length - 2].followers}` : undefined)}
           icon={Users}
           color="#E4405F"
         />
         <KPICard
           title="도달"
-          value={latestRow ? latestRow.reach.toLocaleString() : "0"}
-          subtitle="이번 달"
+          value={platformStats ? platformStats.insights.reach.toLocaleString() : (latestRow ? latestRow.reach.toLocaleString() : "0")}
+          subtitle={platformStats ? "최근 30일" : "이번 달"}
           icon={Target}
           color="#4facfe"
         />
         <KPICard
-          title="인게이지먼트율"
-          value={latestRow ? `${latestRow.engagement}%` : "0%"}
-          subtitle="좋아요 + 댓글 + 저장"
+          title={platformStats ? "노출수" : "인게이지먼트율"}
+          value={platformStats ? platformStats.insights.impressions.toLocaleString() : (latestRow ? `${latestRow.engagement}%` : "0%")}
+          subtitle={platformStats ? "최근 30일" : "좋아요 + 댓글 + 저장"}
           icon={TrendingUp}
           color="#00C471"
         />
         <KPICard
           title="게시물 수"
-          value={latestRow ? latestRow.posts.toString() : "0"}
-          subtitle="이번 달"
+          value={platformStats ? platformStats.profile.mediaCount.toLocaleString() : (latestRow ? latestRow.posts.toString() : "0")}
+          subtitle={platformStats ? "전체" : "이번 달"}
           icon={Grid3X3}
           color="#a18cd1"
         />
       </div>
+
+      {/* Real-time top posts */}
+      {platformStats && platformStats.recentPosts.length > 0 && (
+        <div className={cardCls + " space-y-4"}>
+          <h3 className="text-base font-semibold">인기 게시물 (실시간)</h3>
+          <div className="space-y-2">
+            {platformStats.recentPosts
+              .sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments))
+              .slice(0, 5)
+              .map((m, idx) => (
+                <div key={m.id} className="flex items-center gap-4 p-3 rounded-xl border border-[var(--border)] bg-[var(--card)]">
+                  <span className="w-7 h-7 rounded-full bg-[#E4405F]/10 text-[#E4405F] flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate">{m.caption || "(미디어)"}</p>
+                    {m.timestamp && <p className="text-xs text-[var(--muted)] mt-0.5">{fmtDate(m.timestamp)}</p>}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-[var(--muted)] flex-shrink-0">
+                    <span className="flex items-center gap-1"><Heart size={12} /> {m.likes}</span>
+                    <span className="flex items-center gap-1"><MessageCircle size={12} /> {m.comments}</span>
+                    {m.permalink && (
+                      <a href={m.permalink as string} target="_blank" rel="noopener noreferrer" className="text-[#E4405F] hover:underline">
+                        <Instagram size={12} />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {/* Manual Data Entry Table */}
       <div className={cardCls + " space-y-4"}>
@@ -1283,6 +1423,14 @@ export default function InstagramPage() {
           <p className="text-sm text-[var(--muted)] mt-0.5">인스타그램 콘텐츠 자동화</p>
         </div>
       </div>
+
+      {/* ══════════════════ Account Connection ══════════════════ */}
+      <AccountConnectionBanner
+        channel="instagram"
+        channelLabel="인스타그램"
+        channelIcon="📸"
+        connectionType="oauth_meta"
+      />
 
       {/* ══════════════════ Tab Navigation ══════════════════ */}
       <div className="flex gap-1 bg-white/[0.03] rounded-xl p-1 overflow-x-auto">

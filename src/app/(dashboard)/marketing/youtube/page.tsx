@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
 import {
   ArrowLeft,
   Video,
@@ -40,6 +41,7 @@ import {
   ChevronRight,
   Trash2,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import KPICard from "@/components/ui/KPICard";
 import Modal from "@/components/ui/Modal";
@@ -268,6 +270,13 @@ export default function YouTubePage() {
     watchTime: 0,
   });
 
+  /* ── Platform Stats (real data from YouTube API) ── */
+  const [platformStats, setPlatformStats] = useState<{
+    channel: { id: string; title: string; description?: string; thumbnail?: string; customUrl?: string; subscriberCount: number; viewCount: number; videoCount: number };
+    recentVideos: Array<{ id: string; title: string; thumbnail: string; publishedAt: string; views: number; likes: number; comments: number; duration: string }>;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
   /* ── Settings State ── */
   const [ytSettings, setYtSettings] = useState<YoutubeSettings>({
     channelUrl: "",
@@ -342,6 +351,53 @@ export default function YouTubePage() {
       .then(data => { if (data) setChannelConnection(data); })
       .catch(() => {});
   }, []);
+
+  // Fetch real platform stats when connected
+  const fetchPlatformStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch("/api/marketing/youtube/stats");
+      if (res.ok) {
+        const data = await res.json();
+        setPlatformStats(data);
+        // Populate videos from real data
+        if (data.recentVideos?.length) {
+          setVideos(data.recentVideos.map((v: { id: string; title: string; publishedAt: string; views: number; likes: number }, i: number) => ({
+            id: v.id,
+            title: v.title,
+            status: "공개" as const,
+            views: v.views,
+            likes: v.likes,
+            publishedAt: v.publishedAt?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+            thumbnailColor: GRADIENT_COLORS[i % GRADIENT_COLORS.length],
+          })));
+        }
+        // Populate analytics
+        if (data.channel) {
+          const now = new Date();
+          const totalViews = data.recentVideos?.reduce((s: number, v: { views: number }) => s + v.views, 0) ?? 0;
+          setAnalyticsData([{
+            id: "live",
+            month: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+            videos: data.channel.videoCount ?? 0,
+            views: totalViews,
+            subscribers: data.channel.subscriberCount ?? 0,
+            watchTime: 0,
+          }]);
+        }
+      }
+    } catch {
+      // silent
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (channelConnection?.hasToken) {
+      fetchPlatformStats();
+    }
+  }, [channelConnection, fetchPlatformStats]);
 
   /* ── Persist to localStorage ── */
   const saveVideos = useCallback((data: VideoEntry[]) => {
@@ -489,9 +545,9 @@ export default function YouTubePage() {
   };
 
   /* ── Derived analytics ── */
-  const totalVideos = videos.length + analyticsData.reduce((sum, r) => sum + r.videos, 0);
-  const totalViews = videos.reduce((sum, v) => sum + v.views, 0) + analyticsData.reduce((sum, r) => sum + r.views, 0);
-  const totalSubscribers = analyticsData.length > 0 ? analyticsData[0].subscribers : 0;
+  const totalVideos = platformStats ? platformStats.channel.videoCount : (videos.length + analyticsData.reduce((sum, r) => sum + r.videos, 0));
+  const totalViews = platformStats ? platformStats.channel.viewCount : (videos.reduce((sum, v) => sum + v.views, 0) + analyticsData.reduce((sum, r) => sum + r.views, 0));
+  const totalSubscribers = platformStats ? platformStats.channel.subscriberCount : (analyticsData.length > 0 ? analyticsData[0].subscribers : 0);
   const avgViews = totalVideos > 0 ? Math.round(totalViews / totalVideos) : 0;
 
   /* ── Loading skeleton ── */
@@ -527,6 +583,14 @@ export default function YouTubePage() {
         </div>
       </div>
 
+      {/* ── Account Connection ── */}
+      <AccountConnectionBanner
+        channel="youtube"
+        channelLabel="유튜브"
+        channelIcon="🎬"
+        connectionType="oauth_google"
+      />
+
       {/* ── Tab Navigation ── */}
       <div className="flex gap-1 bg-white/[0.03] rounded-xl p-1 overflow-x-auto">
         {tabs.map((tab) => (
@@ -550,13 +614,31 @@ export default function YouTubePage() {
       {activeTab === "videos" && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">영상 관리</h2>
-            <button onClick={() => setShowAddVideoModal(true)} className={btnPrimary}>
-              <span className="flex items-center gap-2">
-                <Plus size={16} />
-                영상 추가
-              </span>
-            </button>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-semibold">영상 관리</h2>
+              {platformStats && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/15 text-red-400 text-[10px] font-medium">
+                  YouTube 실시간
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {channelConnection?.hasToken && (
+                <button
+                  onClick={fetchPlatformStats}
+                  disabled={statsLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--muted)] hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+                >
+                  <RefreshCw size={12} className={statsLoading ? "animate-spin" : ""} /> 새로고침
+                </button>
+              )}
+              <button onClick={() => setShowAddVideoModal(true)} className={btnPrimary}>
+                <span className="flex items-center gap-2">
+                  <Plus size={16} />
+                  영상 추가
+                </span>
+              </button>
+            </div>
           </div>
 
           {videos.length === 0 ? (
@@ -1172,11 +1254,51 @@ export default function YouTubePage() {
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <KPICard title="총 영상" value={totalVideos.toString()} icon={Video} color="#FF0000" subtitle="등록된 전체 영상" />
-            <KPICard title="총 조회수" value={fmtNumber(totalViews)} icon={Eye} color="#FF0000" subtitle="누적 조회수" />
-            <KPICard title="구독자" value={fmtNumber(totalSubscribers)} icon={Users} color="#FF0000" subtitle="수동 입력" />
+            <KPICard title="총 영상" value={totalVideos.toString()} icon={Video} color="#FF0000" subtitle={platformStats ? "실시간" : "등록된 전체 영상"} />
+            <KPICard title="총 조회수" value={fmtNumber(totalViews)} icon={Eye} color="#FF0000" subtitle={platformStats ? "실시간" : "누적 조회수"} />
+            <KPICard title="구독자" value={fmtNumber(totalSubscribers)} icon={Users} color="#FF0000" subtitle={platformStats ? "실시간" : "수동 입력"} />
             <KPICard title="평균 조회수" value={fmtNumber(avgViews)} icon={TrendingUp} color="#00C471" subtitle="영상 당" />
           </div>
+
+          {/* Refresh real data */}
+          {channelConnection?.hasToken && (
+            <div className="flex justify-end">
+              <button
+                onClick={fetchPlatformStats}
+                disabled={statsLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--muted)] hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={statsLoading ? "animate-spin" : ""} /> 실시간 데이터 새로고침
+              </button>
+            </div>
+          )}
+
+          {/* Real-time top videos */}
+          {platformStats && platformStats.recentVideos.length > 0 && (
+            <div className={cardCls + " space-y-4"}>
+              <h3 className="text-base font-semibold">인기 영상 (실시간)</h3>
+              <div className="space-y-2">
+                {platformStats.recentVideos
+                  .sort((a, b) => b.views - a.views)
+                  .slice(0, 5)
+                  .map((v, idx) => (
+                    <div key={v.id} className="flex items-center gap-4 p-3 rounded-xl border border-[var(--border)] bg-[var(--card)]">
+                      <span className="w-7 h-7 rounded-full bg-red-500/10 text-red-400 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{v.title}</p>
+                        <p className="text-xs text-[var(--muted)]">{fmtDate(v.publishedAt)}</p>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-[var(--muted)]">
+                        <span className="flex items-center gap-1"><Eye size={12} /> {fmtNumber(v.views)}</span>
+                        <span className="flex items-center gap-1"><ThumbsUp size={12} /> {fmtNumber(v.likes)}</span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* Data Entry Section */}
           <div className="flex items-center justify-between">

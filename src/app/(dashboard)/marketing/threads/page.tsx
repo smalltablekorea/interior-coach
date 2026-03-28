@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
 import {
   ArrowLeft,
   Plus,
@@ -195,6 +196,15 @@ export default function ThreadsPage() {
   } | null>(null);
   const [oauthMessage, setOauthMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
+  /* ── Platform Stats (real data from Threads API) ── */
+  const [platformStats, setPlatformStats] = useState<{
+    profile: { id: string; username: string; profilePicture?: string; biography?: string } | null;
+    insights: { totalViews: number; totalLikes: number; totalReplies: number; totalReposts: number; totalQuotes: number };
+    recentPosts: Array<{ id: string; text?: string; timestamp?: string; permalink?: string; views: number; likes: number; replies: number; reposts: number; quotes: number }>;
+    totalPosts: number;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
   /* ── Fetch ── */
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -247,6 +257,28 @@ export default function ThreadsPage() {
       .then(data => { if (data) setChannelConnection(data); })
       .catch(() => {});
   }, []);
+
+  // Fetch real platform stats when connected
+  const fetchPlatformStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch("/api/marketing/threads/stats");
+      if (res.ok) {
+        const data = await res.json();
+        setPlatformStats(data);
+      }
+    } catch {
+      // silent
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (channelConnection?.hasToken) {
+      fetchPlatformStats();
+    }
+  }, [channelConnection, fetchPlatformStats]);
 
   /* ── KPI ── */
   const totalPosts = posts.length;
@@ -551,6 +583,14 @@ export default function ThreadsPage() {
           </span>
         )}
       </div>
+
+      {/* ── Account Connection ── */}
+      <AccountConnectionBanner
+        channel="threads"
+        channelLabel="스레드"
+        channelIcon="🧵"
+        connectionType="oauth_meta"
+      />
 
       {/* ── KPI Cards ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -915,53 +955,118 @@ export default function ThreadsPage() {
       {/* ═══════════════════ Tab: Analytics ═══════════════════ */}
       {activeTab === "analytics" && (
         <section className="space-y-4">
-          <h2 className="text-lg font-semibold">성과 분석</h2>
-
-          {/* Stats Summary */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { label: "총 게시물", value: totalPosts },
-              { label: "발행 완료", value: posts.filter((p) => p.status === "발행완료").length },
-              { label: "총 좋아요", value: posts.reduce((s, p) => s + p.likes, 0) },
-              { label: "총 댓글", value: posts.reduce((s, p) => s + p.comments, 0) },
-            ].map((s) => (
-              <div key={s.label} className="p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
-                <p className="text-xs text-[var(--muted)]">{s.label}</p>
-                <p className="text-2xl font-bold mt-1">{s.value}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Top Posts */}
-          <h3 className="text-sm font-semibold text-[var(--muted)]">인기 게시물 Top 3</h3>
-          <div className="space-y-2">
-            {posts
-              .filter((p) => p.status === "발행완료")
-              .sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments))
-              .slice(0, 3)
-              .map((p, idx) => (
-                <div
-                  key={p.id}
-                  className="flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)]"
-                >
-                  <span className="w-8 h-8 rounded-full bg-[var(--green)]/10 text-[var(--green)] flex items-center justify-center text-sm font-bold flex-shrink-0">
-                    {idx + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{p.content}</p>
-                    <p className="text-xs text-[var(--muted)] mt-0.5">{fmtDate(p.publishedAt || p.createdAt)}</p>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-[var(--muted)] flex-shrink-0">
-                    <span className="flex items-center gap-1"><Heart size={12} /> {p.likes}</span>
-                    <span className="flex items-center gap-1"><MessageSquare size={12} /> {p.comments}</span>
-                    <span className="flex items-center gap-1"><Eye size={12} /> {p.views}</span>
-                  </div>
-                </div>
-              ))}
-            {posts.filter((p) => p.status === "발행완료").length === 0 && (
-              <p className="text-sm text-[var(--muted)] text-center py-8">발행된 게시물이 없습니다.</p>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">성과 분석</h2>
+            {channelConnection?.hasToken && (
+              <button
+                onClick={fetchPlatformStats}
+                disabled={statsLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--muted)] hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={statsLoading ? "animate-spin" : ""} /> 새로고침
+              </button>
             )}
           </div>
+
+          {/* Platform Stats (real data from Threads API) */}
+          {platformStats ? (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: "총 조회수", value: fmt(platformStats.insights.totalViews) },
+                  { label: "총 좋아요", value: fmt(platformStats.insights.totalLikes) },
+                  { label: "총 답글", value: fmt(platformStats.insights.totalReplies) },
+                  { label: "리포스트", value: fmt(platformStats.insights.totalReposts) },
+                ].map((s) => (
+                  <div key={s.label} className="p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+                    <p className="text-xs text-[var(--muted)]">{s.label}</p>
+                    <p className="text-2xl font-bold mt-1">{s.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Top Posts from Platform */}
+              <h3 className="text-sm font-semibold text-[var(--muted)]">인기 게시물 (실시간)</h3>
+              <div className="space-y-2">
+                {platformStats.recentPosts
+                  .sort((a, b) => (b.views + b.likes) - (a.views + a.likes))
+                  .slice(0, 5)
+                  .map((p, idx) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)]"
+                    >
+                      <span className="w-8 h-8 rounded-full bg-[var(--green)]/10 text-[var(--green)] flex items-center justify-center text-sm font-bold flex-shrink-0">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate">{p.text || "(미디어 게시물)"}</p>
+                        {p.timestamp && <p className="text-xs text-[var(--muted)] mt-0.5">{fmtDate(p.timestamp)}</p>}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-[var(--muted)] flex-shrink-0">
+                        <span className="flex items-center gap-1"><Eye size={12} /> {p.views}</span>
+                        <span className="flex items-center gap-1"><Heart size={12} /> {p.likes}</span>
+                        <span className="flex items-center gap-1"><MessageSquare size={12} /> {p.replies}</span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Fallback: DB-based stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: "총 게시물", value: totalPosts },
+                  { label: "발행 완료", value: posts.filter((p) => p.status === "발행완료").length },
+                  { label: "총 좋아요", value: posts.reduce((s, p) => s + p.likes, 0) },
+                  { label: "총 댓글", value: posts.reduce((s, p) => s + p.comments, 0) },
+                ].map((s) => (
+                  <div key={s.label} className="p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+                    <p className="text-xs text-[var(--muted)]">{s.label}</p>
+                    <p className="text-2xl font-bold mt-1">{s.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              {!channelConnection?.hasToken && (
+                <p className="text-sm text-[var(--muted)] text-center py-4">
+                  Threads 계정을 연결하면 실시간 성과 데이터를 확인할 수 있습니다.
+                </p>
+              )}
+
+              {/* Top Posts from DB */}
+              <h3 className="text-sm font-semibold text-[var(--muted)]">인기 게시물 Top 3</h3>
+              <div className="space-y-2">
+                {posts
+                  .filter((p) => p.status === "발행완료")
+                  .sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments))
+                  .slice(0, 3)
+                  .map((p, idx) => (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)]"
+                    >
+                      <span className="w-8 h-8 rounded-full bg-[var(--green)]/10 text-[var(--green)] flex items-center justify-center text-sm font-bold flex-shrink-0">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm truncate">{p.content}</p>
+                        <p className="text-xs text-[var(--muted)] mt-0.5">{fmtDate(p.publishedAt || p.createdAt)}</p>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-[var(--muted)] flex-shrink-0">
+                        <span className="flex items-center gap-1"><Heart size={12} /> {p.likes}</span>
+                        <span className="flex items-center gap-1"><MessageSquare size={12} /> {p.comments}</span>
+                        <span className="flex items-center gap-1"><Eye size={12} /> {p.views}</span>
+                      </div>
+                    </div>
+                  ))}
+                {posts.filter((p) => p.status === "발행완료").length === 0 && (
+                  <p className="text-sm text-[var(--muted)] text-center py-8">발행된 게시물이 없습니다.</p>
+                )}
+              </div>
+            </>
+          )}
 
           {/* Monthly Bar Chart (simple) */}
           <h3 className="text-sm font-semibold text-[var(--muted)]">월별 발행 추이</h3>

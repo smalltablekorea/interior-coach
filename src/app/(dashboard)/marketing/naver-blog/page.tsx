@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
 import {
   ArrowLeft,
   FileText,
@@ -191,6 +192,19 @@ export default function NaverBlogPage() {
     inquiries: "",
   });
 
+  /* ── Platform Stats (real data from Naver Blog RSS) ── */
+  const [platformStats, setPlatformStats] = useState<{
+    blogId: string;
+    blogTitle: string;
+    blogUrl: string;
+    totalPosts: number;
+    todayVisitors: number;
+    weeklyVisitors: number;
+    recentPosts: Array<{ title: string; link: string; description: string; pubDate: string }>;
+    syncedAt: string;
+  } | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
   /* ── Settings State ── */
   const [blogSettings, setBlogSettings] = useState<BlogSettings>({
     blogUrl: "",
@@ -266,6 +280,28 @@ export default function NaverBlogPage() {
     };
     init();
   }, [fetchPosts, fetchKeywords, fetchSites, fetchChannelConnection]);
+
+  // Fetch real blog stats when connected
+  const fetchPlatformStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const res = await fetch("/api/marketing/naver-blog/stats");
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.error) setPlatformStats(data);
+      }
+    } catch {
+      // silent
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (channelConnection?.isActive) {
+      fetchPlatformStats();
+    }
+  }, [channelConnection, fetchPlatformStats]);
 
   /* ═══════════════════════════════════════════════════════════════════════
      Post Handlers
@@ -460,10 +496,12 @@ export default function NaverBlogPage() {
      Analytics Helpers
      ═══════════════════════════════════════════════════════════════════════ */
 
-  const totalPosts = posts.length;
+  const totalPosts = platformStats ? platformStats.totalPosts : posts.length;
   const totalViews = posts.reduce((sum, p) => sum + (p.engagement?.views ?? 0), 0);
   const totalInquiries = posts.reduce((sum, p) => sum + (p.engagement?.inquiries ?? 0), 0);
   const avgViews = totalPosts > 0 ? Math.round(totalViews / totalPosts) : 0;
+  const todayVisitors = platformStats?.todayVisitors ?? 0;
+  const weeklyVisitors = platformStats?.weeklyVisitors ?? 0;
 
   const submitMonthlyData = (e: React.FormEvent) => {
     e.preventDefault();
@@ -586,6 +624,14 @@ export default function NaverBlogPage() {
           <p className="text-sm text-[var(--muted)] mt-0.5">AI 기반 블로그 자동화</p>
         </div>
       </div>
+
+      {/* ══════════ Account Connection ══════════ */}
+      <AccountConnectionBanner
+        channel="naver-blog"
+        channelLabel="네이버 블로그"
+        channelIcon="📝"
+        connectionType="blog"
+      />
 
       {/* ══════════ Tab Navigation ══════════ */}
       <div className="flex gap-1 bg-white/[0.03] rounded-xl p-1">
@@ -1176,7 +1222,18 @@ export default function NaverBlogPage() {
          ══════════════════════════════════════════════════════════════════ */}
       {activeTab === "analytics" && (
         <div className="space-y-6">
-          <h2 className="text-lg font-semibold">성과 분석</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">성과 분석</h2>
+            {channelConnection?.isActive && (
+              <button
+                onClick={fetchPlatformStats}
+                disabled={statsLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--muted)] hover:bg-white/[0.04] transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={12} className={statsLoading ? "animate-spin" : ""} /> 실시간 데이터 새로고침
+              </button>
+            )}
+          </div>
 
           {/* KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1185,21 +1242,21 @@ export default function NaverBlogPage() {
               value={totalPosts.toString()}
               icon={FileText}
               color="#00C471"
-              subtitle="블로그에 등록된 전체 포스트"
+              subtitle={platformStats ? "실시간" : "블로그에 등록된 전체 포스트"}
             />
             <KPICard
-              title="총 조회수"
-              value={totalViews.toLocaleString()}
+              title={platformStats ? "오늘 방문자" : "총 조회수"}
+              value={platformStats ? todayVisitors.toLocaleString() : totalViews.toLocaleString()}
               icon={Eye}
               color="#3B82F6"
-              subtitle="전체 포스트 누적 조회수"
+              subtitle={platformStats ? "실시간" : "전체 포스트 누적 조회수"}
             />
             <KPICard
-              title="블로그 문의"
-              value={totalInquiries.toString()}
+              title={platformStats ? "주간 방문자" : "블로그 문의"}
+              value={platformStats ? weeklyVisitors.toLocaleString() : totalInquiries.toString()}
               icon={MessageSquare}
               color="#F59E0B"
-              subtitle="블로그를 통한 전체 문의"
+              subtitle={platformStats ? "최근 7일" : "블로그를 통한 전체 문의"}
             />
             <KPICard
               title="평균 조회수"
@@ -1209,6 +1266,36 @@ export default function NaverBlogPage() {
               subtitle="포스트당 평균 조회수"
             />
           </div>
+
+          {/* Real-time recent posts from RSS */}
+          {platformStats && platformStats.recentPosts.length > 0 && (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 space-y-4">
+              <h3 className="text-base font-semibold">최근 블로그 글 (실시간)</h3>
+              <div className="space-y-2">
+                {platformStats.recentPosts.slice(0, 10).map((post, idx) => (
+                  <a
+                    key={idx}
+                    href={post.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start gap-3 p-3 rounded-xl border border-[var(--border)] hover:bg-white/[0.02] transition-colors"
+                  >
+                    <span className="w-6 h-6 rounded-full bg-[#03C75A]/10 text-[#03C75A] flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                      {idx + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{post.title}</p>
+                      <p className="text-xs text-[var(--muted)] mt-1 line-clamp-1">{post.description}</p>
+                      {post.pubDate && (
+                        <p className="text-xs text-neutral-600 mt-1">{new Date(post.pubDate).toLocaleDateString("ko-KR")}</p>
+                      )}
+                    </div>
+                    <ExternalLink size={14} className="text-[var(--muted)] flex-shrink-0 mt-1" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Monthly Data Table */}
           <div className="space-y-4">
