@@ -198,6 +198,15 @@ export default function NaverBlogPage() {
     defaultTags: "",
   });
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [channelConnection, setChannelConnection] = useState<{
+    accountName: string | null;
+    accountId: string | null;
+    hasToken: boolean;
+    isActive: boolean;
+  } | null>(null);
+  const [blogIdInput, setBlogIdInput] = useState("");
+  const [connectingBlog, setConnectingBlog] = useState(false);
+  const [connectMessage, setConnectMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   /* ═══════════════════════════════════════════════════════════════════════
      Data Fetching
@@ -239,14 +248,24 @@ export default function NaverBlogPage() {
     }
   }, []);
 
+  const fetchChannelConnection = useCallback(async () => {
+    try {
+      const res = await fetch("/api/marketing/channels?channel=naver_blog");
+      if (res.ok) {
+        const data = await res.json();
+        if (data) setChannelConnection(data);
+      }
+    } catch { /* silent */ }
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      await Promise.all([fetchPosts(), fetchKeywords(), fetchSites()]);
+      await Promise.all([fetchPosts(), fetchKeywords(), fetchSites(), fetchChannelConnection()]);
       setLoading(false);
     };
     init();
-  }, [fetchPosts, fetchKeywords, fetchSites]);
+  }, [fetchPosts, fetchKeywords, fetchSites, fetchChannelConnection]);
 
   /* ═══════════════════════════════════════════════════════════════════════
      Post Handlers
@@ -467,9 +486,54 @@ export default function NaverBlogPage() {
 
   const saveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would persist to the backend
     setSettingsSaved(true);
     setTimeout(() => setSettingsSaved(false), 2000);
+  };
+
+  const connectBlog = async () => {
+    if (!blogIdInput.trim()) return;
+    setConnectingBlog(true);
+    setConnectMessage(null);
+    try {
+      const blogId = blogIdInput.trim();
+      const res = await fetch("/api/marketing/channels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel: "naver_blog",
+          accountName: blogId,
+          accountId: blogId,
+          isActive: true,
+        }),
+      });
+      if (res.ok) {
+        setConnectMessage({ type: "success", text: "블로그가 연결되었습니다!" });
+        setBlogIdInput("");
+        await fetchChannelConnection();
+      } else {
+        setConnectMessage({ type: "error", text: "연결에 실패했습니다." });
+      }
+    } catch {
+      setConnectMessage({ type: "error", text: "연결에 실패했습니다." });
+    } finally {
+      setConnectingBlog(false);
+    }
+  };
+
+  const disconnectBlog = async () => {
+    try {
+      const res = await fetch("/api/marketing/channels", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: "naver_blog" }),
+      });
+      if (res.ok) {
+        setChannelConnection(null);
+        setConnectMessage({ type: "success", text: "블로그 연결이 해제되었습니다." });
+      }
+    } catch {
+      setConnectMessage({ type: "error", text: "연결 해제에 실패했습니다." });
+    }
   };
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -1271,6 +1335,65 @@ export default function NaverBlogPage() {
       {activeTab === "settings" && (
         <div className="space-y-6">
           <h2 className="text-lg font-semibold">블로그 설정</h2>
+
+          {/* 연결 메시지 배너 */}
+          {connectMessage && (
+            <div className={`rounded-xl px-4 py-3 text-sm flex items-center justify-between ${connectMessage.type === "success" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
+              {connectMessage.text}
+              <button onClick={() => setConnectMessage(null)} className="ml-2 opacity-60 hover:opacity-100">✕</button>
+            </div>
+          )}
+
+          {/* 네이버 블로그 계정 연동 */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 space-y-4">
+            <h3 className="font-semibold">네이버 블로그 계정 연동</h3>
+
+            {channelConnection?.isActive ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#00C471]/20 flex items-center justify-center text-lg">📝</div>
+                  <div>
+                    <p className="font-semibold">{channelConnection.accountName || "연결된 블로그"}</p>
+                    <p className="text-xs text-[var(--green)]">연결됨</p>
+                  </div>
+                </div>
+                <p className="text-sm text-[var(--muted)]">
+                  블로그 ID: <span className="text-[var(--foreground)]">{channelConnection.accountId}</span>
+                </p>
+                <button
+                  onClick={disconnectBlog}
+                  className="text-sm text-red-400 hover:text-red-300 transition-colors"
+                >
+                  연결 해제
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-[var(--muted)]">
+                  네이버 블로그 ID를 입력하여 블로그를 연결하세요.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={blogIdInput}
+                    onChange={(e) => setBlogIdInput(e.target.value)}
+                    className={inputCls}
+                    placeholder="네이버 블로그 ID (예: myblogid)"
+                  />
+                  <button
+                    onClick={connectBlog}
+                    disabled={connectingBlog || !blogIdInput.trim()}
+                    className={`${btnPrimary} whitespace-nowrap`}
+                  >
+                    {connectingBlog ? "연결 중..." : "연결"}
+                  </button>
+                </div>
+                <p className="text-xs text-neutral-500">
+                  blog.naver.com/<strong>myblogid</strong> 에서 굵은 부분이 블로그 ID입니다
+                </p>
+              </div>
+            )}
+          </div>
 
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
             <form onSubmit={saveSettings} className="space-y-5">

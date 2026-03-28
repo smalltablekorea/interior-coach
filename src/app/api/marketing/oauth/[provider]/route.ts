@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildAuthorizationUrl } from "@/lib/marketing-oauth/oauth-utils";
+import { requireAuth } from "@/lib/api-auth";
 
 const VALID_COMBINATIONS: Record<string, string[]> = {
   meta: ["threads", "instagram", "meta_ads"],
@@ -10,6 +11,13 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) {
+    return NextResponse.redirect(
+      new URL("/login", request.nextUrl.origin)
+    );
+  }
+
   const { provider } = await params;
   const channel = request.nextUrl.searchParams.get("channel");
 
@@ -32,7 +40,7 @@ export async function GET(
   const redirectUri = `${baseUrl}/api/marketing/oauth/${provider}/callback`;
 
   try {
-    const authUrl = buildAuthorizationUrl(channel, redirectUri);
+    const authUrl = buildAuthorizationUrl(channel, redirectUri, auth.userId);
     return NextResponse.redirect(authUrl);
   } catch (error) {
     const message =

@@ -50,7 +50,7 @@ export async function GET(
     );
   }
 
-  const { channel } = stateData;
+  const { channel, userId } = stateData;
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || origin;
   const redirectUri = `${baseUrl}/api/marketing/oauth/${provider}/callback`;
 
@@ -104,8 +104,8 @@ export async function GET(
       }
     }
 
-    // Store tokens in DB
-    await storeTokens(channel, {
+    // Store tokens in DB (per-user)
+    await storeTokens(userId, channel, {
       accessToken: tokenData.accessToken,
       refreshToken: tokenData.refreshToken,
       expiresIn: tokenData.expiresIn,

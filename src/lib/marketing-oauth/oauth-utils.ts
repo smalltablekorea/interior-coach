@@ -7,9 +7,10 @@ import { OAUTH_PROVIDERS, CHANNEL_TO_PROVIDER } from "./providers";
 
 // ── State Parameter (CSRF protection) ──
 
-export function generateOAuthState(channel: string): string {
+export function generateOAuthState(channel: string, userId: string): string {
   const stateData = {
     channel,
+    userId,
     nonce: crypto.randomBytes(16).toString("hex"),
     ts: Date.now(),
   };
@@ -18,13 +19,14 @@ export function generateOAuthState(channel: string): string {
 
 export function parseOAuthState(
   state: string
-): { channel: string; nonce: string; ts: number } | null {
+): { channel: string; userId: string; nonce: string; ts: number } | null {
   try {
     const parsed = JSON.parse(
       Buffer.from(state, "base64url").toString()
     );
     // Reject states older than 10 minutes
     if (Date.now() - parsed.ts > 10 * 60 * 1000) return null;
+    if (!parsed.userId) return null;
     return parsed;
   } catch {
     return null;
@@ -35,7 +37,8 @@ export function parseOAuthState(
 
 export function buildAuthorizationUrl(
   channel: string,
-  redirectUri: string
+  redirectUri: string,
+  userId: string
 ): string {
   const providerId = CHANNEL_TO_PROVIDER[channel];
   if (!providerId) throw new Error(`No OAuth provider for channel: ${channel}`);
@@ -48,7 +51,7 @@ export function buildAuthorizationUrl(
   const scopes = provider.scopes[channel];
   if (!scopes) throw new Error(`No scopes defined for channel: ${channel}`);
 
-  const state = generateOAuthState(channel);
+  const state = generateOAuthState(channel, userId);
 
   const params = new URLSearchParams({
     client_id: clientId,

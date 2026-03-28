@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   const datePreset =
     request.nextUrl.searchParams.get("date_preset") || "last_30d";
 
-  const token = await getValidToken("meta_ads");
+  const token = await getValidToken(auth.userId, "meta_ads");
   if (!token) {
     return NextResponse.json(
       { error: "Meta Ads 계정이 연결되지 않았습니다." },

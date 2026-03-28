@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { marketingChannels } from "@/lib/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { disconnectChannel, getChannelConnection } from "@/lib/marketing-oauth/token-manager";
 import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
   const auth = await requireAuth();
@@ -13,33 +14,40 @@ export async function GET(request: NextRequest) {
     // Single channel query: GET /api/marketing/channels?channel=threads
     const channelFilter = request.nextUrl.searchParams.get("channel");
     if (channelFilter) {
-      const conn = await getChannelConnection(channelFilter);
-      return NextResponse.json(conn);
+      const conn = await getChannelConnection(auth.userId, channelFilter);
+      return ok(conn);
     }
 
     const rows = await db
       .select()
       .from(marketingChannels)
+      .where(eq(marketingChannels.userId, auth.userId))
       .orderBy(desc(marketingChannels.createdAt));
 
-    return NextResponse.json(rows);
+    return ok(rows);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "채널 목록 조회에 실패했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const { channel, accountName, accountId, accessToken, isActive } = body;
 
-    // Check if a channel connection already exists for this channel
+    // Check if a channel connection already exists for this user and channel
     const [existing] = await db
       .select()
       .from(marketingChannels)
-      .where(eq(marketingChannels.channel, channel))
+      .where(
+        and(
+          eq(marketingChannels.userId, auth.userId),
+          eq(marketingChannels.channel, channel)
+        )
+      )
       .limit(1);
 
     if (existing) {
@@ -53,17 +61,22 @@ export async function POST(request: NextRequest) {
           isActive: isActive !== undefined ? isActive : existing.isActive,
           updatedAt: new Date(),
         })
-        .where(eq(marketingChannels.id, existing.id))
+        .where(
+          and(
+            eq(marketingChannels.id, existing.id),
+            eq(marketingChannels.userId, auth.userId)
+          )
+        )
         .returning();
 
-      return NextResponse.json(row);
+      return ok(row);
     }
 
     // Create new channel connection
     const [row] = await db
       .insert(marketingChannels)
       .values({
-        userId: "system",
+        userId: auth.userId,
         channel,
         accountName: accountName || null,
         accountId: accountId || null,
@@ -72,26 +85,25 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "채널 연결에 실패했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const { channel } = await request.json();
     if (!channel) {
-      return NextResponse.json({ error: "channel required" }, { status: 400 });
+      return err("channel required");
     }
 
-    await disconnectChannel(channel);
-    return NextResponse.json({ success: true });
+    await disconnectChannel(auth.userId, channel);
+    return ok({ success: true });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "채널 연결 해제에 실패했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }

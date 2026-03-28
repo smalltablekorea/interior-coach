@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const token = await getValidToken(channel);
+  const token = await getValidToken(auth.userId, channel);
   if (!token) {
     return NextResponse.json(
       { error: "토큰 갱신에 실패했습니다. 계정을 다시 연결해주세요." },

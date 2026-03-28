@@ -1,5 +1,5 @@
 // =============================================================================
-// Token Manager — DB persistence, retrieval, auto-refresh
+// Token Manager — DB persistence, retrieval, auto-refresh (per-user)
 // =============================================================================
 
 import { db } from "@/lib/db";
@@ -7,11 +7,10 @@ import { marketingChannels, threadsAccount } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { refreshAccessToken } from "./oauth-utils";
 
-const USER_ID = "system";
-
 // ── Store Tokens ──
 
 export async function storeTokens(
+  userId: string,
   channel: string,
   data: {
     accessToken: string;
@@ -28,7 +27,7 @@ export async function storeTokens(
     .from(marketingChannels)
     .where(
       and(
-        eq(marketingChannels.userId, USER_ID),
+        eq(marketingChannels.userId, userId),
         eq(marketingChannels.channel, channel)
       )
     )
@@ -49,7 +48,7 @@ export async function storeTokens(
       .where(eq(marketingChannels.id, existing.id));
   } else {
     await db.insert(marketingChannels).values({
-      userId: USER_ID,
+      userId,
       channel,
       accessToken: data.accessToken,
       refreshToken: data.refreshToken || null,
@@ -65,7 +64,7 @@ export async function storeTokens(
     const [existingThread] = await db
       .select()
       .from(threadsAccount)
-      .where(eq(threadsAccount.userId, USER_ID))
+      .where(eq(threadsAccount.userId, userId))
       .limit(1);
 
     if (existingThread) {
@@ -81,7 +80,7 @@ export async function storeTokens(
         .where(eq(threadsAccount.id, existingThread.id));
     } else {
       await db.insert(threadsAccount).values({
-        userId: USER_ID,
+        userId,
         username: data.accountName,
         accessToken: data.accessToken,
         isConnected: true,
@@ -94,6 +93,7 @@ export async function storeTokens(
 // ── Get Valid Token (auto-refresh if expired) ──
 
 export async function getValidToken(
+  userId: string,
   channel: string
 ): Promise<string | null> {
   const [row] = await db
@@ -101,7 +101,7 @@ export async function getValidToken(
     .from(marketingChannels)
     .where(
       and(
-        eq(marketingChannels.userId, USER_ID),
+        eq(marketingChannels.userId, userId),
         eq(marketingChannels.channel, channel)
       )
     )
@@ -120,7 +120,7 @@ export async function getValidToken(
         channel,
         row.refreshToken
       );
-      await storeTokens(channel, {
+      await storeTokens(userId, channel, {
         accessToken: refreshed.accessToken,
         refreshToken: refreshed.refreshToken,
         expiresIn: refreshed.expiresIn,
@@ -139,13 +139,13 @@ export async function getValidToken(
 
 // ── Get Channel Connection Info ──
 
-export async function getChannelConnection(channel: string) {
+export async function getChannelConnection(userId: string, channel: string) {
   const [row] = await db
     .select()
     .from(marketingChannels)
     .where(
       and(
-        eq(marketingChannels.userId, USER_ID),
+        eq(marketingChannels.userId, userId),
         eq(marketingChannels.channel, channel)
       )
     )
@@ -168,13 +168,13 @@ export async function getChannelConnection(channel: string) {
 
 // ── Disconnect Channel ──
 
-export async function disconnectChannel(channel: string) {
+export async function disconnectChannel(userId: string, channel: string) {
   const [row] = await db
     .select()
     .from(marketingChannels)
     .where(
       and(
-        eq(marketingChannels.userId, USER_ID),
+        eq(marketingChannels.userId, userId),
         eq(marketingChannels.channel, channel)
       )
     )
@@ -198,7 +198,7 @@ export async function disconnectChannel(channel: string) {
     const [threadRow] = await db
       .select()
       .from(threadsAccount)
-      .where(eq(threadsAccount.userId, USER_ID))
+      .where(eq(threadsAccount.userId, userId))
       .limit(1);
     if (threadRow) {
       await db

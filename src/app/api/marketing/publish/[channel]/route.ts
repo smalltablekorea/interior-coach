@@ -17,7 +17,7 @@ export async function POST(
   const { postId, content, mediaUrls, title, hashtags } = body;
 
   // Get valid token (auto-refreshes if needed)
-  const token = await getValidToken(channel);
+  const token = await getValidToken(auth.userId, channel);
   if (!token) {
     return NextResponse.json(
       { error: "인증이 만료되었습니다. 계정을 다시 연결해주세요." },
