@@ -5,24 +5,16 @@ import { db } from "@/lib/db";
 import { qnaPosts } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { ArrowLeft, Lock, Eye, Calendar, User, Tag } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export const revalidate = 3600;
 
-const JOB_ROLE_STYLES: Record<string, { label: string; bg: string; text: string }> = {
-  ceo: { label: "대표", bg: "bg-[#1a2744]", text: "text-[#6b8bbd]" },
-  director: { label: "실장", bg: "bg-[#1a2e1a]", text: "text-[#6bb56b]" },
-  manager: { label: "소장", bg: "bg-[#2e2214]", text: "text-[#c49a4a]" },
-  designer: { label: "디자이너", bg: "bg-[#2a1a3a]", text: "text-[#a77bca]" },
-};
-
 const CATEGORY_LABELS: Record<string, string> = {
-  site_mgmt: "현장관리",
-  hr: "인력운영",
-  revenue: "매출관리",
-  customer: "고객응대",
-  process: "공정관리",
-  tool: "툴·시스템",
+  estimate: "견적/비용",
+  contractor: "업체선택",
+  process: "시공과정",
+  quality: "품질/하자",
+  materials: "자재/마감재",
+  design: "디자인",
   other: "기타",
 };
 
@@ -45,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (isNaN(numId)) return { title: "질문을 찾을 수 없습니다 | 인테리어코치" };
 
   const [post] = await db
-    .select({ title: qnaPosts.title, authorRole: qnaPosts.authorRole })
+    .select({ title: qnaPosts.title })
     .from(qnaPosts)
     .where(and(eq(qnaPosts.id, numId), eq(qnaPosts.service, "interior")));
 
@@ -53,13 +45,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "질문을 찾을 수 없습니다 | 인테리어코치" };
   }
 
-  const roleLabel = JOB_ROLE_STYLES[post.authorRole]?.label || "";
   return {
-    title: `${post.title} | 인테리어 업체 Q&A`,
-    description: `인테리어 ${roleLabel}의 운영 상담: ${post.title}`,
+    title: `${post.title} | 인테리어 Q&A`,
+    description: `인테리어 Q&A: ${post.title}`,
     openGraph: {
       title: post.title,
-      description: `인테리어 ${roleLabel}의 운영 상담 - 인테리어코치 Q&A`,
+      description: `인테리어 전문가가 답변하는 Q&A - 인테리어코치`,
     },
   };
 }
@@ -85,7 +76,6 @@ export default async function QnADetailPage({ params }: Props) {
     .then(() => {})
     .catch(() => {});
 
-  const roleStyle = JOB_ROLE_STYLES[post.authorRole] || null;
   const maskedAuthor = post.authorId.slice(0, 8) + "***";
 
   // JSON-LD
@@ -155,17 +145,6 @@ export default async function QnADetailPage({ params }: Props) {
         {/* Question Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            {roleStyle && (
-              <span
-                className={cn(
-                  "inline-flex items-center px-2.5 py-1 rounded text-xs font-medium",
-                  roleStyle.bg,
-                  roleStyle.text
-                )}
-              >
-                {roleStyle.label}
-              </span>
-            )}
             {post.category && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs bg-white/5 text-[var(--muted)] border border-[var(--border)]">
                 <Tag size={10} />
@@ -217,10 +196,10 @@ export default async function QnADetailPage({ params }: Props) {
             <div className="flex flex-col items-center gap-2 p-5 rounded-2xl bg-[var(--card)]/90 backdrop-blur-sm border border-[var(--border)] shadow-lg">
               <Lock size={24} className="text-[var(--muted)]" />
               <p className="text-sm font-medium text-center">
-                업체 운영 상담 내용은<br />영업기밀 보호를 위해 비공개입니다
+                상담 내용은 회원에게만 공개됩니다
               </p>
               <p className="text-[10px] text-[var(--muted)]">
-                인테리어코치 도입 시 전체 내용 열람 가능
+                인테리어코치 가입 시 전체 내용 열람 가능
               </p>
             </div>
           </div>
@@ -253,7 +232,7 @@ export default async function QnADetailPage({ params }: Props) {
               <div className="flex flex-col items-center gap-2 p-5 rounded-2xl bg-[var(--card)]/90 backdrop-blur-sm border border-[var(--border)] shadow-lg">
                 <Lock size={24} className="text-[var(--muted)]" />
                 <p className="text-sm font-medium text-center">
-                  전문가 답변은 도입 업체에게만 공개됩니다
+                  전문가 답변은 회원에게만 공개됩니다
                 </p>
               </div>
             </div>
@@ -262,15 +241,15 @@ export default async function QnADetailPage({ params }: Props) {
 
         {/* CTA */}
         <div className="p-6 rounded-2xl bg-gradient-to-r from-[var(--green)]/10 to-[var(--green)]/[0.02] border border-[var(--green)]/20 text-center">
-          <p className="text-lg font-bold mb-1">이런 고민, 우리 업체도 하고 있다면?</p>
+          <p className="text-lg font-bold mb-1">인테리어, 전문가와 함께 준비하세요</p>
           <p className="text-sm text-[var(--muted)] mb-4">
-            인테리어코치를 도입하면 운영 전문가의 1:1 상담과 업체 관리 시스템을 한번에 사용할 수 있습니다
+            인테리어코치로 견적 비교부터 시공 관리까지 한번에 해결하세요
           </p>
           <Link
             href="/pricing"
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[var(--green)] text-black font-medium hover:opacity-90 transition-opacity"
           >
-            우리 업체도 도입하기 →
+            자세히 알아보기 →
           </Link>
         </div>
 
