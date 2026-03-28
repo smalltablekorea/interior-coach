@@ -1,36 +1,39 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { marketingCampaigns } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const channel = searchParams.get("channel");
 
-    let rows;
+    const conditions = [eq(marketingCampaigns.userId, auth.userId)];
     if (channel) {
-      rows = await db
-        .select()
-        .from(marketingCampaigns)
-        .where(eq(marketingCampaigns.channel, channel))
-        .orderBy(desc(marketingCampaigns.createdAt));
-    } else {
-      rows = await db
-        .select()
-        .from(marketingCampaigns)
-        .orderBy(desc(marketingCampaigns.createdAt));
+      conditions.push(eq(marketingCampaigns.channel, channel));
     }
 
-    return NextResponse.json(rows);
+    const rows = await db
+      .select()
+      .from(marketingCampaigns)
+      .where(conditions.length === 1 ? conditions[0] : and(...conditions))
+      .orderBy(desc(marketingCampaigns.createdAt));
+
+    return ok(rows);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "캠페인 목록 조회에 실패했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const {
@@ -48,7 +51,7 @@ export async function POST(request: NextRequest) {
     const [row] = await db
       .insert(marketingCampaigns)
       .values({
-        userId: "system",
+        userId: auth.userId,
         channel,
         name,
         startDate: startDate || null,
@@ -61,10 +64,8 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "캠페인 생성에 실패했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }

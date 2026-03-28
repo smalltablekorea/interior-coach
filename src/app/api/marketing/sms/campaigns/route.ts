@@ -1,35 +1,41 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { smsCampaigns } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const rows = await db
       .select()
       .from(smsCampaigns)
+      .where(eq(smsCampaigns.userId, auth.userId))
       .orderBy(desc(smsCampaigns.createdAt));
 
-    return NextResponse.json(rows);
+    return ok(rows);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "캠페인 목록 조회 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { name, type, targetGrade, targetSource, steps, startDate, endDate } = body;
 
     if (!name) {
-      return NextResponse.json({ error: "캠페인 이름은 필수입니다." }, { status: 400 });
+      return err("캠페인 이름은 필수입니다.");
     }
 
     const [row] = await db
       .insert(smsCampaigns)
       .values({
-        userId: "system",
+        userId: auth.userId,
         name,
         type: type || "drip",
         targetGrade,
@@ -40,46 +46,47 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "캠페인 생성 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { id, ...updates } = body;
 
     if (!id) {
-      return NextResponse.json({ error: "id required" }, { status: 400 });
+      return err("id required");
     }
 
     const [row] = await db
       .update(smsCampaigns)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(smsCampaigns.id, id))
+      .where(and(eq(smsCampaigns.id, id), eq(smsCampaigns.userId, auth.userId)))
       .returning();
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "캠페인 수정 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await request.json();
     if (!id) {
-      return NextResponse.json({ error: "id required" }, { status: 400 });
+      return err("id required");
     }
 
-    await db.delete(smsCampaigns).where(eq(smsCampaigns.id, id));
-    return NextResponse.json({ success: true });
+    await db.delete(smsCampaigns).where(and(eq(smsCampaigns.id, id), eq(smsCampaigns.userId, auth.userId)));
+    return ok({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "캠페인 삭제 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }

@@ -1,5 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 import {
   CATS,
   GRADES,
@@ -13,7 +15,7 @@ import {
   fmtShort,
 } from "@/lib/estimate-engine";
 
-// ─── 즉석 견적 계산 (GET) ───
+// --- 즉석 견적 계산 (GET) - 공개 API (계산만 수행, DB 접근 없음) ---
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const area = parseFloat(searchParams.get("area") || "27");
@@ -69,7 +71,7 @@ export async function GET(request: NextRequest) {
     totalMaxDays += maxMax;
   }
 
-  return NextResponse.json({
+  return ok({
     area,
     grade: {
       key: grade.key,
@@ -89,54 +91,55 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// ─── AI 견적 코칭 (POST) ───
+// --- AI 견적 코칭 (POST) - 인증 필요 (API 비용 발생) ---
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "ANTHROPIC_API_KEY가 설정되지 않았습니다." },
-      { status: 500 }
-    );
+    return err("ANTHROPIC_API_KEY가 설정되지 않았습니다.", 500);
   }
 
-  const body = await request.json();
-  const { question, area, grade, breakdown } = body as {
-    question: string;
-    area?: number;
-    grade?: string;
-    breakdown?: { name: string; total: number }[];
-  };
+  try {
+    const body = await request.json();
+    const { question, area, grade, breakdown } = body as {
+      question: string;
+      area?: number;
+      grade?: string;
+      breakdown?: { name: string; total: number }[];
+    };
 
-  if (!question) {
-    return NextResponse.json({ error: "question 필수" }, { status: 400 });
-  }
+    if (!question) {
+      return err("question 필수");
+    }
 
-  const contextParts: string[] = [];
-  if (area) contextParts.push(`현재 시뮬레이션: ${area}평`);
-  if (grade) {
-    const g = GRADES.find((gr) => gr.key === grade);
-    if (g) contextParts.push(`등급: ${g.label} (${g.tag})`);
-  }
-  if (breakdown?.length) {
-    const total = breakdown.reduce((s, b) => s + b.total, 0);
-    contextParts.push(`총 공사비: ${fmtShort(total)}`);
-    contextParts.push(
-      `공종별: ${breakdown
-        .filter((b) => b.total > 0)
-        .map((b) => `${b.name} ${fmtShort(b.total)}`)
-        .join(", ")}`
-    );
-  }
+    const contextParts: string[] = [];
+    if (area) contextParts.push(`현재 시뮬레이션: ${area}평`);
+    if (grade) {
+      const g = GRADES.find((gr) => gr.key === grade);
+      if (g) contextParts.push(`등급: ${g.label} (${g.tag})`);
+    }
+    if (breakdown?.length) {
+      const total = breakdown.reduce((s, b) => s + b.total, 0);
+      contextParts.push(`총 공사비: ${fmtShort(total)}`);
+      contextParts.push(
+        `공종별: ${breakdown
+          .filter((b) => b.total > 0)
+          .map((b) => `${b.name} ${fmtShort(b.total)}`)
+          .join(", ")}`
+      );
+    }
 
-  const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey });
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 1200,
-    messages: [
-      {
-        role: "user",
-        content: `당신은 대한민국 인테리어 견적 전문 코치입니다. 10년 이상 경력의 인테리어 견적 전문가로서, 건축주에게 실질적이고 구체적인 조언을 제공합니다.
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1200,
+      messages: [
+        {
+          role: "user",
+          content: `당신은 대한민국 인테리어 견적 전문 코치입니다. 10년 이상 경력의 인테리어 견적 전문가로서, 건축주에게 실질적이고 구체적인 조언을 제공합니다.
 
 전문 분야:
 - 인테리어 공사 견적 분석 및 참고 가격 범위 제시
@@ -157,12 +160,15 @@ ${contextParts.length > 0 ? `\n현재 고객 상황:\n${contextParts.join("\n")}
 - 과도한 절약이 품질 하락으로 이어지는 경우 경고
 
 질문: ${question}`,
-      },
-    ],
-  });
+        },
+      ],
+    });
 
-  const answer =
-    response.content[0].type === "text" ? response.content[0].text.trim() : "";
+    const answer =
+      response.content[0].type === "text" ? response.content[0].text.trim() : "";
 
-  return NextResponse.json({ question, answer, createdAt: new Date().toISOString() });
+    return ok({ question, answer, createdAt: new Date().toISOString() });
+  } catch (error) {
+    return serverError(error);
+  }
 }

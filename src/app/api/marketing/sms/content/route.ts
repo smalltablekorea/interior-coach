@@ -1,46 +1,46 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { smsContent } from "@/lib/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const templateType = request.nextUrl.searchParams.get("templateType");
 
-    const rows = templateType
-      ? await db
-          .select()
-          .from(smsContent)
-          .where(eq(smsContent.templateType, templateType))
-          .orderBy(desc(smsContent.createdAt))
-      : await db
-          .select()
-          .from(smsContent)
-          .orderBy(desc(smsContent.createdAt));
+    const conditions = [eq(smsContent.userId, auth.userId)];
+    if (templateType) conditions.push(eq(smsContent.templateType, templateType));
 
-    return NextResponse.json(rows);
+    const rows = await db
+      .select()
+      .from(smsContent)
+      .where(and(...conditions))
+      .orderBy(desc(smsContent.createdAt));
+
+    return ok(rows);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "템플릿 목록 조회 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { name, channel, templateType, subject, body: msgBody, variables } = body;
 
     if (!name || !templateType || !msgBody) {
-      return NextResponse.json(
-        { error: "이름, 유형, 내용은 필수입니다." },
-        { status: 400 }
-      );
+      return err("이름, 유형, 내용은 필수입니다.");
     }
 
     const [row] = await db
       .insert(smsContent)
       .values({
-        userId: "system",
+        userId: auth.userId,
         name,
         channel: channel || "sms",
         templateType,
@@ -50,46 +50,47 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "템플릿 생성 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { id, ...updates } = body;
 
     if (!id) {
-      return NextResponse.json({ error: "id required" }, { status: 400 });
+      return err("id required");
     }
 
     const [row] = await db
       .update(smsContent)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(smsContent.id, id))
+      .where(and(eq(smsContent.id, id), eq(smsContent.userId, auth.userId)))
       .returning();
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "템플릿 수정 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await request.json();
     if (!id) {
-      return NextResponse.json({ error: "id required" }, { status: 400 });
+      return err("id required");
     }
 
-    await db.delete(smsContent).where(eq(smsContent.id, id));
-    return NextResponse.json({ success: true });
+    await db.delete(smsContent).where(and(eq(smsContent.id, id), eq(smsContent.userId, auth.userId)));
+    return ok({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "템플릿 삭제 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }

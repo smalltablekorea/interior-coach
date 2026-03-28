@@ -2,25 +2,17 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { estimates, estimateItems } from "@/lib/db/schema";
 import { eq, and, max } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-
-async function getUserId(): Promise<string> {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    return session?.user?.id ?? "system";
-  } catch {
-    return "system";
-  }
-}
+import { requireAuth } from "@/lib/api-auth";
 
 // 견적 복제 (새 버전 또는 독립 복사)
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   const { id } = await params;
-  const userId = await getUserId();
+  const userId = auth.userId;
   const body = await request.json().catch(() => ({}));
   const asNewVersion = body.asNewVersion !== false; // 기본: 새 버전으로 복제
 

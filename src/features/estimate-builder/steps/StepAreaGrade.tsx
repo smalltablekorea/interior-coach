@@ -1,6 +1,7 @@
 "use client";
 
-import { GRADES, fmtShort } from "@/lib/estimate-engine";
+import { useMemo } from "react";
+import { GRADES, CATS, calcCatTotal, fmtShort } from "@/lib/estimate-engine";
 
 interface Props {
   area: number;
@@ -15,6 +16,13 @@ export function StepAreaGrade({
   onAreaChange,
   onGradeChange,
 }: Props) {
+  const gradeTotals = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const g of GRADES) {
+      map[g.key] = CATS.reduce((s, cat) => s + calcCatTotal(cat, area, g.key), 0);
+    }
+    return map;
+  }, [area]);
   return (
     <div className="space-y-6">
       {/* Area */}
@@ -122,7 +130,7 @@ export function StepAreaGrade({
                   className="text-xs font-semibold mt-1.5"
                   style={{ color: gr.color }}
                 >
-                  {fmtShort(Math.round(gr.target60 * (area / 60)))}
+                  {fmtShort(gradeTotals[gr.key])}
                 </div>
               </button>
             );

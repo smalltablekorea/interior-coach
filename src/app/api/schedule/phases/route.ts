@@ -1,21 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { constructionPhases } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const { siteId, category, plannedStart, plannedEnd, status, progress, memo } = body;
 
-    if (!siteId || !category) {
-      return NextResponse.json({ error: "siteId와 category는 필수입니다" }, { status: 400 });
-    }
+    if (!siteId || !category) return err("siteId와 category는 필수입니다");
 
     const [row] = await db
       .insert(constructionPhases)
       .values({
-        userId: "system",
+        userId: auth.userId,
         siteId,
         category,
         plannedStart: plannedStart || null,
@@ -26,19 +29,21 @@ export async function POST(request: Request) {
       })
       .returning();
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "저장 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const { id, ...updates } = body;
 
-    if (!id) return NextResponse.json({ error: "id 필요" }, { status: 400 });
+    if (!id) return err("id 필요");
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data: Record<string, any> = {};
@@ -54,28 +59,32 @@ export async function PUT(request: Request) {
     const [row] = await db
       .update(constructionPhases)
       .set(data)
-      .where(eq(constructionPhases.id, id))
+      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId)))
       .returning();
 
-    return NextResponse.json(row);
+    if (!row) return err("공정을 찾을 수 없습니다", 404);
+    return ok(row);
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "수정 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
-    if (!id) return NextResponse.json({ error: "id 필요" }, { status: 400 });
+    if (!id) return err("id 필요");
 
-    await db.delete(constructionPhases).where(eq(constructionPhases.id, id));
+    await db
+      .delete(constructionPhases)
+      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId)));
 
-    return NextResponse.json({ success: true });
+    return ok({ message: "삭제되었습니다" });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "삭제 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }

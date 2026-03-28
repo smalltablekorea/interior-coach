@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { billingRecords, subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -11,18 +12,29 @@ import { createNotification } from "@/lib/notifications";
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { eventType, data } = body;
+    const rawBody = await request.text();
 
-    // Toss 웹훅 시크릿 검증 (선택적)
+    // Toss 웹훅 시크릿 HMAC-SHA256 검증
     const webhookSecret = process.env.TOSS_WEBHOOK_SECRET;
-    if (webhookSecret) {
-      const signature = request.headers.get("toss-signature");
-      if (!signature) {
-        return NextResponse.json({ error: "Missing signature" }, { status: 401 });
-      }
-      // TODO: HMAC 검증 구현 (프로덕션에서 필수)
+    if (!webhookSecret) {
+      console.error("[Toss Webhook] TOSS_WEBHOOK_SECRET 환경변수가 설정되지 않았습니다.");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
     }
+
+    const signature = request.headers.get("toss-signature");
+    if (!signature) {
+      return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+    }
+
+    const expected = createHmac("sha256", webhookSecret).update(rawBody).digest("hex");
+    const sigBuf = Buffer.from(signature, "hex");
+    const expBuf = Buffer.from(expected, "hex");
+    if (sigBuf.length !== expBuf.length || !timingSafeEqual(sigBuf, expBuf)) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody);
+    const { eventType, data } = body;
 
     switch (eventType) {
       case "BILLING.PAYMENT.DONE": {

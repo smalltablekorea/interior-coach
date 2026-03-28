@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { estimateItems, estimates, expenses } from "@/lib/db/schema";
+import { estimateItems, estimates, expenses, sites } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+
   const { id: siteId } = await params;
+
+  // 본인 현장인지 확인
+  const [site] = await db
+    .select({ id: sites.id })
+    .from(sites)
+    .where(and(eq(sites.id, siteId), eq(sites.userId, auth.userId)));
+  if (!site) {
+    return NextResponse.json({ error: "접근 권한이 없습니다" }, { status: 403 });
+  }
 
   // Get the latest estimate for this site
   const [latestEstimate] = await db

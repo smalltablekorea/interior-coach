@@ -1,17 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { marketingChannels } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { fetchAdlogDashboard, adlogLogin } from "@/lib/adlog-client";
 import type { AdlogCredentials } from "@/lib/adlog-client";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 
 /* ─── Helpers ─── */
 
-async function getAdlogChannel() {
+async function getAdlogChannel(userId: string) {
   const [ch] = await db
     .select()
     .from(marketingChannels)
-    .where(eq(marketingChannels.channel, "adlog"))
+    .where(and(eq(marketingChannels.channel, "adlog"), eq(marketingChannels.userId, userId)))
     .limit(1);
   return ch ?? null;
 }
@@ -25,12 +27,14 @@ function getCredentials(ch: { settings: unknown }): AdlogCredentials | null {
 /* ─── GET: 애드로그 대시보드 데이터 조회 ─── */
 
 export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
-    const ch = await getAdlogChannel();
+    const ch = await getAdlogChannel(auth.userId);
 
     // 연동 안 된 상태
     if (!ch || !ch.isActive) {
-      return NextResponse.json({
+      return ok({
         connected: false,
         accountName: null,
         platforms: [],
@@ -41,7 +45,7 @@ export async function GET() {
 
     const creds = getCredentials(ch);
     if (!creds) {
-      return NextResponse.json({
+      return ok({
         connected: false,
         accountName: null,
         platforms: [],
@@ -54,42 +58,37 @@ export async function GET() {
     // 애드로그에서 실시간 데이터 가져오기
     const dashboard = await fetchAdlogDashboard(creds);
 
-    return NextResponse.json({
+    return ok({
       ...dashboard,
       accountName: ch.accountName || dashboard.accountName,
       channelId: ch.id,
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "애드로그 데이터 조회 실패";
-    return NextResponse.json({ error: msg, connected: false }, { status: 500 });
+    return serverError(error);
   }
 }
 
 /* ─── POST: 애드로그 계정 연동 (로그인 테스트 후 저장) ─── */
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { mb_id, mb_password } = body as { mb_id?: string; mb_password?: string };
 
     if (!mb_id || !mb_password) {
-      return NextResponse.json(
-        { error: "아이디와 비밀번호를 입력해주세요." },
-        { status: 400 }
-      );
+      return err("아이디와 비밀번호를 입력해주세요.");
     }
 
     // 1. 실제 로그인 테스트
     const loginResult = await adlogLogin({ mb_id, mb_password });
     if (!loginResult.ok) {
-      return NextResponse.json(
-        { error: loginResult.error || "로그인 실패" },
-        { status: 401 }
-      );
+      return err(loginResult.error || "로그인 실패", 401);
     }
 
     // 2. 기존 채널 확인
-    const existing = await getAdlogChannel();
+    const existing = await getAdlogChannel(auth.userId);
 
     if (existing) {
       // 기존 레코드 업데이트
@@ -102,10 +101,10 @@ export async function POST(request: NextRequest) {
           isActive: true,
           updatedAt: new Date(),
         })
-        .where(eq(marketingChannels.id, existing.id))
+        .where(and(eq(marketingChannels.id, existing.id), eq(marketingChannels.userId, auth.userId)))
         .returning();
 
-      return NextResponse.json({
+      return ok({
         success: true,
         message: "애드로그 계정이 연동되었습니다.",
         channel: updated,
@@ -116,7 +115,7 @@ export async function POST(request: NextRequest) {
     const [created] = await db
       .insert(marketingChannels)
       .values({
-        userId: "system",
+        userId: auth.userId,
         channel: "adlog",
         accountName: mb_id,
         accountId: mb_id,
@@ -125,24 +124,25 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json({
+    return ok({
       success: true,
       message: "애드로그 계정이 연동되었습니다.",
       channel: created,
-    }, { status: 201 });
+    });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "연동 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }
 
 /* ─── DELETE: 애드로그 연동 해제 ─── */
 
 export async function DELETE() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
-    const ch = await getAdlogChannel();
+    const ch = await getAdlogChannel(auth.userId);
     if (!ch) {
-      return NextResponse.json({ error: "연동된 애드로그 계정이 없습니다." }, { status: 404 });
+      return err("연동된 애드로그 계정이 없습니다.", 404);
     }
 
     await db
@@ -154,35 +154,36 @@ export async function DELETE() {
         accountId: null,
         updatedAt: new Date(),
       })
-      .where(eq(marketingChannels.id, ch.id));
+      .where(and(eq(marketingChannels.id, ch.id), eq(marketingChannels.userId, auth.userId)));
 
-    return NextResponse.json({ success: true, message: "애드로그 연동이 해제되었습니다." });
+    return ok({ success: true, message: "애드로그 연동이 해제되었습니다." });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "연동 해제 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }
 
 /* ─── PATCH: 수동 동기화 트리거 ─── */
 
 export async function PATCH() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
-    const ch = await getAdlogChannel();
+    const ch = await getAdlogChannel(auth.userId);
     if (!ch || !ch.isActive) {
-      return NextResponse.json({ error: "연동된 계정이 없습니다." }, { status: 400 });
+      return err("연동된 계정이 없습니다.");
     }
 
     const creds = getCredentials(ch);
     if (!creds) {
-      return NextResponse.json({ error: "자격증명이 없습니다." }, { status: 400 });
+      return err("자격증명이 없습니다.");
     }
 
     const dashboard = await fetchAdlogDashboard(creds);
     if (!dashboard.connected) {
-      return NextResponse.json({ error: "애드로그 데이터 동기화 실패. 계정을 확인해주세요." }, { status: 502 });
+      return err("애드로그 데이터 동기화 실패. 계정을 확인해주세요.", 502);
     }
 
-    return NextResponse.json({
+    return ok({
       success: true,
       message: "동기화 완료",
       syncedAt: new Date().toISOString(),
@@ -190,7 +191,6 @@ export async function PATCH() {
       campaignCount: dashboard.campaigns.length,
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "동기화 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }

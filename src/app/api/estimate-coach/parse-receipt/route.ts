@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         name: item.name,
         qty: item.qty || 1,
         unit: item.unit || "식",
-        unitPrice: item.unitPrice || (item.totalAmount ? Math.round(item.totalAmount / (item.qty || 1)) : 0),
+        unitPrice: item.unitPrice || (item.totalAmount ? Math.round(item.totalAmount / (item.qty || 1) / 100) * 100 : 0),
       });
     }
 

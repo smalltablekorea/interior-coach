@@ -573,7 +573,7 @@ export function calcCatTotal(cat: Cat, area: number, gKey: string, override?: st
     else total += cur - std;
   }
   total += (cat.gradeAdj?.[g] || 0);
-  return Math.round(Math.max(0, total) / 10000) * 10000;
+  return Math.round(Math.max(0, total) / 100) * 100;
 }
 
 export const STEPS = ["평수", "등급", "공종", "상세", "견적서"];

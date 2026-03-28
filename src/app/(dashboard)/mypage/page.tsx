@@ -315,6 +315,38 @@ export default function MyPage() {
                     </div>
                   </button>
 
+                  {/* 프로 분석 잠금해제 버튼 — 접힌 상태에서도 표시 */}
+                  {!isExpanded && (
+                    <div className="px-4 pb-3 border-t border-[var(--border)]">
+                      {credit.remaining > 0 ? (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleUnlockPro(a); }}
+                          disabled={unlocking === a.id}
+                          className="mt-3 w-full py-3 rounded-xl bg-[var(--green)] text-black font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                        >
+                          {unlocking === a.id ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" />
+                              분석 중...
+                            </>
+                          ) : (
+                            <>
+                              <Unlock size={16} />
+                              1 크레딧 사용하여 프로 분석 보기
+                            </>
+                          )}
+                        </button>
+                      ) : (
+                        <Link
+                          href="/pricing"
+                          className="mt-3 w-full py-3 rounded-xl bg-[var(--green)] text-black font-medium text-sm flex items-center justify-center gap-2"
+                        >
+                          크레딧 충전하기
+                        </Link>
+                      )}
+                    </div>
+                  )}
+
                   {/* 확장된 프로분석 상세 */}
                   {isExpanded && (
                     <div className="px-4 pb-4 space-y-4 border-t border-[var(--border)]">

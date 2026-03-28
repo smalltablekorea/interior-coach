@@ -62,7 +62,7 @@ export const ESTIMATE_STATUSES = [
   "거절",
 ] as const;
 
-export const PAYMENT_TYPES = ["계약금", "중도금", "잔금"] as const;
+export const PAYMENT_TYPES = ["계약금", "착수금", "중도금", "잔금"] as const;
 
 export const PHASE_STATUSES = ["대기", "진행중", "완료", "보류"] as const;
 

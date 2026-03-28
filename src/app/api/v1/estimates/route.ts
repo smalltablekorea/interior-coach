@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { estimates, estimateItems, sites } from "@/lib/db/schema";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-
-async function getUserId(): Promise<string> {
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    return session?.user?.id ?? "system";
-  } catch {
-    return "system";
-  }
-}
+import { requireAuth } from "@/lib/api-auth";
 
 interface LineItem {
   name: string;
@@ -39,7 +29,9 @@ interface CompanyInfo {
 
 // EstimateBuilder에서 저장
 export async function POST(request: NextRequest) {
-  const userId = await getUserId();
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+  const userId = auth.userId;
   const body = await request.json();
 
   const {

@@ -1,7 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { marketingChannels } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 
 const ADLOG_BASE = "https://adlog.kr";
 const UA =
@@ -9,6 +11,8 @@ const UA =
 
 // 애드로그 계정 연결 상태 조회
 export async function GET() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const [channel] = await db
       .select({
@@ -20,15 +24,15 @@ export async function GET() {
         updatedAt: marketingChannels.updatedAt,
       })
       .from(marketingChannels)
-      .where(eq(marketingChannels.channel, "adlog"));
+      .where(and(eq(marketingChannels.channel, "adlog"), eq(marketingChannels.userId, auth.userId)));
 
     if (!channel) {
-      return NextResponse.json({ connected: false });
+      return ok({ connected: false });
     }
 
     const settings = channel.settings as { lastSyncAt?: string } | null;
 
-    return NextResponse.json({
+    return ok({
       connected: channel.isActive ?? false,
       accountName: channel.accountName,
       accountId: channel.accountId,
@@ -36,37 +40,32 @@ export async function GET() {
       updatedAt: channel.updatedAt,
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "연결 상태 조회 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }
 
 // 애드로그 계정 연결 (로그인 테스트 + 크리덴셜 저장)
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { adlogId, adlogPassword } = body;
-
-  if (!adlogId || !adlogPassword) {
-    return NextResponse.json(
-      { error: "아이디와 비밀번호를 입력해주세요" },
-      { status: 400 },
-    );
-  }
-
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
-    const ok = await testAdlogLogin(adlogId, adlogPassword);
+    const body = await request.json();
+    const { adlogId, adlogPassword } = body;
 
-    if (!ok) {
-      return NextResponse.json(
-        { error: "애드로그 로그인에 실패했습니다. 아이디/비밀번호를 확인해주세요." },
-        { status: 401 },
-      );
+    if (!adlogId || !adlogPassword) {
+      return err("아이디와 비밀번호를 입력해주세요");
+    }
+
+    const loginOk = await testAdlogLogin(adlogId, adlogPassword);
+
+    if (!loginOk) {
+      return err("애드로그 로그인에 실패했습니다. 아이디/비밀번호를 확인해주세요.", 401);
     }
 
     const [existing] = await db
       .select()
       .from(marketingChannels)
-      .where(eq(marketingChannels.channel, "adlog"));
+      .where(and(eq(marketingChannels.channel, "adlog"), eq(marketingChannels.userId, auth.userId)));
 
     const payload = {
       accountName: adlogId,
@@ -84,41 +83,41 @@ export async function POST(request: NextRequest) {
       await db
         .update(marketingChannels)
         .set(payload)
-        .where(eq(marketingChannels.id, existing.id));
+        .where(and(eq(marketingChannels.id, existing.id), eq(marketingChannels.userId, auth.userId)));
     } else {
       await db.insert(marketingChannels).values({
-        userId: "system",
+        userId: auth.userId,
         channel: "adlog",
         ...payload,
       });
     }
 
-    return NextResponse.json({
+    return ok({
       connected: true,
       accountName: adlogId,
       message: "애드로그 계정이 연결되었습니다.",
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "연결 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }
 
 // 애드로그 계정 연결 해제
 export async function DELETE() {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     await db
       .update(marketingChannels)
       .set({ isActive: false, settings: null, updatedAt: new Date() })
-      .where(eq(marketingChannels.channel, "adlog"));
+      .where(and(eq(marketingChannels.channel, "adlog"), eq(marketingChannels.userId, auth.userId)));
 
-    return NextResponse.json({
+    return ok({
       connected: false,
       message: "연결이 해제되었습니다.",
     });
   } catch (error) {
-    const msg = error instanceof Error ? error.message : "연결 해제 실패";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return serverError(error);
   }
 }
 

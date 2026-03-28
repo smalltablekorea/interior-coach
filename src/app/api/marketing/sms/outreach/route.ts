@@ -1,15 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { smsOutreachLog, smsLeads } from "@/lib/db/schema";
 import { desc, eq, and, sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const leadId = request.nextUrl.searchParams.get("leadId");
     const campaignId = request.nextUrl.searchParams.get("campaignId");
     const status = request.nextUrl.searchParams.get("status");
 
-    const conditions = [];
+    const conditions = [eq(smsOutreachLog.userId, auth.userId)];
     if (leadId) conditions.push(eq(smsOutreachLog.leadId, leadId));
     if (campaignId) conditions.push(eq(smsOutreachLog.campaignId, campaignId));
     if (status) conditions.push(eq(smsOutreachLog.status, status));
@@ -17,39 +21,38 @@ export async function GET(request: NextRequest) {
     const rows = await db
       .select()
       .from(smsOutreachLog)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .where(and(...conditions))
       .orderBy(desc(smsOutreachLog.createdAt))
       .limit(100);
 
-    // Delivery stats
+    // Delivery stats (scoped to user)
     const stats = await db
       .select({
         status: smsOutreachLog.status,
         count: sql<number>`count(*)::int`,
       })
       .from(smsOutreachLog)
+      .where(eq(smsOutreachLog.userId, auth.userId))
       .groupBy(smsOutreachLog.status);
 
-    return NextResponse.json({
+    return ok({
       logs: rows,
       stats: Object.fromEntries(stats.map((s) => [s.status, s.count])),
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "발송 기록 조회 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { leadId, campaignId, channel, templateType, content, recipientPhone, stepIndex } = body;
 
     if (!content || !recipientPhone) {
-      return NextResponse.json(
-        { error: "내용과 수신 번호는 필수입니다." },
-        { status: 400 }
-      );
+      return err("내용과 수신 번호는 필수입니다.");
     }
 
     // TODO: Solapi API integration
@@ -57,7 +60,7 @@ export async function POST(request: NextRequest) {
     const [row] = await db
       .insert(smsOutreachLog)
       .values({
-        userId: "system",
+        userId: auth.userId,
         leadId,
         campaignId,
         channel: channel || "sms",
@@ -79,12 +82,11 @@ export async function POST(request: NextRequest) {
           status: "contacted",
           updatedAt: new Date(),
         })
-        .where(eq(smsLeads.id, leadId));
+        .where(and(eq(smsLeads.id, leadId), eq(smsLeads.userId, auth.userId)));
     }
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "메시지 발송 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }

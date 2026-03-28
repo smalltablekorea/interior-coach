@@ -1,15 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { smsLeads } from "@/lib/db/schema";
 import { desc, eq, and, sql } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const grade = request.nextUrl.searchParams.get("grade");
     const status = request.nextUrl.searchParams.get("status");
     const source = request.nextUrl.searchParams.get("source");
 
-    const conditions = [];
+    const conditions = [eq(smsLeads.userId, auth.userId)];
     if (grade) conditions.push(eq(smsLeads.grade, grade));
     if (status) conditions.push(eq(smsLeads.status, status));
     if (source) conditions.push(eq(smsLeads.source, source));
@@ -17,7 +21,7 @@ export async function GET(request: NextRequest) {
     const rows = await db
       .select()
       .from(smsLeads)
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .where(and(...conditions))
       .orderBy(desc(smsLeads.createdAt));
 
     // Grade summary
@@ -27,6 +31,7 @@ export async function GET(request: NextRequest) {
         count: sql<number>`count(*)::int`,
       })
       .from(smsLeads)
+      .where(eq(smsLeads.userId, auth.userId))
       .groupBy(smsLeads.grade);
 
     // Status summary
@@ -36,9 +41,10 @@ export async function GET(request: NextRequest) {
         count: sql<number>`count(*)::int`,
       })
       .from(smsLeads)
+      .where(eq(smsLeads.userId, auth.userId))
       .groupBy(smsLeads.status);
 
-    return NextResponse.json({
+    return ok({
       leads: rows,
       stats: {
         total: rows.length,
@@ -47,12 +53,13 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "리드 목록 조회 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const {
@@ -62,13 +69,13 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!name || !phone) {
-      return NextResponse.json({ error: "이름과 전화번호는 필수입니다." }, { status: 400 });
+      return err("이름과 전화번호는 필수입니다.");
     }
 
     const [row] = await db
       .insert(smsLeads)
       .values({
-        userId: "system",
+        userId: auth.userId,
         name,
         phone,
         source: source || "manual",
@@ -86,46 +93,47 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "리드 등록 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { id, ...updates } = body;
 
     if (!id) {
-      return NextResponse.json({ error: "id required" }, { status: 400 });
+      return err("id required");
     }
 
     const [row] = await db
       .update(smsLeads)
       .set({ ...updates, updatedAt: new Date() })
-      .where(eq(smsLeads.id, id))
+      .where(and(eq(smsLeads.id, id), eq(smsLeads.userId, auth.userId)))
       .returning();
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "리드 수정 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await request.json();
     if (!id) {
-      return NextResponse.json({ error: "id required" }, { status: 400 });
+      return err("id required");
     }
 
-    await db.delete(smsLeads).where(eq(smsLeads.id, id));
-    return NextResponse.json({ success: true });
+    await db.delete(smsLeads).where(and(eq(smsLeads.id, id), eq(smsLeads.userId, auth.userId)));
+    return ok({ success: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "리드 삭제 실패";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }

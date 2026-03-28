@@ -927,6 +927,14 @@ export default function EstimateCoachPage() {
                       )}
                     </div>
                   </button>
+                  <button
+                    onClick={() => { setHiddenCats((p) => ({ ...p, [cat.id]: true })); if (expandedCat === cat.id) setExpandedCat(null); }}
+                    className="p-2 mr-1 text-[var(--muted)] hover:text-red-400 transition-colors shrink-0"
+                    title="공종 제외"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                  </div>
                   {expandedCat === cat.id && (
                     <div className="px-3 pb-3 space-y-2">
                       {/* ── 공종 등급 변경 ── */}

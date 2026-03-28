@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import {
   marketingContent,
@@ -8,8 +8,10 @@ import {
   estimateItems,
   constructionPhases,
 } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError } from "@/lib/api/response";
 
 function buildPrompt(
   channel: string,
@@ -162,15 +164,14 @@ ${siteContext}${additionalSection}
 }
 
 export async function POST(request: NextRequest) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
     const { channel, siteId, contentType, additionalContext } = body;
 
     if (!channel || !contentType) {
-      return NextResponse.json(
-        { error: "channel과 contentType은 필수입니다." },
-        { status: 400 }
-      );
+      return err("channel과 contentType은 필수입니다.");
     }
 
     // Fetch site data if siteId is provided
@@ -187,11 +188,11 @@ export async function POST(request: NextRequest) {
     };
 
     if (siteId) {
-      // Fetch site info
+      // Fetch site info (scoped to user)
       const [site] = await db
         .select()
         .from(sites)
-        .where(eq(sites.id, siteId))
+        .where(and(eq(sites.id, siteId), eq(sites.userId, auth.userId)))
         .limit(1);
 
       if (site) {
@@ -282,7 +283,7 @@ export async function POST(request: NextRequest) {
     const [savedContent] = await db
       .insert(marketingContent)
       .values({
-        userId: "system",
+        userId: auth.userId,
         siteId: siteId || null,
         title: parsed.title,
         body: parsed.body,
@@ -295,7 +296,7 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    return NextResponse.json({
+    return ok({
       content: savedContent,
       generated: {
         title: parsed.title,
@@ -305,10 +306,6 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : "AI 콘텐츠 생성에 실패했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }

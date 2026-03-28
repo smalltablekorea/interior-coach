@@ -1,33 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { marketingPosts } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
+import { requireAuth } from "@/lib/api-auth";
+import { ok, err, serverError, notFound } from "@/lib/api/response";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
 
     const [row] = await db
       .select()
       .from(marketingPosts)
-      .where(eq(marketingPosts.id, id))
+      .where(and(eq(marketingPosts.id, id), eq(marketingPosts.userId, auth.userId)))
       .limit(1);
 
     if (!row) {
-      return NextResponse.json(
-        { error: "포스트를 찾을 수 없습니다." },
-        { status: 404 }
-      );
+      return notFound("포스트를 찾을 수 없습니다.");
     }
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "포스트 조회에 실패했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
@@ -35,6 +34,8 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -82,21 +83,16 @@ export async function PUT(
     const [row] = await db
       .update(marketingPosts)
       .set(updateData)
-      .where(eq(marketingPosts.id, id))
+      .where(and(eq(marketingPosts.id, id), eq(marketingPosts.userId, auth.userId)))
       .returning();
 
     if (!row) {
-      return NextResponse.json(
-        { error: "포스트를 찾을 수 없습니다." },
-        { status: 404 }
-      );
+      return notFound("포스트를 찾을 수 없습니다.");
     }
 
-    return NextResponse.json(row);
+    return ok(row);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "포스트 수정에 실패했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 
@@ -104,15 +100,15 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
   try {
     const { id } = await params;
 
-    await db.delete(marketingPosts).where(eq(marketingPosts.id, id));
+    await db.delete(marketingPosts).where(and(eq(marketingPosts.id, id), eq(marketingPosts.userId, auth.userId)));
 
-    return NextResponse.json({ success: true });
+    return ok({ success: true });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "포스트 삭제에 실패했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
