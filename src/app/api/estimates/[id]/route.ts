@@ -1,14 +1,15 @@
 import { db } from "@/lib/db";
 import { estimates, estimateItems, sites, customers } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, notFound, serverError } from "@/lib/api/response";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -37,7 +38,7 @@ export async function GET(
     .from(estimates)
     .leftJoin(sites, eq(estimates.siteId, sites.id))
     .leftJoin(customers, eq(sites.customerId, customers.id))
-    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId), isNull(estimates.deletedAt)));
+    .where(and(eq(estimates.id, id), workspaceFilter(estimates.workspaceId, estimates.userId, auth.workspaceId, auth.userId), isNull(estimates.deletedAt)));
 
   if (!row) return notFound("견적을 찾을 수 없습니다");
 
@@ -83,7 +84,7 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -91,7 +92,7 @@ export async function PUT(
   const [existing] = await db
     .select({ id: estimates.id })
     .from(estimates)
-    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId), isNull(estimates.deletedAt)));
+    .where(and(eq(estimates.id, id), workspaceFilter(estimates.workspaceId, estimates.userId, auth.workspaceId, auth.userId), isNull(estimates.deletedAt)));
 
   if (!existing) return notFound("견적을 찾을 수 없습니다");
 
@@ -149,7 +150,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -157,7 +158,7 @@ export async function DELETE(
   const [row] = await db
     .update(estimates)
     .set({ deletedAt: new Date() })
-    .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId), isNull(estimates.deletedAt)))
+    .where(and(eq(estimates.id, id), workspaceFilter(estimates.workspaceId, estimates.userId, auth.workspaceId, auth.userId), isNull(estimates.deletedAt)))
     .returning({ id: estimates.id });
 
   if (!row) return notFound("견적을 찾을 수 없습니다");

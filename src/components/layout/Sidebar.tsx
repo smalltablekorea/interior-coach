@@ -22,12 +22,15 @@ import {
   Lock,
   Crown,
   Sparkles,
+  Eye,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
 import PlanBadge from "@/components/subscription/PlanBadge";
 import type { FeatureKey } from "@/lib/plans";
+import { checkPermission, pathToCategory, type WorkspaceRole } from "@/lib/workspace/permissions";
 
 interface NavItem {
   href: string;
@@ -57,6 +60,8 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const { plan, checkFeature } = useSubscription();
+  const { workspace } = useWorkspace();
+  const myRole = (workspace?.myRole || "owner") as WorkspaceRole;
 
   return (
     <>
@@ -67,23 +72,33 @@ export default function Sidebar() {
           collapsed ? "w-16" : "w-60"
         )}
       >
-        {/* Logo */}
+        {/* Logo / Workspace Name */}
         <div className="h-16 flex items-center px-4 border-b border-[var(--border)] gap-2">
           {!collapsed ? (
             <>
-              <span className="text-lg font-bold text-[var(--green)]">
-                인테리어코치
+              <span className="text-lg font-bold text-[var(--green)] truncate">
+                {workspace?.name || "인테리어코치"}
               </span>
               <PlanBadge plan={plan} />
             </>
           ) : (
-            <span className="text-lg font-bold text-[var(--green)] mx-auto">IC</span>
+            <span className="text-lg font-bold text-[var(--green)] mx-auto">
+              {workspace?.name?.charAt(0) || "IC"}
+            </span>
           )}
         </div>
 
         {/* Nav Items */}
         <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
+            const category = pathToCategory(item.href);
+            const canRead = category ? checkPermission(myRole, category, "read") : true;
+            const canWrite = category ? checkPermission(myRole, category, "write") : true;
+            const isReadOnly = canRead && !canWrite;
+
+            // 읽기 권한도 없으면 숨김
+            if (!canRead) return null;
+
             const isActive =
               item.href === "/dashboard"
                 ? pathname === "/dashboard"
@@ -108,6 +123,7 @@ export default function Sidebar() {
                   <span className="flex-1 flex items-center justify-between">
                     {item.label}
                     {isLocked && <Lock size={12} className="text-[var(--muted)]" />}
+                    {isReadOnly && !isLocked && <Eye size={12} className="text-[var(--muted)]" />}
                   </span>
                 )}
               </Link>

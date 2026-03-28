@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
 import {
   CATS,
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
 
 // --- AI 견적 코칭 (POST) - 인증 필요 (API 비용 발생) ---
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("estimates", "write");
   if (!auth.ok) return auth.response;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

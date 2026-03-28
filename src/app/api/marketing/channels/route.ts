@@ -3,25 +3,27 @@ import { db } from "@/lib/db";
 import { marketingChannels } from "@/lib/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { disconnectChannel, getChannelConnection } from "@/lib/marketing-oauth/token-manager";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
 
   try {
     // Single channel query: GET /api/marketing/channels?channel=threads
     const channelFilter = request.nextUrl.searchParams.get("channel");
     if (channelFilter) {
-      const conn = await getChannelConnection(auth.userId, channelFilter);
+      const conn = await getChannelConnection(uid, channelFilter);
       return ok(conn);
     }
 
     const rows = await db
       .select()
       .from(marketingChannels)
-      .where(eq(marketingChannels.userId, auth.userId))
+      .where(workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, wid, uid))
       .orderBy(desc(marketingChannels.createdAt));
 
     return ok(rows);
@@ -31,8 +33,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
 
   try {
     const body = await request.json();
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest) {
       .from(marketingChannels)
       .where(
         and(
-          eq(marketingChannels.userId, auth.userId),
+          workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, wid, uid),
           eq(marketingChannels.channel, channel)
         )
       )
@@ -64,7 +67,7 @@ export async function POST(request: NextRequest) {
         .where(
           and(
             eq(marketingChannels.id, existing.id),
-            eq(marketingChannels.userId, auth.userId)
+            workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, wid, uid)
           )
         )
         .returning();
@@ -76,7 +79,8 @@ export async function POST(request: NextRequest) {
     const [row] = await db
       .insert(marketingChannels)
       .values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         channel,
         accountName: accountName || null,
         accountId: accountId || null,
@@ -92,8 +96,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "delete");
   if (!auth.ok) return auth.response;
+  const uid = auth.userId;
 
   try {
     const { channel } = await request.json();
@@ -101,7 +106,7 @@ export async function DELETE(request: NextRequest) {
       return err("channel required");
     }
 
-    await disconnectChannel(auth.userId, channel);
+    await disconnectChannel(uid, channel);
     return ok({ success: true });
   } catch (error) {
     return serverError(error);

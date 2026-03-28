@@ -3,12 +3,15 @@ import { db } from "@/lib/db";
 import { customerPortalTokens, customers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, notFound, serverError } from "@/lib/api/response";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("customers", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     const { customerId } = await request.json();
@@ -21,7 +24,7 @@ export async function POST(request: NextRequest) {
     const [customer] = await db
       .select({ id: customers.id })
       .from(customers)
-      .where(and(eq(customers.id, customerId), eq(customers.userId, auth.userId)));
+      .where(and(eq(customers.id, customerId), workspaceFilter(customers.workspaceId, customers.userId, wid, uid)));
 
     if (!customer) {
       return notFound("고객을 찾을 수 없습니다");

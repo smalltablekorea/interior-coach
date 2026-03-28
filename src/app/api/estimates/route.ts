@@ -2,18 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { estimates, estimateItems, sites } from "@/lib/db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 
 // 견적 목록 조회
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
   const statusFilter = searchParams.get("status");
   const siteIdFilter = searchParams.get("siteId");
 
-  let conditions = and(eq(estimates.userId, auth.userId), isNull(estimates.deletedAt))!;
+  let conditions = and(workspaceFilter(estimates.workspaceId, estimates.userId, auth.workspaceId, auth.userId), isNull(estimates.deletedAt))!;
   if (statusFilter) {
     conditions = and(conditions, eq(estimates.status, statusFilter))!;
   }
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest) {
 
 // 빠른 견적 생성 (모달에서)
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const body = await request.json();
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
     .insert(estimates)
     .values({
       userId: auth.userId,
+      workspaceId: auth.workspaceId,
       siteId: siteId || null,
       version: 1,
       totalAmount: totalAmount || 0,

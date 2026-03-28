@@ -7,7 +7,8 @@ import {
   marketingChannels,
 } from "@/lib/db/schema";
 import { desc, sql, eq } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 
 const CHANNEL_MAP: Record<string, { slug: string; name: string; icon: string }> = {
   threads: { slug: "threads", name: "스레드", icon: "🧵" },
@@ -20,8 +21,9 @@ const CHANNEL_MAP: Record<string, { slug: string; name: string; icon: string }> 
 };
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
 
   try {
     // Total content count
@@ -64,7 +66,7 @@ export async function GET() {
         accessToken: marketingChannels.accessToken,
       })
       .from(marketingChannels)
-      .where(eq(marketingChannels.userId, auth.userId));
+      .where(workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, wid, uid));
 
     const connMap = new Map(connections.map((c) => [c.channel, c]));
     const postMap = new Map(postStats.map((p) => [p.channel, p.count]));

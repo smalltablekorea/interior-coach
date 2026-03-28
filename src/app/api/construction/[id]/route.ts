@@ -2,14 +2,15 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { constructionPhases } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
@@ -32,7 +33,7 @@ export async function PATCH(
     const [row] = await db
       .update(constructionPhases)
       .set(update)
-      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId)))
+      .where(and(eq(constructionPhases.id, id), workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, auth.workspaceId, auth.userId)))
       .returning();
 
     if (!row) return err("공정을 찾을 수 없습니다", 404);
@@ -46,7 +47,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
@@ -54,7 +55,7 @@ export async function DELETE(
 
     await db
       .delete(constructionPhases)
-      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId)));
+      .where(and(eq(constructionPhases.id, id), workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, auth.workspaceId, auth.userId)));
 
     return ok({ message: "삭제되었습니다" });
   } catch (error) {

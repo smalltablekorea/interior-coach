@@ -2,21 +2,22 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { customers } from "@/lib/db/schema";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 import { validateBody, customerSchema } from "@/lib/api/validate";
 import { parsePagination, buildPaginationMeta, parseFilters, searchPattern, countSql } from "@/lib/api/query-helpers";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("customers", "read");
   if (!auth.ok) return auth.response;
 
   try {
     const pagination = parsePagination(request);
     const filters = parseFilters(request, ["status", "search"]);
 
-    // 기본 조건: userId 격리 + soft delete 제외
-    const conditions = [eq(customers.userId, auth.userId), isNull(customers.deletedAt)];
+    // 기본 조건: workspace 격리 + soft delete 제외
+    const conditions = [workspaceFilter(customers.workspaceId, customers.userId, auth.workspaceId, auth.userId), isNull(customers.deletedAt)];
 
     if (filters.status) {
       conditions.push(eq(customers.status, filters.status));
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("customers", "write");
   if (!auth.ok) return auth.response;
 
   const validation = await validateBody(request, customerSchema);
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
       .insert(customers)
       .values({
         userId: auth.userId,
+        workspaceId: auth.workspaceId,
         name: validation.data.name,
         phone: validation.data.phone ?? null,
         email: validation.data.email ?? null,

@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { subscriptions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 import { issueBillingKey, generateCustomerKey } from "@/lib/toss";
 
@@ -12,15 +13,17 @@ import { issueBillingKey, generateCustomerKey } from "@/lib/toss";
  * 빌링키를 발급받고 구독 정보에 저장
  */
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "write");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const { authKey } = await request.json();
 
     if (!authKey) return err("authKey가 필요합니다");
 
-    const customerKey = generateCustomerKey(auth.userId);
+    const customerKey = generateCustomerKey(uid);
 
     // Toss에 빌링키 발급 요청
     const result = await issueBillingKey({ authKey, customerKey });
@@ -35,7 +38,7 @@ export async function POST(request: NextRequest) {
     const existing = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, auth.userId))
+      .where(workspaceFilter(subscriptions.workspaceId, subscriptions.userId, wid, uid))
       .limit(1);
 
     if (existing.length > 0) {
@@ -51,7 +54,8 @@ export async function POST(request: NextRequest) {
     } else {
       // 새 구독 생성 (free 상태 + 빌링키)
       await db.insert(subscriptions).values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         plan: "free",
         billingCycle: "monthly",
         status: "active",
@@ -78,14 +82,16 @@ export async function POST(request: NextRequest) {
  * 빌링키(등록 카드) 삭제
  */
 export async function DELETE() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "delete");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const [sub] = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, auth.userId))
+      .where(workspaceFilter(subscriptions.workspaceId, subscriptions.userId, wid, uid))
       .limit(1);
 
     if (!sub || !sub.tossBillingKey) {

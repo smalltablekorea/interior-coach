@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { subscriptions, billingRecords } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 import { cancelPayment } from "@/lib/toss";
 
@@ -11,10 +12,12 @@ import { cancelPayment } from "@/lib/toss";
  * 결제 내역 조회
  */
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "read");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const records = await db
       .select({
         id: billingRecords.id,
@@ -28,7 +31,7 @@ export async function GET() {
         createdAt: billingRecords.createdAt,
       })
       .from(billingRecords)
-      .where(eq(billingRecords.userId, auth.userId))
+      .where(workspaceFilter(billingRecords.workspaceId, billingRecords.userId, wid, uid))
       .orderBy(desc(billingRecords.createdAt))
       .limit(50);
 
@@ -36,7 +39,7 @@ export async function GET() {
     const [sub] = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, auth.userId))
+      .where(workspaceFilter(subscriptions.workspaceId, subscriptions.userId, wid, uid))
       .limit(1);
 
     return ok({
@@ -62,14 +65,16 @@ export async function GET() {
  * 구독 해지 (기간 만료 시 free 다운그레이드 예약)
  */
 export async function PUT() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "write");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const [sub] = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, auth.userId))
+      .where(workspaceFilter(subscriptions.workspaceId, subscriptions.userId, wid, uid))
       .limit(1);
 
     if (!sub) return err("구독 정보를 찾을 수 없습니다");
@@ -107,10 +112,12 @@ export async function PUT() {
  * body: { recordId: string, reason?: string }
  */
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "delete");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const { recordId, reason } = await request.json();
 
     if (!recordId) return err("recordId가 필요합니다");
@@ -121,7 +128,7 @@ export async function DELETE(request: NextRequest) {
       .where(eq(billingRecords.id, recordId))
       .limit(1);
 
-    if (!record || record.userId !== auth.userId) {
+    if (!record || record.userId !== uid) {
       return err("결제 내역을 찾을 수 없습니다", 404);
     }
 

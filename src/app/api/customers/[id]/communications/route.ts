@@ -2,15 +2,18 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { communicationLogs, customers } from "@/lib/db/schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("customers", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     const { id: customerId } = await params;
@@ -19,7 +22,7 @@ export async function GET(
     const [customer] = await db
       .select({ id: customers.id })
       .from(customers)
-      .where(and(eq(customers.id, customerId), eq(customers.userId, auth.userId), isNull(customers.deletedAt)))
+      .where(and(eq(customers.id, customerId), workspaceFilter(customers.workspaceId, customers.userId, wid, uid), isNull(customers.deletedAt)))
       .limit(1);
 
     if (!customer) return err("고객을 찾을 수 없습니다", 404);
@@ -47,8 +50,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("customers", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     const { id: customerId } = await params;
@@ -61,7 +66,7 @@ export async function POST(
     const [customer] = await db
       .select({ id: customers.id })
       .from(customers)
-      .where(and(eq(customers.id, customerId), eq(customers.userId, auth.userId), isNull(customers.deletedAt)))
+      .where(and(eq(customers.id, customerId), workspaceFilter(customers.workspaceId, customers.userId, wid, uid), isNull(customers.deletedAt)))
       .limit(1);
 
     if (!customer) return err("고객을 찾을 수 없습니다", 404);
@@ -70,7 +75,8 @@ export async function POST(
       .insert(communicationLogs)
       .values({
         customerId,
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         date,
         type,
         content: content || null,

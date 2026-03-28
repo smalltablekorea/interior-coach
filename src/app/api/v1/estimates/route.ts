@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { estimates, estimateItems, sites } from "@/lib/db/schema";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
 
 interface LineItem {
   name: string;
@@ -29,9 +29,10 @@ interface CompanyInfo {
 
 // EstimateBuilder에서 저장
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("estimates", "write");
   if (!auth.ok) return auth.response;
   const userId = auth.userId;
+  const wid = auth.workspaceId;
   const body = await request.json();
 
   const {
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
     .insert(sites)
     .values({
       userId,
+      workspaceId: wid,
       name: title || "견적서",
       address: siteAddress || null,
       areaPyeong: parseFloat(areaPyeong) || null,
@@ -112,6 +114,7 @@ export async function POST(request: NextRequest) {
     .insert(estimates)
     .values({
       userId,
+      workspaceId: wid,
       siteId: site.id,
       version: 1,
       totalAmount: Math.round(grandTotal),

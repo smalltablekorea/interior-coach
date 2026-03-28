@@ -3,7 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { materials, materialOrders } from "@/lib/db/schema";
 import { eq, and, ilike } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 interface ParsedItem {
@@ -23,7 +24,7 @@ interface AnalysisResult {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("tax", "write");
   if (!auth.ok) return auth.response;
 
   try {
@@ -107,8 +108,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("tax", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     const body = await request.json();
@@ -149,7 +152,8 @@ export async function PUT(request: NextRequest) {
         }
       } else {
         await db.insert(materials).values({
-          userId: auth.userId,
+          userId: uid,
+          workspaceId: wid,
           name: item.name,
           category: item.category,
           unit: item.unit,
@@ -161,7 +165,8 @@ export async function PUT(request: NextRequest) {
       }
 
       await db.insert(materialOrders).values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         siteId: siteId || null,
         materialName: item.name,
         quantity: item.quantity,

@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { taxPayroll, workers, sites } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 function calculateTaxes(workerType: string, grossAmount: number) {
@@ -33,15 +34,17 @@ function calculateTaxes(workerType: string, grossAmount: number) {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("tax", "read");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const { searchParams } = new URL(request.url);
     const workerType = searchParams.get("workerType");
     const payPeriod = searchParams.get("payPeriod");
 
-    const conditions = [eq(taxPayroll.userId, auth.userId)];
+    const conditions = [workspaceFilter(taxPayroll.workspaceId, taxPayroll.userId, wid, uid)];
     if (workerType) conditions.push(eq(taxPayroll.workerType, workerType));
     if (payPeriod) conditions.push(eq(taxPayroll.payPeriod, payPeriod));
 
@@ -81,10 +84,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("tax", "write");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const body = await request.json();
     const { siteId, workerId, workerName, workerType, payPeriod, workDays, grossAmount, paymentMethod, memo } = body;
 
@@ -97,7 +102,8 @@ export async function POST(request: NextRequest) {
     const [created] = await db
       .insert(taxPayroll)
       .values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         siteId: siteId || null,
         workerId: workerId || null,
         workerName,
@@ -119,10 +125,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("tax", "write");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const body = await request.json();
     const { id, ...updates } = body;
 
@@ -136,7 +144,7 @@ export async function PUT(request: NextRequest) {
     const [updated] = await db
       .update(taxPayroll)
       .set(updates)
-      .where(and(eq(taxPayroll.id, id), eq(taxPayroll.userId, auth.userId)))
+      .where(and(eq(taxPayroll.id, id), workspaceFilter(taxPayroll.workspaceId, taxPayroll.userId, wid, uid)))
       .returning();
 
     if (!updated) return err("데이터를 찾을 수 없습니다", 404);
@@ -147,10 +155,12 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("tax", "delete");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -158,7 +168,7 @@ export async function DELETE(request: NextRequest) {
 
     await db
       .delete(taxPayroll)
-      .where(and(eq(taxPayroll.id, id), eq(taxPayroll.userId, auth.userId)));
+      .where(and(eq(taxPayroll.id, id), workspaceFilter(taxPayroll.workspaceId, taxPayroll.userId, wid, uid)));
 
     return ok({ message: "삭제되었습니다" });
   } catch (error) {

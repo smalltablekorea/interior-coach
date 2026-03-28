@@ -9,8 +9,9 @@ import {
   constructionPhases,
 } from "@/lib/db/schema";
 import { eq, desc, and } from "drizzle-orm";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import Anthropic from "@anthropic-ai/sdk";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
 
 function buildPrompt(
@@ -164,8 +165,9 @@ ${siteContext}${additionalSection}
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
   try {
     const body = await request.json();
     const { channel, siteId, contentType, additionalContext } = body;
@@ -192,7 +194,7 @@ export async function POST(request: NextRequest) {
       const [site] = await db
         .select()
         .from(sites)
-        .where(and(eq(sites.id, siteId), eq(sites.userId, auth.userId)))
+        .where(and(eq(sites.id, siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid)))
         .limit(1);
 
       if (site) {
@@ -283,7 +285,8 @@ export async function POST(request: NextRequest) {
     const [savedContent] = await db
       .insert(marketingContent)
       .values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         siteId: siteId || null,
         title: parsed.title,
         body: parsed.body,

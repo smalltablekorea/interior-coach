@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { put } from "@vercel/blob";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
 
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
@@ -12,7 +12,7 @@ const ALLOWED_TYPES = new Set([
 ]);
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("sites", "write");
   if (!auth.ok) return auth.response;
 
   try {

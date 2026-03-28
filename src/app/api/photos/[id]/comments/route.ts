@@ -2,15 +2,18 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { photoComments, sitePhotos, sites } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("sites", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     const { id: photoId } = await params;
@@ -31,7 +34,7 @@ export async function POST(
     const [site] = await db
       .select({ id: sites.id })
       .from(sites)
-      .where(and(eq(sites.id, photo.siteId), eq(sites.userId, auth.userId)))
+      .where(and(eq(sites.id, photo.siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid)))
       .limit(1);
 
     if (!site) return err("권한이 없습니다", 403);
@@ -40,7 +43,7 @@ export async function POST(
       .insert(photoComments)
       .values({
         photoId,
-        userId: auth.userId,
+        userId: uid,
         authorName: authorName || "나",
         text,
       })

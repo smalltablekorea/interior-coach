@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { materials, materialOrders, sites, user } from "@/lib/db/schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 import { parsePagination, buildPaginationMeta, countSql } from "@/lib/api/query-helpers";
 import { validateBody, materialSchema } from "@/lib/api/validate";
@@ -21,7 +22,7 @@ const orderSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const type = request.nextUrl.searchParams.get("type");
@@ -30,10 +31,12 @@ export async function GET(request: NextRequest) {
     if (type === "orders") {
       const pagination = parsePagination(request);
 
+      const ordersWsFilter = workspaceFilter(materialOrders.workspaceId, materialOrders.userId, auth.workspaceId, auth.userId);
+
       const [{ count: total }] = await db
         .select({ count: countSql() })
         .from(materialOrders)
-        .where(eq(materialOrders.userId, auth.userId));
+        .where(ordersWsFilter);
 
       const rows = await db
         .select({
@@ -56,7 +59,7 @@ export async function GET(request: NextRequest) {
         .leftJoin(sites, eq(materialOrders.siteId, sites.id))
         .leftJoin(materials, eq(materialOrders.materialId, materials.id))
         .leftJoin(user, eq(materialOrders.userId, user.id))
-        .where(eq(materialOrders.userId, auth.userId))
+        .where(ordersWsFilter)
         .orderBy(desc(materialOrders.createdAt))
         .limit(pagination.limit)
         .offset(pagination.offset);
@@ -86,7 +89,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const type = request.nextUrl.searchParams.get("type");
@@ -100,6 +103,7 @@ export async function POST(request: NextRequest) {
         .insert(materialOrders)
         .values({
           userId: auth.userId,
+          workspaceId: auth.workspaceId,
           siteId: validation.data.siteId ?? null,
           materialId: validation.data.materialId ?? null,
           materialName: validation.data.materialName,
@@ -123,6 +127,7 @@ export async function POST(request: NextRequest) {
       .insert(materials)
       .values({
         userId: auth.userId,
+        workspaceId: auth.workspaceId,
         name: validation.data.name,
         category: validation.data.category ?? null,
         brand: validation.data.brand ?? null,
@@ -142,7 +147,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const type = request.nextUrl.searchParams.get("type");
@@ -166,7 +171,7 @@ export async function PUT(request: NextRequest) {
           status: updateData.status || "발주",
           memo: updateData.memo || null,
         })
-        .where(and(eq(materialOrders.id, id), eq(materialOrders.userId, auth.userId)))
+        .where(and(eq(materialOrders.id, id), eq(materialOrders.userId, auth.userId), eq(materialOrders.workspaceId, auth.workspaceId)))
         .returning();
 
       if (!row) return err("주문을 찾을 수 없습니다", 404);
@@ -180,7 +185,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const type = request.nextUrl.searchParams.get("type");
@@ -189,7 +194,7 @@ export async function DELETE(request: NextRequest) {
   if (type === "orders" && id) {
     const [row] = await db
       .delete(materialOrders)
-      .where(and(eq(materialOrders.id, id), eq(materialOrders.userId, auth.userId)))
+      .where(and(eq(materialOrders.id, id), eq(materialOrders.userId, auth.userId), eq(materialOrders.workspaceId, auth.workspaceId)))
       .returning({ id: materialOrders.id });
 
     if (!row) return err("주문을 찾을 수 없습니다", 404);

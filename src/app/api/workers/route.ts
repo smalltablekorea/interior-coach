@@ -2,20 +2,21 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { workers } from "@/lib/db/schema";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 import { validateBody, workerSchema } from "@/lib/api/validate";
 import { parsePagination, buildPaginationMeta, parseFilters, searchPattern, countSql } from "@/lib/api/query-helpers";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
     const pagination = parsePagination(request);
     const filters = parseFilters(request, ["trade", "search"]);
 
-    const conditions = [eq(workers.userId, auth.userId), isNull(workers.deletedAt)];
+    const conditions = [workspaceFilter(workers.workspaceId, workers.userId, auth.workspaceId, auth.userId), isNull(workers.deletedAt)];
 
     if (filters.trade) {
       conditions.push(eq(workers.trade, filters.trade));
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const validation = await validateBody(request, workerSchema);
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
       .insert(workers)
       .values({
         userId: auth.userId,
+        workspaceId: auth.workspaceId,
         name: validation.data.name,
         phone: validation.data.phone ?? null,
         trade: validation.data.trade,

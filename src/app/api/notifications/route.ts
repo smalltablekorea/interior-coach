@@ -2,19 +2,20 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { notifications } from "@/lib/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 import { parsePagination, buildPaginationMeta, countSql } from "@/lib/api/query-helpers";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
     const pagination = parsePagination(request);
     const unreadOnly = request.nextUrl.searchParams.get("unread") === "true";
 
-    const conditions = [eq(notifications.userId, auth.userId)];
+    const conditions = [workspaceFilter(notifications.workspaceId, notifications.userId, auth.workspaceId, auth.userId)];
     if (unreadOnly) {
       conditions.push(eq(notifications.isRead, false));
     }
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
     const [{ count: unreadCount }] = await db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(notifications)
-      .where(and(eq(notifications.userId, auth.userId), eq(notifications.isRead, false)));
+      .where(and(workspaceFilter(notifications.workspaceId, notifications.userId, auth.workspaceId, auth.userId), eq(notifications.isRead, false)));
 
     const rows = await db
       .select({
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
 
 // 읽음 처리
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
@@ -67,7 +68,7 @@ export async function PUT(request: NextRequest) {
       await db
         .update(notifications)
         .set({ isRead: true })
-        .where(and(eq(notifications.userId, auth.userId), eq(notifications.isRead, false)));
+        .where(and(eq(notifications.userId, auth.userId), eq(notifications.workspaceId, auth.workspaceId), eq(notifications.isRead, false)));
 
       return ok({ message: "모두 읽음 처리되었습니다" });
     }
@@ -77,7 +78,7 @@ export async function PUT(request: NextRequest) {
       await db
         .update(notifications)
         .set({ isRead: true })
-        .where(and(eq(notifications.id, body.id), eq(notifications.userId, auth.userId)));
+        .where(and(eq(notifications.id, body.id), eq(notifications.userId, auth.userId), eq(notifications.workspaceId, auth.workspaceId)));
 
       return ok({ message: "읽음 처리되었습니다" });
     }

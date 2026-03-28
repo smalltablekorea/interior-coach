@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { analysisCredits, analysisResults } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 
 /** POST: 1 크레딧 사용하여 프로 분석 잠금해제 */
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "write");
   if (!auth.ok) return auth.response;
 
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
   const body = await request.json();
   const { area, grade, buildingType, profitRate, overheadRate, vatEnabled, resultData } = body;
 
@@ -20,7 +23,7 @@ export async function POST(request: NextRequest) {
   const [credit] = await db
     .select()
     .from(analysisCredits)
-    .where(eq(analysisCredits.userId, auth.userId))
+    .where(workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid))
     .limit(1);
 
   if (!credit || credit.totalCredits - credit.usedCredits <= 0) {
@@ -37,13 +40,14 @@ export async function POST(request: NextRequest) {
       usedCredits: sql`${analysisCredits.usedCredits} + 1`,
       updatedAt: new Date(),
     })
-    .where(eq(analysisCredits.userId, auth.userId));
+    .where(workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid));
 
   // 분석 결과 저장
   const [result] = await db
     .insert(analysisResults)
     .values({
-      userId: auth.userId,
+      userId: uid,
+      workspaceId: wid,
       area,
       grade,
       buildingType: buildingType || "apt",

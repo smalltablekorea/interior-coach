@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { marketingChannels } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import * as crypto from "crypto";
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
 
   try {
@@ -16,7 +17,7 @@ export async function GET() {
       .where(
         and(
           eq(marketingChannels.channel, "sms"),
-          eq(marketingChannels.userId, auth.userId)
+          workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, auth.workspaceId, auth.userId)
         )
       );
 

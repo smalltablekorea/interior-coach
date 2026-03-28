@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
 import PlanBadge from "@/components/subscription/PlanBadge";
 import {
   Bell,
@@ -15,10 +16,15 @@ import {
   Hammer,
   Users,
   X,
+  Building2,
+  ChevronDown,
+  Check,
+  Plus,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface Notification {
   id: string;
@@ -86,12 +92,16 @@ const MOCK_NOTIFICATIONS: Notification[] = [
 export default function Header() {
   const { user, signOut } = useAuth();
   const { plan } = useSubscription();
+  const { workspace, workspaces, switchWorkspace } = useWorkspace();
   const { theme, toggleTheme } = useTheme();
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notiOpen, setNotiOpen] = useState(false);
+  const [wsOpen, setWsOpen] = useState(false);
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
   const menuRef = useRef<HTMLDivElement>(null);
   const notiRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -102,6 +112,9 @@ export default function Header() {
       }
       if (notiRef.current && !notiRef.current.contains(e.target as Node)) {
         setNotiOpen(false);
+      }
+      if (wsRef.current && !wsRef.current.contains(e.target as Node)) {
+        setWsOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -120,14 +133,73 @@ export default function Header() {
 
   return (
     <header className="h-16 border-b border-[var(--border)] bg-[var(--background)] flex items-center justify-between px-6 sticky top-0 z-30">
-      {/* Search */}
-      <div className="flex items-center gap-2 flex-1 max-w-md">
-        <Search size={18} className="text-[var(--muted)]" />
-        <input
-          type="text"
-          placeholder="검색..."
-          className="bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none w-full"
-        />
+      {/* Left: Workspace Switcher + Search */}
+      <div className="flex items-center gap-4 flex-1">
+        {/* Workspace Switcher */}
+        <div className="relative" ref={wsRef}>
+          <button
+            onClick={() => { setWsOpen(!wsOpen); setMenuOpen(false); setNotiOpen(false); }}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-[var(--border)] transition-colors"
+          >
+            <div className="w-7 h-7 rounded-lg bg-[var(--green)]/20 flex items-center justify-center">
+              <Building2 size={14} className="text-[var(--green)]" />
+            </div>
+            <span className="text-sm font-medium hidden sm:block max-w-[140px] truncate">
+              {workspace?.name || "워크스페이스"}
+            </span>
+            <ChevronDown size={14} className="text-[var(--muted)]" />
+          </button>
+
+          {wsOpen && (
+            <div className="absolute left-0 top-full mt-2 w-64 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg py-1 z-50">
+              <div className="px-4 py-2 border-b border-[var(--border)]">
+                <p className="text-xs text-[var(--muted)]">워크스페이스</p>
+              </div>
+              {workspaces.map((ws) => (
+                <button
+                  key={ws.id}
+                  onClick={async () => {
+                    if (ws.id !== workspace?.id) {
+                      await switchWorkspace(ws.id);
+                    }
+                    setWsOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--border)] transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[var(--green)]/10 flex items-center justify-center shrink-0">
+                    <Building2 size={14} className="text-[var(--green)]" />
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium truncate">{ws.name}</p>
+                    <p className="text-[10px] text-[var(--muted)]">{ws.role}</p>
+                  </div>
+                  {ws.id === workspace?.id && (
+                    <Check size={14} className="text-[var(--green)] shrink-0" />
+                  )}
+                </button>
+              ))}
+              <div className="border-t border-[var(--border)] mt-1 pt-1">
+                <button
+                  onClick={() => { setWsOpen(false); router.push("/workspace/setup"); }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
+                >
+                  <Plus size={16} />
+                  <span className="text-sm">새 워크스페이스</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Search */}
+        <div className="flex items-center gap-2 flex-1 max-w-md">
+          <Search size={18} className="text-[var(--muted)]" />
+          <input
+            type="text"
+            placeholder="검색..."
+            className="bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none w-full"
+          />
+        </div>
       </div>
 
       {/* Right */}

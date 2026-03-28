@@ -3,18 +3,21 @@ import { db } from "@/lib/db";
 import { subscriptions, usageRecords, sites, customers } from "@/lib/db/schema";
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { type PlanId, PLANS } from "@/lib/plans";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "read");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const subRows = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, auth.userId))
+      .where(workspaceFilter(subscriptions.workspaceId, subscriptions.userId, wid, uid))
       .limit(1);
 
     const subscription = subRows[0] || null;
@@ -24,12 +27,12 @@ export async function GET() {
     const [siteCount] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(sites)
-      .where(and(eq(sites.userId, auth.userId), isNull(sites.deletedAt)));
+      .where(and(workspaceFilter(sites.workspaceId, sites.userId, wid, uid), isNull(sites.deletedAt)));
 
     const [customerCount] = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(customers)
-      .where(and(eq(customers.userId, auth.userId), isNull(customers.deletedAt)));
+      .where(and(workspaceFilter(customers.workspaceId, customers.userId, wid, uid), isNull(customers.deletedAt)));
 
     const period = new Date().toISOString().slice(0, 7);
     const usageRows = await db
@@ -37,7 +40,7 @@ export async function GET() {
       .from(usageRecords)
       .where(
         and(
-          eq(usageRecords.userId, auth.userId),
+          workspaceFilter(usageRecords.workspaceId, usageRecords.userId, wid, uid),
           eq(usageRecords.period, period)
         )
       );
@@ -77,10 +80,12 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "write");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const { plan: newPlan } = await req.json();
 
     if (!["free", "starter", "pro", "enterprise"].includes(newPlan)) {
@@ -90,7 +95,7 @@ export async function POST(req: NextRequest) {
     const existing = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, auth.userId))
+      .where(workspaceFilter(subscriptions.workspaceId, subscriptions.userId, wid, uid))
       .limit(1);
 
     const now = new Date();
@@ -111,7 +116,8 @@ export async function POST(req: NextRequest) {
         .where(eq(subscriptions.id, existing[0].id));
     } else {
       await db.insert(subscriptions).values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         plan: newPlan,
         billingCycle: "monthly",
         status: "active",

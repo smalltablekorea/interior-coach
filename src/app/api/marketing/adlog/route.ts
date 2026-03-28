@@ -4,16 +4,17 @@ import { marketingChannels } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { fetchAdlogDashboard, adlogLogin } from "@/lib/adlog-client";
 import type { AdlogCredentials } from "@/lib/adlog-client";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 /* ─── Helpers ─── */
 
-async function getAdlogChannel(userId: string) {
+async function getAdlogChannel(workspaceId: string, userId: string) {
   const [ch] = await db
     .select()
     .from(marketingChannels)
-    .where(and(eq(marketingChannels.channel, "adlog"), eq(marketingChannels.userId, userId)))
+    .where(and(eq(marketingChannels.channel, "adlog"), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, workspaceId, userId)))
     .limit(1);
   return ch ?? null;
 }
@@ -27,10 +28,10 @@ function getCredentials(ch: { settings: unknown }): AdlogCredentials | null {
 /* ─── GET: 애드로그 대시보드 데이터 조회 ─── */
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
   try {
-    const ch = await getAdlogChannel(auth.userId);
+    const ch = await getAdlogChannel(auth.workspaceId, auth.userId);
 
     // 연동 안 된 상태
     if (!ch || !ch.isActive) {
@@ -71,7 +72,7 @@ export async function GET() {
 /* ─── POST: 애드로그 계정 연동 (로그인 테스트 후 저장) ─── */
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. 기존 채널 확인
-    const existing = await getAdlogChannel(auth.userId);
+    const existing = await getAdlogChannel(auth.workspaceId, auth.userId);
 
     if (existing) {
       // 기존 레코드 업데이트
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
           isActive: true,
           updatedAt: new Date(),
         })
-        .where(and(eq(marketingChannels.id, existing.id), eq(marketingChannels.userId, auth.userId)))
+        .where(and(eq(marketingChannels.id, existing.id), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, auth.workspaceId, auth.userId)))
         .returning();
 
       return ok({
@@ -116,6 +117,7 @@ export async function POST(request: NextRequest) {
       .insert(marketingChannels)
       .values({
         userId: auth.userId,
+        workspaceId: auth.workspaceId,
         channel: "adlog",
         accountName: mb_id,
         accountId: mb_id,
@@ -137,10 +139,10 @@ export async function POST(request: NextRequest) {
 /* ─── DELETE: 애드로그 연동 해제 ─── */
 
 export async function DELETE() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "delete");
   if (!auth.ok) return auth.response;
   try {
-    const ch = await getAdlogChannel(auth.userId);
+    const ch = await getAdlogChannel(auth.workspaceId, auth.userId);
     if (!ch) {
       return err("연동된 애드로그 계정이 없습니다.", 404);
     }
@@ -154,7 +156,7 @@ export async function DELETE() {
         accountId: null,
         updatedAt: new Date(),
       })
-      .where(and(eq(marketingChannels.id, ch.id), eq(marketingChannels.userId, auth.userId)));
+      .where(and(eq(marketingChannels.id, ch.id), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, auth.workspaceId, auth.userId)));
 
     return ok({ success: true, message: "애드로그 연동이 해제되었습니다." });
   } catch (error) {
@@ -165,10 +167,10 @@ export async function DELETE() {
 /* ─── PATCH: 수동 동기화 트리거 ─── */
 
 export async function PATCH() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
   try {
-    const ch = await getAdlogChannel(auth.userId);
+    const ch = await getAdlogChannel(auth.workspaceId, auth.userId);
     if (!ch || !ch.isActive) {
       return err("연동된 계정이 없습니다.");
     }

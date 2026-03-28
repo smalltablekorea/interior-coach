@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { sites, constructionPhases } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

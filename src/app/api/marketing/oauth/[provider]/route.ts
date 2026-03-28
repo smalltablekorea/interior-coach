@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildAuthorizationUrl } from "@/lib/marketing-oauth/oauth-utils";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
 
 const VALID_COMBINATIONS: Record<string, string[]> = {
   meta: ["threads", "instagram", "meta_ads"],
@@ -11,7 +11,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) {
     return NextResponse.redirect(
       new URL("/login", request.nextUrl.origin)

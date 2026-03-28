@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { analysisCredits } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 
 /** POST: 관리자용 크레딧 설정/추가 */
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "write");
   if (!auth.ok) return auth.response;
+
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   // 관리자 이메일 체크
   if (auth.session.user.email !== "smalltablekorea@gmail.com") {
@@ -20,17 +23,18 @@ export async function POST(request: NextRequest) {
   const [existing] = await db
     .select()
     .from(analysisCredits)
-    .where(eq(analysisCredits.userId, auth.userId))
+    .where(workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid))
     .limit(1);
 
   if (existing) {
     await db
       .update(analysisCredits)
       .set({ totalCredits, updatedAt: new Date() })
-      .where(eq(analysisCredits.userId, auth.userId));
+      .where(workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid));
   } else {
     await db.insert(analysisCredits).values({
-      userId: auth.userId,
+      userId: uid,
+      workspaceId: wid,
       totalCredits,
       usedCredits: 0,
     });

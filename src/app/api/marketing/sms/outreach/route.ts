@@ -2,18 +2,19 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { smsOutreachLog, smsLeads } from "@/lib/db/schema";
 import { desc, eq, and, sql } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
   try {
     const leadId = request.nextUrl.searchParams.get("leadId");
     const campaignId = request.nextUrl.searchParams.get("campaignId");
     const status = request.nextUrl.searchParams.get("status");
 
-    const conditions = [eq(smsOutreachLog.userId, auth.userId)];
+    const conditions = [workspaceFilter(smsOutreachLog.workspaceId, smsOutreachLog.userId, auth.workspaceId, auth.userId)];
     if (leadId) conditions.push(eq(smsOutreachLog.leadId, leadId));
     if (campaignId) conditions.push(eq(smsOutreachLog.campaignId, campaignId));
     if (status) conditions.push(eq(smsOutreachLog.status, status));
@@ -25,14 +26,14 @@ export async function GET(request: NextRequest) {
       .orderBy(desc(smsOutreachLog.createdAt))
       .limit(100);
 
-    // Delivery stats (scoped to user)
+    // Delivery stats (scoped to workspace)
     const stats = await db
       .select({
         status: smsOutreachLog.status,
         count: sql<number>`count(*)::int`,
       })
       .from(smsOutreachLog)
-      .where(eq(smsOutreachLog.userId, auth.userId))
+      .where(workspaceFilter(smsOutreachLog.workspaceId, smsOutreachLog.userId, auth.workspaceId, auth.userId))
       .groupBy(smsOutreachLog.status);
 
     return ok({
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
       .insert(smsOutreachLog)
       .values({
         userId: auth.userId,
+        workspaceId: auth.workspaceId,
         leadId,
         campaignId,
         channel: channel || "sms",
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest) {
           status: "contacted",
           updatedAt: new Date(),
         })
-        .where(and(eq(smsLeads.id, leadId), eq(smsLeads.userId, auth.userId)));
+        .where(and(eq(smsLeads.id, leadId), workspaceFilter(smsLeads.workspaceId, smsLeads.userId, auth.workspaceId, auth.userId)));
     }
 
     return ok(row);

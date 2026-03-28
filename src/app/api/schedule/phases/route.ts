@@ -2,12 +2,15 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { constructionPhases } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("sites", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     const body = await request.json();
@@ -18,7 +21,8 @@ export async function POST(request: NextRequest) {
     const [row] = await db
       .insert(constructionPhases)
       .values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         siteId,
         category,
         plannedStart: plannedStart || null,
@@ -36,8 +40,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("sites", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     const body = await request.json();
@@ -59,7 +65,7 @@ export async function PUT(request: NextRequest) {
     const [row] = await db
       .update(constructionPhases)
       .set(data)
-      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId)))
+      .where(and(eq(constructionPhases.id, id), workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, wid, uid)))
       .returning();
 
     if (!row) return err("공정을 찾을 수 없습니다", 404);
@@ -70,8 +76,10 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("sites", "delete");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -81,7 +89,7 @@ export async function DELETE(request: NextRequest) {
 
     await db
       .delete(constructionPhases)
-      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId)));
+      .where(and(eq(constructionPhases.id, id), workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, wid, uid)));
 
     return ok({ message: "삭제되었습니다" });
   } catch (error) {

@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { estimateItems, estimates, expenses, sites } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("sites", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   const { id: siteId } = await params;
 
@@ -17,7 +20,7 @@ export async function GET(
   const [site] = await db
     .select({ id: sites.id })
     .from(sites)
-    .where(and(eq(sites.id, siteId), eq(sites.userId, auth.userId)));
+    .where(and(eq(sites.id, siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid)));
   if (!site) {
     return NextResponse.json({ error: "접근 권한이 없습니다" }, { status: 403 });
   }

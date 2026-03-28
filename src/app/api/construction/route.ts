@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { constructionPhases, sites } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { eq, sql, and } from "drizzle-orm";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 
 export async function GET(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
@@ -30,15 +31,17 @@ export async function GET(request: Request) {
     .leftJoin(sites, eq(constructionPhases.siteId, sites.id))
     .orderBy(constructionPhases.sortOrder);
 
+  const wsFilter = workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, auth.workspaceId, auth.userId);
+
   const rows = siteId
-    ? await query.where(eq(constructionPhases.siteId, siteId))
-    : await query;
+    ? await query.where(and(eq(constructionPhases.siteId, siteId), wsFilter))
+    : await query.where(wsFilter);
 
   return NextResponse.json(rows);
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const body = await request.json();
@@ -58,6 +61,7 @@ export async function POST(request: NextRequest) {
     .insert(constructionPhases)
     .values({
       userId: auth.userId,
+      workspaceId: auth.workspaceId,
       siteId,
       category,
       plannedStart: plannedStart || null,

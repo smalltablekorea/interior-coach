@@ -2,14 +2,15 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { expenses } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, notFound, serverError } from "@/lib/api/response";
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -30,7 +31,7 @@ export async function PUT(
         receiptUrl: receiptUrl || null,
         updatedAt: new Date(),
       })
-      .where(and(eq(expenses.id, id), eq(expenses.userId, auth.userId), isNull(expenses.deletedAt)))
+      .where(and(eq(expenses.id, id), workspaceFilter(expenses.workspaceId, expenses.userId, auth.workspaceId, auth.userId), isNull(expenses.deletedAt)))
       .returning();
 
     if (!row) return notFound("지출을 찾을 수 없습니다");
@@ -44,7 +45,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -52,7 +53,7 @@ export async function DELETE(
   const [row] = await db
     .update(expenses)
     .set({ deletedAt: new Date() })
-    .where(and(eq(expenses.id, id), eq(expenses.userId, auth.userId), isNull(expenses.deletedAt)))
+    .where(and(eq(expenses.id, id), workspaceFilter(expenses.workspaceId, expenses.userId, auth.workspaceId, auth.userId), isNull(expenses.deletedAt)))
     .returning({ id: expenses.id });
 
   if (!row) return notFound("지출을 찾을 수 없습니다");

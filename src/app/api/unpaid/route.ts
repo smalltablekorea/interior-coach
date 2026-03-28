@@ -1,15 +1,18 @@
 import { db } from "@/lib/db";
 import { contractPayments, contracts, sites, customers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("tax", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
-    // Get all unpaid payments with contract/site info — userId로 필터링
+    // Get all unpaid payments with contract/site info — workspace 필터링
     const unpaidRows = await db
       .select({
         paymentId: contractPayments.id,
@@ -30,7 +33,7 @@ export async function GET() {
       .where(
         and(
           eq(contractPayments.status, "미수"),
-          eq(contracts.userId, auth.userId)
+          workspaceFilter(contracts.workspaceId, contracts.userId, wid, uid)
         )
       );
 

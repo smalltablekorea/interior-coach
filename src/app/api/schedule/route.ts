@@ -1,11 +1,12 @@
 import { db } from "@/lib/db";
 import { sites, constructionPhases, materialOrders, customers } from "@/lib/db/schema";
 import { eq, sql, or, and, gte, lte, isNotNull, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
     const endOfMonth = new Date(y, m, 0).toISOString().slice(0, 10);
 
     const uid = auth.userId;
+    const wid = auth.workspaceId;
 
     const siteRows = await db
       .select({
@@ -32,7 +34,7 @@ export async function GET(request: Request) {
       .leftJoin(customers, eq(sites.customerId, customers.id))
       .where(
         and(
-          eq(sites.userId, uid),
+          workspaceFilter(sites.workspaceId, sites.userId, wid, uid),
           isNull(sites.deletedAt),
           or(isNotNull(sites.startDate), isNotNull(sites.endDate)),
           or(
@@ -61,7 +63,7 @@ export async function GET(request: Request) {
       .innerJoin(sites, eq(constructionPhases.siteId, sites.id))
       .where(
         and(
-          eq(constructionPhases.userId, uid),
+          workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, wid, uid),
           or(
             and(gte(constructionPhases.plannedStart, startOfMonth), lte(constructionPhases.plannedStart, endOfMonth)),
             and(gte(constructionPhases.plannedEnd, startOfMonth), lte(constructionPhases.plannedEnd, endOfMonth)),
@@ -88,7 +90,7 @@ export async function GET(request: Request) {
       .innerJoin(sites, eq(materialOrders.siteId, sites.id))
       .where(
         and(
-          eq(materialOrders.userId, uid),
+          workspaceFilter(materialOrders.workspaceId, materialOrders.userId, wid, uid),
           or(
             and(gte(materialOrders.orderedDate, startOfMonth), lte(materialOrders.orderedDate, endOfMonth)),
             and(gte(materialOrders.deliveryDate, startOfMonth), lte(materialOrders.deliveryDate, endOfMonth)),
@@ -103,7 +105,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
@@ -120,6 +122,7 @@ export async function POST(request: Request) {
       .insert(constructionPhases)
       .values({
         userId: auth.userId,
+        workspaceId: auth.workspaceId,
         siteId,
         category,
         plannedStart: plannedStart || null,
@@ -137,7 +140,7 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
@@ -155,7 +158,7 @@ export async function PUT(request: Request) {
         progress: progress ?? 0,
         memo: memo || null,
       })
-      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId)))
+      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId), eq(constructionPhases.workspaceId, auth.workspaceId)))
       .returning();
 
     if (!row) return err("공정을 찾을 수 없습니다", 404);
@@ -166,7 +169,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
@@ -176,7 +179,7 @@ export async function DELETE(request: Request) {
 
     await db
       .delete(constructionPhases)
-      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId)));
+      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId), eq(constructionPhases.workspaceId, auth.workspaceId)));
 
     return ok({ message: "삭제되었습니다" });
   } catch (error) {
@@ -185,7 +188,7 @@ export async function DELETE(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
@@ -200,7 +203,7 @@ export async function PATCH(request: Request) {
     const [row] = await db
       .update(constructionPhases)
       .set(updates)
-      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId)))
+      .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId), eq(constructionPhases.workspaceId, auth.workspaceId)))
       .returning();
 
     if (!row) return err("공정을 찾을 수 없습니다", 404);

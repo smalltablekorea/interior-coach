@@ -4,15 +4,17 @@ import {
   estimates, materialOrders, expenses,
 } from "@/lib/db/schema";
 import { eq, sql, and, gte, lte, ne, or, desc, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("dashboard", "read");
   if (!auth.ok) return auth.response;
 
   try {
     const uid = auth.userId;
+    const wid = auth.workspaceId;
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
 
@@ -35,11 +37,11 @@ export async function GET() {
     const weekStart = monday.toISOString().slice(0, 10);
     const weekEnd = sunday.toISOString().slice(0, 10);
 
-    // 공통 조건: userId + soft delete
-    const siteBase = and(eq(sites.userId, uid), isNull(sites.deletedAt));
-    const contractBase = and(eq(contracts.userId, uid), isNull(contracts.deletedAt));
-    const expenseBase = and(eq(expenses.userId, uid), isNull(expenses.deletedAt));
-    const estimateBase = and(eq(estimates.userId, uid), isNull(estimates.deletedAt));
+    // 공통 조건: workspace + soft delete
+    const siteBase = and(workspaceFilter(sites.workspaceId, sites.userId, wid, uid), isNull(sites.deletedAt));
+    const contractBase = and(workspaceFilter(contracts.workspaceId, contracts.userId, wid, uid), isNull(contracts.deletedAt));
+    const expenseBase = and(workspaceFilter(expenses.workspaceId, expenses.userId, wid, uid), isNull(expenses.deletedAt));
+    const estimateBase = and(workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid), isNull(estimates.deletedAt));
 
     // ── KPI 1: 진행중 현장 ──
     const [activeSiteCount] = await db
@@ -102,7 +104,7 @@ export async function GET() {
       .select({ total: sql<number>`coalesce(sum(${materialOrders.totalAmount}), 0)::int` })
       .from(materialOrders)
       .where(and(
-        eq(materialOrders.userId, uid),
+        workspaceFilter(materialOrders.workspaceId, materialOrders.userId, wid, uid),
         gte(materialOrders.orderedDate, startOfMonth),
         lte(materialOrders.orderedDate, endOfMonth),
         ne(materialOrders.status, "취소"),
@@ -133,7 +135,7 @@ export async function GET() {
       .from(constructionPhases)
       .innerJoin(sites, eq(constructionPhases.siteId, sites.id))
       .where(and(
-        eq(constructionPhases.userId, uid),
+        workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, wid, uid),
         lte(constructionPhases.plannedStart, weekEnd),
         gte(constructionPhases.plannedEnd, weekStart),
       ));
@@ -152,7 +154,7 @@ export async function GET() {
       const sitePhases = await db
         .select({ progress: constructionPhases.progress, status: constructionPhases.status })
         .from(constructionPhases)
-        .where(and(eq(constructionPhases.siteId, site.id), eq(constructionPhases.userId, uid)));
+        .where(and(eq(constructionPhases.siteId, site.id), workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, wid, uid)));
 
       const actualProgress = sitePhases.length > 0
         ? sitePhases.reduce((s, p) => s + (p.progress ?? 0), 0) / sitePhases.length
@@ -172,17 +174,17 @@ export async function GET() {
       const [estTotal] = await db
         .select({ total: sql<number>`coalesce(sum(${estimates.totalAmount}), 0)::int` })
         .from(estimates)
-        .where(and(eq(estimates.siteId, site.id), eq(estimates.userId, uid), eq(estimates.status, "승인"), isNull(estimates.deletedAt)));
+        .where(and(eq(estimates.siteId, site.id), workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid), eq(estimates.status, "승인"), isNull(estimates.deletedAt)));
 
       const [expTotal] = await db
         .select({ total: sql<number>`coalesce(sum(${expenses.amount}), 0)::int` })
         .from(expenses)
-        .where(and(eq(expenses.siteId, site.id), eq(expenses.userId, uid), isNull(expenses.deletedAt)));
+        .where(and(eq(expenses.siteId, site.id), workspaceFilter(expenses.workspaceId, expenses.userId, wid, uid), isNull(expenses.deletedAt)));
 
       const [matTotal] = await db
         .select({ total: sql<number>`coalesce(sum(${materialOrders.totalAmount}), 0)::int` })
         .from(materialOrders)
-        .where(and(eq(materialOrders.siteId, site.id), eq(materialOrders.userId, uid), ne(materialOrders.status, "취소")));
+        .where(and(eq(materialOrders.siteId, site.id), workspaceFilter(materialOrders.workspaceId, materialOrders.userId, wid, uid), ne(materialOrders.status, "취소")));
 
       const totalSpent = expTotal.total + matTotal.total;
       const expectedSpend = estTotal.total > 0 ? estTotal.total * (actualProgress / 100) : 0;
@@ -192,7 +194,7 @@ export async function GET() {
       const siteContracts = await db
         .select({ id: contracts.id })
         .from(contracts)
-        .where(and(eq(contracts.siteId, site.id), eq(contracts.userId, uid), isNull(contracts.deletedAt)));
+        .where(and(eq(contracts.siteId, site.id), workspaceFilter(contracts.workspaceId, contracts.userId, wid, uid), isNull(contracts.deletedAt)));
 
       let overdueCount = 0;
       let totalPaymentItems = 0;
@@ -233,12 +235,12 @@ export async function GET() {
       const [expSum] = await db
         .select({ total: sql<number>`coalesce(sum(${expenses.amount}), 0)::int` })
         .from(expenses)
-        .where(and(eq(expenses.siteId, sc.siteId!), eq(expenses.userId, uid), isNull(expenses.deletedAt)));
+        .where(and(eq(expenses.siteId, sc.siteId!), workspaceFilter(expenses.workspaceId, expenses.userId, wid, uid), isNull(expenses.deletedAt)));
 
       const [matSum] = await db
         .select({ total: sql<number>`coalesce(sum(${materialOrders.totalAmount}), 0)::int` })
         .from(materialOrders)
-        .where(and(eq(materialOrders.siteId, sc.siteId!), eq(materialOrders.userId, uid), ne(materialOrders.status, "취소")));
+        .where(and(eq(materialOrders.siteId, sc.siteId!), workspaceFilter(materialOrders.workspaceId, materialOrders.userId, wid, uid), ne(materialOrders.status, "취소")));
 
       const totalExp = expSum.total + matSum.total;
       const contractAmt = sc.contractAmount ?? 0;
@@ -301,7 +303,7 @@ export async function GET() {
       .from(constructionPhases)
       .innerJoin(sites, eq(constructionPhases.siteId, sites.id))
       .where(and(
-        eq(constructionPhases.userId, uid),
+        workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, wid, uid),
         lte(constructionPhases.plannedEnd, today),
         ne(constructionPhases.status, "완료"),
         eq(sites.status, "시공중"),
@@ -331,7 +333,7 @@ export async function GET() {
       .from(constructionPhases)
       .innerJoin(sites, eq(constructionPhases.siteId, sites.id))
       .where(and(
-        eq(constructionPhases.userId, uid),
+        workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, wid, uid),
         gte(constructionPhases.plannedStart, today),
         lte(constructionPhases.plannedStart, nextWeekStr),
         eq(constructionPhases.status, "대기"),
@@ -343,7 +345,7 @@ export async function GET() {
       .selectDistinct({ siteId: materialOrders.siteId })
       .from(materialOrders)
       .where(and(
-        eq(materialOrders.userId, uid),
+        workspaceFilter(materialOrders.workspaceId, materialOrders.userId, wid, uid),
         or(eq(materialOrders.status, "발주"), eq(materialOrders.status, "배송중")),
         gte(materialOrders.deliveryDate, today),
       ));
@@ -379,7 +381,7 @@ export async function GET() {
       })
       .from(constructionPhases)
       .innerJoin(sites, eq(constructionPhases.siteId, sites.id))
-      .where(and(eq(constructionPhases.userId, uid), eq(constructionPhases.status, "완료")))
+      .where(and(workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, wid, uid), eq(constructionPhases.status, "완료")))
       .orderBy(desc(constructionPhases.actualEnd))
       .limit(3);
 

@@ -2,18 +2,20 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { marketingCampaigns } from "@/lib/db/schema";
 import { desc, eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
 
   try {
     const { searchParams } = new URL(request.url);
     const channel = searchParams.get("channel");
 
-    const conditions = [eq(marketingCampaigns.userId, auth.userId)];
+    const conditions = [workspaceFilter(marketingCampaigns.workspaceId, marketingCampaigns.userId, wid, uid)];
     if (channel) {
       conditions.push(eq(marketingCampaigns.channel, channel));
     }
@@ -31,8 +33,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
 
   try {
     const body = await request.json();
@@ -51,7 +54,8 @@ export async function POST(request: NextRequest) {
     const [row] = await db
       .insert(marketingCampaigns)
       .values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         channel,
         name,
         startDate: startDate || null,

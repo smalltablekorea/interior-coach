@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { estimates } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, notFound, serverError } from "@/lib/api/response";
 
 const VALID_STATUSES = ["작성중", "발송", "승인", "거절"];
@@ -11,8 +12,10 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("estimates", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     const { id } = await params;
@@ -26,7 +29,7 @@ export async function PUT(
     const [existing] = await db
       .select({ id: estimates.id, status: estimates.status })
       .from(estimates)
-      .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId)));
+      .where(and(eq(estimates.id, id), workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid)));
 
     if (!existing) {
       return notFound("견적을 찾을 수 없습니다");
@@ -35,7 +38,7 @@ export async function PUT(
     await db
       .update(estimates)
       .set({ status, updatedAt: new Date() })
-      .where(and(eq(estimates.id, id), eq(estimates.userId, auth.userId)));
+      .where(and(eq(estimates.id, id), workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid)));
 
     return ok({
       message: `상태가 '${status}'(으)로 변경되었습니다`,

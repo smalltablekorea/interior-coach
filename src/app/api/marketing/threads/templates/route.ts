@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { db } from "@/lib/db";
 import { threadsTemplates } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
   const category = searchParams.get("category");
 
-  const conditions = [eq(threadsTemplates.userId, auth.userId)];
+  const conditions = [workspaceFilter(threadsTemplates.workspaceId, threadsTemplates.userId, auth.workspaceId, auth.userId)];
   if (category) {
     conditions.push(eq(threadsTemplates.category, category));
   }
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
 
   const body = await request.json();
@@ -39,14 +40,14 @@ export async function POST(request: NextRequest) {
 
   const [created] = await db
     .insert(threadsTemplates)
-    .values({ userId: auth.userId, name, category, contentTemplate, hashtagTemplate: hashtagTemplate || null })
+    .values({ userId: auth.userId, workspaceId: auth.workspaceId, name, category, contentTemplate, hashtagTemplate: hashtagTemplate || null })
     .returning();
 
   return NextResponse.json(created);
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
 
   const body = await request.json();
@@ -59,14 +60,14 @@ export async function PUT(request: NextRequest) {
   const [updated] = await db
     .update(threadsTemplates)
     .set({ ...updates, updatedAt: new Date() })
-    .where(and(eq(threadsTemplates.id, id), eq(threadsTemplates.userId, auth.userId)))
+    .where(and(eq(threadsTemplates.id, id), workspaceFilter(threadsTemplates.workspaceId, threadsTemplates.userId, auth.workspaceId, auth.userId)))
     .returning();
 
   return NextResponse.json(updated || null);
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "delete");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
@@ -78,7 +79,7 @@ export async function DELETE(request: NextRequest) {
 
   await db
     .delete(threadsTemplates)
-    .where(and(eq(threadsTemplates.id, id), eq(threadsTemplates.userId, auth.userId)));
+    .where(and(eq(threadsTemplates.id, id), workspaceFilter(threadsTemplates.workspaceId, threadsTemplates.userId, auth.workspaceId, auth.userId)));
 
   return NextResponse.json({ success: true });
 }

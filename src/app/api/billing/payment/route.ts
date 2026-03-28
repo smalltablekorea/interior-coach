@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { subscriptions, billingRecords } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 import { executeBillingPayment, generateOrderId } from "@/lib/toss";
 import { type PlanId, PLANS } from "@/lib/plans";
@@ -13,10 +14,12 @@ import { type PlanId, PLANS } from "@/lib/plans";
  * body: { plan: "starter" | "pro" | "enterprise", billingCycle?: "monthly" | "yearly" }
  */
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "write");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const { plan: newPlan, billingCycle = "monthly" } = await request.json();
 
     // 플랜 유효성 검사
@@ -31,7 +34,7 @@ export async function POST(request: NextRequest) {
     const [sub] = await db
       .select()
       .from(subscriptions)
-      .where(eq(subscriptions.userId, auth.userId))
+      .where(workspaceFilter(subscriptions.workspaceId, subscriptions.userId, wid, uid))
       .limit(1);
 
     if (!sub || !sub.tossBillingKey || !sub.tossCustomerKey) {
@@ -50,14 +53,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 주문번호 생성
-    const orderId = generateOrderId(auth.userId);
+    const orderId = generateOrderId(uid);
     const orderName = `인테리어코치 ${planConfig.nameKo} (${billingCycle === "yearly" ? "연간" : "월간"})`;
 
     // 빌링 레코드 생성 (pending)
     const [record] = await db
       .insert(billingRecords)
       .values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         subscriptionId: sub.id,
         orderId,
         plan: newPlan,

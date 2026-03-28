@@ -1,13 +1,16 @@
 import { db } from "@/lib/db";
 import { estimates } from "@/lib/db/schema";
-import { eq, sql, count, sum, avg } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { sql, count, sum, avg } from "drizzle-orm";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 
 // 견적 통계
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("estimates", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     // 상태별 개수
@@ -18,7 +21,7 @@ export async function GET() {
         totalAmount: sum(estimates.totalAmount),
       })
       .from(estimates)
-      .where(eq(estimates.userId, auth.userId))
+      .where(workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid))
       .groupBy(estimates.status);
 
     // 전체 통계
@@ -29,7 +32,7 @@ export async function GET() {
         avgAmount: avg(estimates.totalAmount),
       })
       .from(estimates)
-      .where(eq(estimates.userId, auth.userId));
+      .where(workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid));
 
     // 월별 추이 (최근 6개월)
     const monthlyTrend = await db
@@ -39,7 +42,7 @@ export async function GET() {
         totalAmount: sum(estimates.totalAmount),
       })
       .from(estimates)
-      .where(eq(estimates.userId, auth.userId))
+      .where(workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid))
       .groupBy(sql`to_char(${estimates.createdAt}, 'YYYY-MM')`)
       .orderBy(sql`to_char(${estimates.createdAt}, 'YYYY-MM') DESC`)
       .limit(6);

@@ -2,16 +2,17 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { smsContent } from "@/lib/db/schema";
 import { desc, eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
   try {
     const templateType = request.nextUrl.searchParams.get("templateType");
 
-    const conditions = [eq(smsContent.userId, auth.userId)];
+    const conditions = [workspaceFilter(smsContent.workspaceId, smsContent.userId, auth.workspaceId, auth.userId)];
     if (templateType) conditions.push(eq(smsContent.templateType, templateType));
 
     const rows = await db
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
@@ -41,6 +42,7 @@ export async function POST(request: NextRequest) {
       .insert(smsContent)
       .values({
         userId: auth.userId,
+        workspaceId: auth.workspaceId,
         name,
         channel: channel || "sms",
         templateType,
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
@@ -70,7 +72,7 @@ export async function PATCH(request: NextRequest) {
     const [row] = await db
       .update(smsContent)
       .set({ ...updates, updatedAt: new Date() })
-      .where(and(eq(smsContent.id, id), eq(smsContent.userId, auth.userId)))
+      .where(and(eq(smsContent.id, id), workspaceFilter(smsContent.workspaceId, smsContent.userId, auth.workspaceId, auth.userId)))
       .returning();
 
     return ok(row);
@@ -80,7 +82,7 @@ export async function PATCH(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "delete");
   if (!auth.ok) return auth.response;
   try {
     const { id } = await request.json();
@@ -88,7 +90,7 @@ export async function DELETE(request: NextRequest) {
       return err("id required");
     }
 
-    await db.delete(smsContent).where(and(eq(smsContent.id, id), eq(smsContent.userId, auth.userId)));
+    await db.delete(smsContent).where(and(eq(smsContent.id, id), workspaceFilter(smsContent.workspaceId, smsContent.userId, auth.workspaceId, auth.userId)));
     return ok({ success: true });
   } catch (error) {
     return serverError(error);

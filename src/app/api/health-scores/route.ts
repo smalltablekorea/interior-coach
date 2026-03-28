@@ -1,21 +1,24 @@
 import { db } from "@/lib/db";
 import { sites, constructionPhases, estimates, expenses, contracts, contractPayments } from "@/lib/db/schema";
 import { eq, sql, and, inArray } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("dashboard", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
-    // Get active sites (시공중) — filtered by userId
+    // Get active sites (시공중) — filtered by workspace
     const activeSites = await db
       .select({ id: sites.id, name: sites.name, status: sites.status })
       .from(sites)
       .where(
         and(
-          eq(sites.userId, auth.userId),
+          workspaceFilter(sites.workspaceId, sites.userId, wid, uid),
           inArray(sites.status, ["시공중", "계약완료"])
         )
       );

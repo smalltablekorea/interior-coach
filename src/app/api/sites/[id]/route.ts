@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { sites, customers, estimates, contracts, contractPayments, constructionPhases } from "@/lib/db/schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, notFound, serverError } from "@/lib/api/response";
 import { validateBody, siteSchema } from "@/lib/api/validate";
 
@@ -10,7 +11,7 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -33,7 +34,7 @@ export async function GET(
     })
     .from(sites)
     .leftJoin(customers, eq(sites.customerId, customers.id))
-    .where(and(eq(sites.id, id), eq(sites.userId, auth.userId), isNull(sites.deletedAt)))
+    .where(and(eq(sites.id, id), workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId), isNull(sites.deletedAt)))
     .limit(1);
 
   if (!site) return notFound("현장을 찾을 수 없습니다");
@@ -47,7 +48,7 @@ export async function GET(
       createdAt: estimates.createdAt,
     })
     .from(estimates)
-    .where(and(eq(estimates.siteId, id), eq(estimates.userId, auth.userId), isNull(estimates.deletedAt)))
+    .where(and(eq(estimates.siteId, id), workspaceFilter(estimates.workspaceId, estimates.userId, auth.workspaceId, auth.userId), isNull(estimates.deletedAt)))
     .orderBy(desc(estimates.createdAt));
 
   const siteContracts = await db
@@ -57,7 +58,7 @@ export async function GET(
       contractDate: contracts.contractDate,
     })
     .from(contracts)
-    .where(and(eq(contracts.siteId, id), eq(contracts.userId, auth.userId), isNull(contracts.deletedAt)));
+    .where(and(eq(contracts.siteId, id), workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt)));
 
   const contractsWithPayments = await Promise.all(
     siteContracts.map(async (c) => {
@@ -85,7 +86,7 @@ export async function GET(
       plannedEnd: constructionPhases.plannedEnd,
     })
     .from(constructionPhases)
-    .where(and(eq(constructionPhases.siteId, id), eq(constructionPhases.userId, auth.userId)))
+    .where(and(eq(constructionPhases.siteId, id), workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, auth.workspaceId, auth.userId)))
     .orderBy(constructionPhases.sortOrder);
 
   return ok({
@@ -100,7 +101,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -111,7 +112,7 @@ export async function PUT(
     const [row] = await db
       .update(sites)
       .set({ ...validation.data, updatedAt: new Date() })
-      .where(and(eq(sites.id, id), eq(sites.userId, auth.userId), isNull(sites.deletedAt)))
+      .where(and(eq(sites.id, id), workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId), isNull(sites.deletedAt)))
       .returning();
 
     if (!row) return notFound("현장을 찾을 수 없습니다");
@@ -125,7 +126,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -133,7 +134,7 @@ export async function DELETE(
   const [row] = await db
     .update(sites)
     .set({ deletedAt: new Date() })
-    .where(and(eq(sites.id, id), eq(sites.userId, auth.userId), isNull(sites.deletedAt)))
+    .where(and(eq(sites.id, id), workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId), isNull(sites.deletedAt)))
     .returning({ id: sites.id });
 
   if (!row) return notFound("현장을 찾을 수 없습니다");

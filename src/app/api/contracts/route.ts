@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { contracts, contractPayments, sites } from "@/lib/db/schema";
 import { eq, and, desc, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 import { validateBody, contractSchema } from "@/lib/api/validate";
 import { parsePagination, buildPaginationMeta, countSql } from "@/lib/api/query-helpers";
@@ -17,12 +18,12 @@ const contractCreateSchema = contractSchema.extend({
 });
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
     const pagination = parsePagination(request);
-    const where = and(eq(contracts.userId, auth.userId), isNull(contracts.deletedAt));
+    const where = and(workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt));
 
     const [{ count: total }] = await db
       .select({ count: countSql() })
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const validation = await validateBody(request, contractCreateSchema);
@@ -83,6 +84,7 @@ export async function POST(request: NextRequest) {
       .insert(contracts)
       .values({
         userId: auth.userId,
+        workspaceId: auth.workspaceId,
         siteId: contractData.siteId ?? null,
         estimateId: contractData.estimateId ?? null,
         contractAmount: contractData.contractAmount,

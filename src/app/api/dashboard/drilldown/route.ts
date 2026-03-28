@@ -7,13 +7,16 @@ import {
   contracts,
   sites,
 } from "@/lib/db/schema";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, notFound, serverError } from "@/lib/api/response";
 import { eq, sql, and } from "drizzle-orm";
 
 export async function GET(request: Request) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("dashboard", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -23,11 +26,11 @@ export async function GET(request: Request) {
       return err("siteId 필수");
     }
 
-    // 현장 정보 — userId 필터로 소유권 확인
+    // 현장 정보 — workspace 필터로 소유권 확인
     const [site] = await db
       .select({ id: sites.id, name: sites.name })
       .from(sites)
-      .where(and(eq(sites.id, siteId), eq(sites.userId, auth.userId)));
+      .where(and(eq(sites.id, siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid)));
 
     if (!site) {
       return notFound("현장을 찾을 수 없습니다");

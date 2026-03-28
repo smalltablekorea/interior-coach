@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { db } from "@/lib/db";
 import { threadsAutoRules, threadsTemplates } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
 
   const rules = await db
     .select({
@@ -25,15 +27,16 @@ export async function GET() {
     })
     .from(threadsAutoRules)
     .leftJoin(threadsTemplates, eq(threadsAutoRules.templateId, threadsTemplates.id))
-    .where(eq(threadsAutoRules.userId, auth.userId))
+    .where(workspaceFilter(threadsAutoRules.workspaceId, threadsAutoRules.userId, wid, uid))
     .orderBy(desc(threadsAutoRules.createdAt));
 
   return NextResponse.json(rules);
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
 
   const body = await request.json();
   const { name, type, templateId, schedule, config } = body;
@@ -45,7 +48,8 @@ export async function POST(request: NextRequest) {
   const [created] = await db
     .insert(threadsAutoRules)
     .values({
-      userId: auth.userId,
+      userId: uid,
+      workspaceId: wid,
       name,
       type,
       templateId: templateId || null,
@@ -58,8 +62,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
 
   const body = await request.json();
   const { id, ...updates } = body;
@@ -71,15 +76,16 @@ export async function PUT(request: NextRequest) {
   const [updated] = await db
     .update(threadsAutoRules)
     .set({ ...updates, updatedAt: new Date() })
-    .where(and(eq(threadsAutoRules.id, id), eq(threadsAutoRules.userId, auth.userId)))
+    .where(and(eq(threadsAutoRules.id, id), workspaceFilter(threadsAutoRules.workspaceId, threadsAutoRules.userId, wid, uid)))
     .returning();
 
   return NextResponse.json(updated || null);
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "delete");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
@@ -90,7 +96,7 @@ export async function DELETE(request: NextRequest) {
 
   await db
     .delete(threadsAutoRules)
-    .where(and(eq(threadsAutoRules.id, id), eq(threadsAutoRules.userId, auth.userId)));
+    .where(and(eq(threadsAutoRules.id, id), workspaceFilter(threadsAutoRules.workspaceId, threadsAutoRules.userId, wid, uid)));
 
   return NextResponse.json({ success: true });
 }

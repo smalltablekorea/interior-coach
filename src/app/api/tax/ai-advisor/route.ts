@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { taxAiConsultations } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { desc } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 import { requireFeature } from "@/lib/api/plan-guard";
 import { incrementUsage } from "@/lib/subscription";
@@ -15,14 +16,16 @@ const questionSchema = z.object({
 });
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("tax", "read");
   if (!auth.ok) return auth.response;
 
   try {
+    const wid = auth.workspaceId;
+    const uid = auth.userId;
     const rows = await db
       .select()
       .from(taxAiConsultations)
-      .where(eq(taxAiConsultations.userId, auth.userId))
+      .where(workspaceFilter(taxAiConsultations.workspaceId, taxAiConsultations.userId, wid, uid))
       .orderBy(desc(taxAiConsultations.createdAt))
       .limit(20);
 
@@ -33,11 +36,14 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("tax", "write");
   if (!auth.ok) return auth.response;
 
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
+
   // 플랜 체크: aiTaxAdvisor는 starter 이상
-  const planCheck = await requireFeature(auth.userId, "aiTaxAdvisor");
+  const planCheck = await requireFeature(uid, "aiTaxAdvisor");
   if (!planCheck.ok) return planCheck.response;
 
   const validation = await validateBody(request, questionSchema);
@@ -86,7 +92,8 @@ export async function POST(request: NextRequest) {
     const [saved] = await db
       .insert(taxAiConsultations)
       .values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         question: validation.data.question,
         answer,
         category: "세무상담",
@@ -94,7 +101,7 @@ export async function POST(request: NextRequest) {
       .returning();
 
     // 사용량 카운트 증가
-    await incrementUsage(auth.userId, "aiTaxAdvisor");
+    await incrementUsage(uid, "aiTaxAdvisor");
 
     return ok(saved);
   } catch (error) {

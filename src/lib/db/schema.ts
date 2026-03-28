@@ -8,9 +8,11 @@ import {
   jsonb,
   uuid,
   date,
+  unique,
+  serial,
 } from "drizzle-orm/pg-core";
 
-// ─── 업체 정보 ───
+// ─── 업체 정보 (레거시) ───
 
 export const companies = pgTable("companies", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -25,6 +27,23 @@ export const companies = pgTable("companies", {
   deletedAt: timestamp("deleted_at"),
 });
 
+// ─── 워크스페이스 (멀티테넌트) ───
+
+export const workspaces = pgTable("workspaces", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  businessType: text("business_type").default("residential"), // residential, commercial, both
+  businessNumber: text("business_number"),
+  ownerId: text("owner_id").notNull(),
+  inviteCode: text("invite_code").unique(),
+  inviteExpiresAt: timestamp("invite_expires_at"),
+  plan: text("plan").notNull().default("free"), // free, starter, pro, enterprise
+  maxMembers: integer("max_members").notNull().default(5),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // ─── Better Auth 테이블 ───
 
 export const user = pgTable("user", {
@@ -36,6 +55,7 @@ export const user = pgTable("user", {
   phone: text("phone"),
   companyId: uuid("company_id").references(() => companies.id),
   role: text("role").default("owner"), // owner | manager | worker
+  activeWorkspaceId: uuid("active_workspace_id"), // 현재 활성 워크스페이스
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -80,6 +100,52 @@ export const verification = pgTable("verification", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// ─── 워크스페이스 멤버/권한/초대 ───
+
+export const workspaceMembers = pgTable("workspace_members", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  role: text("role").notNull().default("member"), // owner, admin, manager, member, viewer
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
+}, (table) => [
+  unique("workspace_members_workspace_user_idx").on(table.workspaceId, table.userId),
+]);
+
+export const workspacePermissions = pgTable("workspace_permissions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  memberId: uuid("member_id")
+    .notNull()
+    .references(() => workspaceMembers.id, { onDelete: "cascade" }),
+  category: text("category").notNull(), // site_management, estimates, marketing, accounting, customers, settings
+  accessLevel: text("access_level").notNull().default("none"), // none, read, write, admin
+}, (table) => [
+  unique("workspace_permissions_member_category_idx").on(table.memberId, table.category),
+]);
+
+export const workspaceInvitations = pgTable("workspace_invitations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  role: text("role").notNull().default("member"), // admin, manager, member, viewer
+  invitedBy: text("invited_by")
+    .notNull()
+    .references(() => user.id),
+  status: text("status").notNull().default("pending"), // pending, accepted, expired, revoked
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ─── 고객 관리 ───
 
 export const customers = pgTable("customers", {
@@ -87,6 +153,7 @@ export const customers = pgTable("customers", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   phone: text("phone"),
   email: text("email"),
@@ -106,6 +173,7 @@ export const sites = pgTable("sites", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   customerId: uuid("customer_id").references(() => customers.id),
   name: text("name").notNull(),
   address: text("address"),
@@ -127,6 +195,7 @@ export const estimates = pgTable("estimates", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id").references(() => sites.id),
   version: integer("version").notNull().default(1),
   totalAmount: integer("total_amount").default(0),
@@ -163,6 +232,7 @@ export const contracts = pgTable("contracts", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id").references(() => sites.id),
   estimateId: uuid("estimate_id").references(() => estimates.id),
   contractAmount: integer("contract_amount").notNull(),
@@ -193,6 +263,7 @@ export const constructionPhases = pgTable("construction_phases", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id")
     .notNull()
     .references(() => sites.id),
@@ -214,6 +285,7 @@ export const workers = pgTable("workers", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   phone: text("phone"),
   trade: text("trade").notNull(), // 직종 (목수, 전기, 설비 등)
@@ -241,6 +313,7 @@ export const phaseWorkers = pgTable("phase_workers", {
 export const materials = pgTable("materials", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   category: text("category"), // 분류
   brand: text("brand"), // 브랜드
@@ -259,6 +332,7 @@ export const materialOrders = pgTable("material_orders", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id").references(() => sites.id),
   materialId: uuid("material_id").references(() => materials.id),
   materialName: text("material_name").notNull(),
@@ -278,6 +352,7 @@ export const expenses = pgTable("expenses", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id").references(() => sites.id),
   category: text("category").notNull(), // 자재비, 인건비, 운반비, 장비비, 기타
   description: text("description"),
@@ -296,6 +371,7 @@ export const inventory = pgTable("inventory", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   materialId: uuid("material_id")
     .notNull()
     .references(() => materials.id),
@@ -312,6 +388,7 @@ export const sitePhotos = pgTable("site_photos", {
     .notNull()
     .references(() => sites.id, { onDelete: "cascade" }),
   userId: text("user_id").references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   url: text("url").notNull(),
   thumbnailUrl: text("thumbnail_url"),
   date: date("date").notNull(),
@@ -341,6 +418,7 @@ export const communicationLogs = pgTable("communication_logs", {
     .notNull()
     .references(() => customers.id, { onDelete: "cascade" }),
   userId: text("user_id").references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   date: date("date").notNull(),
   type: text("type").notNull(), // 전화, 문자, 방문, 카톡
   content: text("content"),
@@ -365,6 +443,7 @@ export const customerPortalTokens = pgTable("customer_portal_tokens", {
 export const taxRevenue = pgTable("tax_revenue", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id").references(() => sites.id),
   customerId: uuid("customer_id").references(() => customers.id),
   date: date("date").notNull(),
@@ -383,6 +462,7 @@ export const taxRevenue = pgTable("tax_revenue", {
 export const taxExpenses = pgTable("tax_expenses", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id").references(() => sites.id),
   vendorId: uuid("vendor_id"),
   date: date("date").notNull(),
@@ -403,6 +483,7 @@ export const taxExpenses = pgTable("tax_expenses", {
 export const taxVendors = pgTable("tax_vendors", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   businessNumber: text("business_number"),
   representative: text("representative"),
@@ -421,6 +502,7 @@ export const taxVendors = pgTable("tax_vendors", {
 export const taxInvoices = pgTable("tax_invoices", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   direction: text("direction").notNull(),
   invoiceNumber: text("invoice_number"),
   vendorId: uuid("vendor_id"),
@@ -437,6 +519,7 @@ export const taxInvoices = pgTable("tax_invoices", {
 export const taxPayroll = pgTable("tax_payroll", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id").references(() => sites.id),
   workerId: uuid("worker_id").references(() => workers.id),
   workerName: text("worker_name").notNull(),
@@ -460,6 +543,7 @@ export const taxPayroll = pgTable("tax_payroll", {
 export const taxCalendar = pgTable("tax_calendar", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   title: text("title").notNull(),
   type: text("type"),
   dueDate: date("due_date").notNull(),
@@ -474,6 +558,7 @@ export const taxCalendar = pgTable("tax_calendar", {
 export const taxAiConsultations = pgTable("tax_ai_consultations", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   question: text("question").notNull(),
   answer: text("answer").notNull(),
   category: text("category"),
@@ -488,6 +573,7 @@ export const subscriptions = pgTable("subscriptions", {
     .notNull()
     .references(() => user.id)
     .unique(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   plan: text("plan").notNull().default("free"),
   billingCycle: text("billing_cycle").default("monthly"),
   status: text("status").notNull().default("active"),
@@ -506,6 +592,7 @@ export const usageRecords = pgTable("usage_records", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   feature: text("feature").notNull(),
   period: text("period").notNull(),
   count: integer("count").notNull().default(0),
@@ -517,6 +604,7 @@ export const billingRecords = pgTable("billing_records", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   subscriptionId: uuid("subscription_id").references(() => subscriptions.id),
   orderId: text("order_id").notNull().unique(),
   paymentKey: text("payment_key"),
@@ -538,6 +626,7 @@ export const analysisCredits = pgTable("analysis_credits", {
     .notNull()
     .references(() => user.id)
     .unique(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   totalCredits: integer("total_credits").notNull().default(0),
   usedCredits: integer("used_credits").notNull().default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -548,6 +637,7 @@ export const analysisResults = pgTable("analysis_results", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   area: real("area").notNull(),
   grade: text("grade").notNull(),
   buildingType: text("building_type").default("apt"),
@@ -566,6 +656,7 @@ export const threadsAccount = pgTable("threads_account", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   username: text("username").notNull(),
   accessToken: text("access_token"),
   isConnected: boolean("is_connected").notNull().default(false),
@@ -579,6 +670,7 @@ export const threadsTemplates = pgTable("threads_templates", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   category: text("category").notNull(), // 시공완료, 시공팁, 고객후기, 프로모션, 일상
   contentTemplate: text("content_template").notNull(),
@@ -594,6 +686,7 @@ export const threadsPosts = pgTable("threads_posts", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id").references(() => sites.id),
   title: text("title"),
   content: text("content").notNull(),
@@ -617,6 +710,7 @@ export const threadsAutoRules = pgTable("threads_auto_rules", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   type: text("type").notNull(), // 시공완료자동, 정기포스팅, 시공사진자동, 프로모션자동
   templateId: uuid("template_id").references(() => threadsTemplates.id),
@@ -634,6 +728,7 @@ export const threadsComments = pgTable("threads_comments", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   postId: uuid("post_id")
     .notNull()
     .references(() => threadsPosts.id, { onDelete: "cascade" }),
@@ -652,6 +747,7 @@ export const marketingChannels = pgTable("marketing_channels", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   channel: text("channel").notNull(), // threads, instagram, naver_blog, youtube, meta_ads
   accountName: text("account_name"),
   accountId: text("account_id"),
@@ -669,6 +765,7 @@ export const marketingContent = pgTable("marketing_content", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id").references(() => sites.id),
   title: text("title").notNull(),
   body: text("body").notNull(),
@@ -690,6 +787,7 @@ export const marketingPosts = pgTable("marketing_posts", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   contentId: uuid("content_id").references(() => marketingContent.id),
   channel: text("channel").notNull(), // threads, instagram, naver_blog, youtube, meta_ads
   channelPostId: text("channel_post_id"),
@@ -716,6 +814,7 @@ export const marketingInquiries = pgTable("marketing_inquiries", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   customerId: uuid("customer_id").references(() => customers.id),
   customerName: text("customer_name").notNull(),
   phone: text("phone"),
@@ -736,6 +835,7 @@ export const marketingCampaigns = pgTable("marketing_campaigns", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   channel: text("channel").notNull(),
   externalCampaignId: text("external_campaign_id"),
   name: text("name").notNull(),
@@ -757,6 +857,7 @@ export const marketingKeywords = pgTable("marketing_keywords", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   keyword: text("keyword").notNull(),
   channel: text("channel").notNull(), // naver, youtube, google
   currentRank: integer("current_rank"),
@@ -772,6 +873,7 @@ export const marketingKeywords = pgTable("marketing_keywords", {
 export const smsLeads = pgTable("sms_leads", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   phone: text("phone").notNull(),
   source: text("source").notNull().default("naver_cafe"), // naver_cafe, instagram, referral, manual, landing_page
@@ -797,6 +899,7 @@ export const smsLeads = pgTable("sms_leads", {
 export const smsCampaigns = pgTable("sms_campaigns", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   type: text("type").notNull().default("drip"), // drip, blast, trigger
   status: text("status").notNull().default("draft"), // draft, active, paused, completed
@@ -816,6 +919,7 @@ export const smsCampaigns = pgTable("sms_campaigns", {
 export const smsOutreachLog = pgTable("sms_outreach_log", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   leadId: uuid("lead_id").references(() => smsLeads.id),
   campaignId: uuid("campaign_id").references(() => smsCampaigns.id),
   channel: text("channel").notNull().default("sms"), // sms, alimtalk
@@ -836,6 +940,7 @@ export const smsOutreachLog = pgTable("sms_outreach_log", {
 export const smsConversions = pgTable("sms_conversions", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   leadId: uuid("lead_id").notNull().references(() => smsLeads.id),
   campaignId: uuid("campaign_id").references(() => smsCampaigns.id),
   outreachLogId: uuid("outreach_log_id").references(() => smsOutreachLog.id),
@@ -848,6 +953,7 @@ export const smsConversions = pgTable("sms_conversions", {
 export const smsContent = pgTable("sms_content", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   channel: text("channel").notNull().default("sms"), // sms, alimtalk
   templateType: text("template_type").notNull(), // first_contact, follow_up, portfolio, promotion, maintenance, referral
@@ -863,6 +969,7 @@ export const smsContent = pgTable("sms_content", {
 export const smsCrawlLog = pgTable("sms_crawl_log", {
   id: uuid("id").defaultRandom().primaryKey(),
   userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   source: text("source").notNull(), // naver_cafe
   keyword: text("keyword").notNull(),
   postsScanned: integer("posts_scanned").default(0),
@@ -880,6 +987,7 @@ export const notifications = pgTable("notifications", {
   userId: text("user_id")
     .notNull()
     .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   type: text("type").notNull(), // payment_overdue, phase_delayed, material_needed, contract_signed, site_completed, system
   title: text("title").notNull(),
   message: text("message"),
@@ -889,3 +997,18 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ─── Q&A 자동 생성 게시판 ───
+export const qnaPosts = pgTable("qna_posts", {
+  id: serial("id").primaryKey(),
+  service: text("service").notNull().default("interior"),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  answer: text("answer"),
+  authorId: text("author_id").notNull(), // "user_" + random 8 chars
+  authorRole: text("author_role").notNull(), // ceo | director | manager | designer
+  category: text("category").notNull(), // site_management | staff_management | revenue | client_handling | process | tools_system | other
+  status: text("status").notNull().default("answered"), // answered | pending
+  viewCount: integer("view_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull(),
+  answeredAt: timestamp("answered_at"),
+});

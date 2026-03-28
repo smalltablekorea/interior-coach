@@ -2,7 +2,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { marketingChannels } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 const ADLOG_BASE = "https://adlog.kr";
@@ -11,7 +12,7 @@ const UA =
 
 // 애드로그 계정 연결 상태 조회
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
   try {
     const [channel] = await db
@@ -24,7 +25,7 @@ export async function GET() {
         updatedAt: marketingChannels.updatedAt,
       })
       .from(marketingChannels)
-      .where(and(eq(marketingChannels.channel, "adlog"), eq(marketingChannels.userId, auth.userId)));
+      .where(and(eq(marketingChannels.channel, "adlog"), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, auth.workspaceId, auth.userId)));
 
     if (!channel) {
       return ok({ connected: false });
@@ -46,7 +47,7 @@ export async function GET() {
 
 // 애드로그 계정 연결 (로그인 테스트 + 크리덴셜 저장)
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
   try {
     const body = await request.json();
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
     const [existing] = await db
       .select()
       .from(marketingChannels)
-      .where(and(eq(marketingChannels.channel, "adlog"), eq(marketingChannels.userId, auth.userId)));
+      .where(and(eq(marketingChannels.channel, "adlog"), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, auth.workspaceId, auth.userId)));
 
     const payload = {
       accountName: adlogId,
@@ -83,10 +84,11 @@ export async function POST(request: NextRequest) {
       await db
         .update(marketingChannels)
         .set(payload)
-        .where(and(eq(marketingChannels.id, existing.id), eq(marketingChannels.userId, auth.userId)));
+        .where(and(eq(marketingChannels.id, existing.id), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, auth.workspaceId, auth.userId)));
     } else {
       await db.insert(marketingChannels).values({
         userId: auth.userId,
+        workspaceId: auth.workspaceId,
         channel: "adlog",
         ...payload,
       });
@@ -104,13 +106,13 @@ export async function POST(request: NextRequest) {
 
 // 애드로그 계정 연결 해제
 export async function DELETE() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "delete");
   if (!auth.ok) return auth.response;
   try {
     await db
       .update(marketingChannels)
       .set({ isActive: false, settings: null, updatedAt: new Date() })
-      .where(and(eq(marketingChannels.channel, "adlog"), eq(marketingChannels.userId, auth.userId)));
+      .where(and(eq(marketingChannels.channel, "adlog"), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, auth.workspaceId, auth.userId)));
 
     return ok({
       connected: false,

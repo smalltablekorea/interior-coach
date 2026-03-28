@@ -3,15 +3,18 @@ import { db } from "@/lib/db";
 import { sitePhotos, photoComments, sites } from "@/lib/db/schema";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
 import { put } from "@vercel/blob";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, notFound, serverError } from "@/lib/api/response";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("sites", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   const { id: siteId } = await params;
 
@@ -19,7 +22,7 @@ export async function GET(
   const [site] = await db
     .select({ id: sites.id })
     .from(sites)
-    .where(and(eq(sites.id, siteId), eq(sites.userId, auth.userId), isNull(sites.deletedAt)));
+    .where(and(eq(sites.id, siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid), isNull(sites.deletedAt)));
 
   if (!site) return notFound("현장을 찾을 수 없습니다");
 
@@ -74,8 +77,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("sites", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
 
   const { id: siteId } = await params;
 
@@ -83,7 +88,7 @@ export async function POST(
   const [site] = await db
     .select({ id: sites.id })
     .from(sites)
-    .where(and(eq(sites.id, siteId), eq(sites.userId, auth.userId), isNull(sites.deletedAt)));
+    .where(and(eq(sites.id, siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid), isNull(sites.deletedAt)));
 
   if (!site) return notFound("현장을 찾을 수 없습니다");
 
@@ -106,7 +111,8 @@ export async function POST(
       .insert(sitePhotos)
       .values({
         siteId,
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         url: blob.url,
         thumbnailUrl: blob.url,
         date,

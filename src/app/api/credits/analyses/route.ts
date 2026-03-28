@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { analysisResults } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { desc } from "drizzle-orm";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 
 /** GET: 분석 이력 조회 */
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("settings", "read");
   if (!auth.ok) return auth.response;
 
   const rows = await db
     .select()
     .from(analysisResults)
-    .where(eq(analysisResults.userId, auth.userId))
+    .where(workspaceFilter(analysisResults.workspaceId, analysisResults.userId, auth.workspaceId, auth.userId))
     .orderBy(desc(analysisResults.createdAt))
     .limit(50);
 

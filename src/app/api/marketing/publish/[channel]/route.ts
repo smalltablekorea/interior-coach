@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { getValidToken } from "@/lib/marketing-oauth/token-manager";
 import { db } from "@/lib/db";
 import { marketingPosts } from "@/lib/db/schema";
@@ -9,15 +9,16 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ channel: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+  const uid = auth.userId;
 
   const { channel } = await params;
   const body = await request.json();
   const { postId, content, mediaUrls, title, hashtags } = body;
 
   // Get valid token (auto-refreshes if needed)
-  const token = await getValidToken(auth.userId, channel);
+  const token = await getValidToken(uid, channel);
   if (!token) {
     return NextResponse.json(
       { error: "인증이 만료되었습니다. 계정을 다시 연결해주세요." },

@@ -11,15 +11,17 @@ import {
   customers,
 } from "@/lib/db/schema";
 import { eq, sql, and, gte, lte, desc } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
     const uid = auth.userId;
+    const wid = auth.workspaceId;
     const type = request.nextUrl.searchParams.get("type") || "dashboard";
     const year = request.nextUrl.searchParams.get("year") || new Date().getFullYear().toString();
 
@@ -35,7 +37,7 @@ export async function GET(request: NextRequest) {
           vat: sql<number>`COALESCE(SUM(${taxRevenue.vatAmount}), 0)`,
         })
         .from(taxRevenue)
-        .where(and(eq(taxRevenue.userId, uid), gte(taxRevenue.date, yearStart), lte(taxRevenue.date, yearEnd)))
+        .where(and(workspaceFilter(taxRevenue.workspaceId, taxRevenue.userId, wid, uid), gte(taxRevenue.date, yearStart), lte(taxRevenue.date, yearEnd)))
         .groupBy(sql`TO_CHAR(${taxRevenue.date}::date, 'YYYY-MM')`)
         .orderBy(sql`TO_CHAR(${taxRevenue.date}::date, 'YYYY-MM')`);
 
@@ -47,7 +49,7 @@ export async function GET(request: NextRequest) {
           vat: sql<number>`COALESCE(SUM(${taxExpenses.vatAmount}), 0)`,
         })
         .from(taxExpenses)
-        .where(and(eq(taxExpenses.userId, uid), gte(taxExpenses.date, yearStart), lte(taxExpenses.date, yearEnd)))
+        .where(and(workspaceFilter(taxExpenses.workspaceId, taxExpenses.userId, wid, uid), gte(taxExpenses.date, yearStart), lte(taxExpenses.date, yearEnd)))
         .groupBy(sql`TO_CHAR(${taxExpenses.date}::date, 'YYYY-MM')`)
         .orderBy(sql`TO_CHAR(${taxExpenses.date}::date, 'YYYY-MM')`);
 
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
           total: sql<number>`COALESCE(SUM(${taxExpenses.totalAmount}), 0)`,
         })
         .from(taxExpenses)
-        .where(and(eq(taxExpenses.userId, uid), gte(taxExpenses.date, yearStart), lte(taxExpenses.date, yearEnd)))
+        .where(and(workspaceFilter(taxExpenses.workspaceId, taxExpenses.userId, wid, uid), gte(taxExpenses.date, yearStart), lte(taxExpenses.date, yearEnd)))
         .groupBy(taxExpenses.category);
 
       const uncollected = await db
@@ -66,12 +68,12 @@ export async function GET(request: NextRequest) {
           count: sql<number>`COUNT(*)`,
         })
         .from(taxRevenue)
-        .where(and(eq(taxRevenue.userId, uid), eq(taxRevenue.isCollected, false)));
+        .where(and(workspaceFilter(taxRevenue.workspaceId, taxRevenue.userId, wid, uid), eq(taxRevenue.isCollected, false)));
 
       const upcoming = await db
         .select()
         .from(taxCalendar)
-        .where(and(eq(taxCalendar.userId, uid), gte(taxCalendar.dueDate, new Date().toISOString().slice(0, 10))))
+        .where(and(workspaceFilter(taxCalendar.workspaceId, taxCalendar.userId, wid, uid), gte(taxCalendar.dueDate, new Date().toISOString().slice(0, 10))))
         .orderBy(taxCalendar.dueDate)
         .limit(10);
 
@@ -117,7 +119,7 @@ export async function GET(request: NextRequest) {
         .from(taxRevenue)
         .leftJoin(sites, eq(taxRevenue.siteId, sites.id))
         .leftJoin(customers, eq(taxRevenue.customerId, customers.id))
-        .where(eq(taxRevenue.userId, uid))
+        .where(workspaceFilter(taxRevenue.workspaceId, taxRevenue.userId, wid, uid))
         .orderBy(desc(taxRevenue.date));
       return ok(rows);
     }
@@ -146,7 +148,7 @@ export async function GET(request: NextRequest) {
         .from(taxExpenses)
         .leftJoin(sites, eq(taxExpenses.siteId, sites.id))
         .leftJoin(taxVendors, eq(taxExpenses.vendorId, taxVendors.id))
-        .where(eq(taxExpenses.userId, uid))
+        .where(workspaceFilter(taxExpenses.workspaceId, taxExpenses.userId, wid, uid))
         .orderBy(desc(taxExpenses.date));
       return ok(rows);
     }
@@ -155,7 +157,7 @@ export async function GET(request: NextRequest) {
       const rows = await db
         .select()
         .from(taxVendors)
-        .where(eq(taxVendors.userId, uid))
+        .where(workspaceFilter(taxVendors.workspaceId, taxVendors.userId, wid, uid))
         .orderBy(taxVendors.name);
       return ok(rows);
     }
@@ -185,7 +187,7 @@ export async function GET(request: NextRequest) {
         })
         .from(taxPayroll)
         .leftJoin(sites, eq(taxPayroll.siteId, sites.id))
-        .where(eq(taxPayroll.userId, uid))
+        .where(workspaceFilter(taxPayroll.workspaceId, taxPayroll.userId, wid, uid))
         .orderBy(desc(taxPayroll.createdAt));
       return ok(rows);
     }
@@ -194,7 +196,7 @@ export async function GET(request: NextRequest) {
       const rows = await db
         .select()
         .from(taxCalendar)
-        .where(eq(taxCalendar.userId, uid))
+        .where(workspaceFilter(taxCalendar.workspaceId, taxCalendar.userId, wid, uid))
         .orderBy(taxCalendar.dueDate);
       return ok(rows);
     }
@@ -206,11 +208,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
     const uid = auth.userId;
+    const wid = auth.workspaceId;
     const type = request.nextUrl.searchParams.get("type");
     const body = await request.json();
 
@@ -219,6 +222,7 @@ export async function POST(request: NextRequest) {
         .insert(taxRevenue)
         .values({
           userId: uid,
+          workspaceId: wid,
           siteId: body.siteId || null,
           customerId: body.customerId || null,
           date: body.date,
@@ -241,6 +245,7 @@ export async function POST(request: NextRequest) {
         .insert(taxExpenses)
         .values({
           userId: uid,
+          workspaceId: wid,
           siteId: body.siteId || null,
           vendorId: body.vendorId || null,
           date: body.date,
@@ -264,6 +269,7 @@ export async function POST(request: NextRequest) {
         .insert(taxVendors)
         .values({
           userId: uid,
+          workspaceId: wid,
           name: body.name,
           businessNumber: body.businessNumber || null,
           representative: body.representative || null,
@@ -285,6 +291,7 @@ export async function POST(request: NextRequest) {
         .insert(taxPayroll)
         .values({
           userId: uid,
+          workspaceId: wid,
           siteId: body.siteId || null,
           workerName: body.workerName,
           workerType: body.workerType,
@@ -310,6 +317,7 @@ export async function POST(request: NextRequest) {
         .insert(taxCalendar)
         .values({
           userId: uid,
+          workspaceId: wid,
           title: body.title,
           type: body.type || null,
           dueDate: body.dueDate,
@@ -329,11 +337,12 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
     const uid = auth.userId;
+    const wid = auth.workspaceId;
     const type = request.nextUrl.searchParams.get("type");
     const body = await request.json();
     if (!body.id) return err("id 필수");
@@ -355,7 +364,7 @@ export async function PUT(request: NextRequest) {
           collectedAt: body.collectedAt || null,
           memo: body.memo || null,
         })
-        .where(and(eq(taxRevenue.id, body.id), eq(taxRevenue.userId, uid)))
+        .where(and(eq(taxRevenue.id, body.id), eq(taxRevenue.userId, uid), eq(taxRevenue.workspaceId, wid)))
         .returning();
       if (!row) return err("데이터를 찾을 수 없습니다", 404);
       return ok(row);
@@ -378,7 +387,7 @@ export async function PUT(request: NextRequest) {
           isDeductible: body.isDeductible ?? true,
           deductionNote: body.deductionNote || null,
         })
-        .where(and(eq(taxExpenses.id, body.id), eq(taxExpenses.userId, uid)))
+        .where(and(eq(taxExpenses.id, body.id), eq(taxExpenses.userId, uid), eq(taxExpenses.workspaceId, wid)))
         .returning();
       if (!row) return err("데이터를 찾을 수 없습니다", 404);
       return ok(row);
@@ -404,7 +413,7 @@ export async function PUT(request: NextRequest) {
           paymentMethod: body.paymentMethod || null,
           memo: body.memo || null,
         })
-        .where(and(eq(taxPayroll.id, body.id), eq(taxPayroll.userId, uid)))
+        .where(and(eq(taxPayroll.id, body.id), eq(taxPayroll.userId, uid), eq(taxPayroll.workspaceId, wid)))
         .returning();
       if (!row) return err("데이터를 찾을 수 없습니다", 404);
       return ok(row);
@@ -417,7 +426,7 @@ export async function PUT(request: NextRequest) {
           status: body.status,
           completedAt: body.status === "completed" ? new Date() : null,
         })
-        .where(and(eq(taxCalendar.id, body.id), eq(taxCalendar.userId, uid)))
+        .where(and(eq(taxCalendar.id, body.id), eq(taxCalendar.userId, uid), eq(taxCalendar.workspaceId, wid)))
         .returning();
       if (!row) return err("데이터를 찾을 수 없습니다", 404);
       return ok(row);
@@ -430,25 +439,26 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   try {
     const uid = auth.userId;
+    const wid = auth.workspaceId;
     const type = request.nextUrl.searchParams.get("type");
     const id = request.nextUrl.searchParams.get("id");
     if (!id) return err("id 필수");
 
     if (type === "revenue") {
-      await db.delete(taxRevenue).where(and(eq(taxRevenue.id, id), eq(taxRevenue.userId, uid)));
+      await db.delete(taxRevenue).where(and(eq(taxRevenue.id, id), eq(taxRevenue.userId, uid), eq(taxRevenue.workspaceId, wid)));
     } else if (type === "expenses") {
-      await db.delete(taxExpenses).where(and(eq(taxExpenses.id, id), eq(taxExpenses.userId, uid)));
+      await db.delete(taxExpenses).where(and(eq(taxExpenses.id, id), eq(taxExpenses.userId, uid), eq(taxExpenses.workspaceId, wid)));
     } else if (type === "vendors") {
-      await db.delete(taxVendors).where(and(eq(taxVendors.id, id), eq(taxVendors.userId, uid)));
+      await db.delete(taxVendors).where(and(eq(taxVendors.id, id), eq(taxVendors.userId, uid), eq(taxVendors.workspaceId, wid)));
     } else if (type === "payroll") {
-      await db.delete(taxPayroll).where(and(eq(taxPayroll.id, id), eq(taxPayroll.userId, uid)));
+      await db.delete(taxPayroll).where(and(eq(taxPayroll.id, id), eq(taxPayroll.userId, uid), eq(taxPayroll.workspaceId, wid)));
     } else if (type === "calendar") {
-      await db.delete(taxCalendar).where(and(eq(taxCalendar.id, id), eq(taxCalendar.userId, uid)));
+      await db.delete(taxCalendar).where(and(eq(taxCalendar.id, id), eq(taxCalendar.userId, uid), eq(taxCalendar.workspaceId, wid)));
     } else {
       return err("Invalid type");
     }

@@ -5,13 +5,14 @@ import {
   materialOrders, estimates, constructionPhases,
 } from "@/lib/db/schema";
 import { eq, and, sql, gte, lte, ne, isNull, desc } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("tax", "read");
   if (!auth.ok) return auth.response;
-
+  const wid = auth.workspaceId;
   const uid = auth.userId;
   const siteId = request.nextUrl.searchParams.get("siteId");
   const startDate = request.nextUrl.searchParams.get("startDate");
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
           endDate: sites.endDate,
         })
         .from(sites)
-        .where(and(eq(sites.id, siteId), eq(sites.userId, uid), isNull(sites.deletedAt)));
+        .where(and(eq(sites.id, siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid), isNull(sites.deletedAt)));
 
       if (!site) return err("현장을 찾을 수 없습니다", 404);
 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
       const [contractTotal] = await db
         .select({ total: sql<number>`coalesce(sum(${contracts.contractAmount}), 0)::int` })
         .from(contracts)
-        .where(and(eq(contracts.siteId, siteId), eq(contracts.userId, uid), isNull(contracts.deletedAt)));
+        .where(and(eq(contracts.siteId, siteId), workspaceFilter(contracts.workspaceId, contracts.userId, wid, uid), isNull(contracts.deletedAt)));
 
       // 수금 현황
       const payments = await db
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
         })
         .from(contractPayments)
         .innerJoin(contracts, eq(contractPayments.contractId, contracts.id))
-        .where(and(eq(contracts.siteId, siteId), eq(contracts.userId, uid), isNull(contracts.deletedAt)));
+        .where(and(eq(contracts.siteId, siteId), workspaceFilter(contracts.workspaceId, contracts.userId, wid, uid), isNull(contracts.deletedAt)));
 
       const collected = payments
         .filter((p) => p.status === "완납")
@@ -69,14 +70,14 @@ export async function GET(request: NextRequest) {
           count: sql<number>`count(*)::int`,
         })
         .from(expenses)
-        .where(and(eq(expenses.siteId, siteId), eq(expenses.userId, uid), isNull(expenses.deletedAt)))
+        .where(and(eq(expenses.siteId, siteId), workspaceFilter(expenses.workspaceId, expenses.userId, wid, uid), isNull(expenses.deletedAt)))
         .groupBy(expenses.category);
 
       // 자재비
       const [materialTotal] = await db
         .select({ total: sql<number>`coalesce(sum(${materialOrders.totalAmount}), 0)::int` })
         .from(materialOrders)
-        .where(and(eq(materialOrders.siteId, siteId), eq(materialOrders.userId, uid), ne(materialOrders.status, "취소")));
+        .where(and(eq(materialOrders.siteId, siteId), workspaceFilter(materialOrders.workspaceId, materialOrders.userId, wid, uid), ne(materialOrders.status, "취소")));
 
       const totalExpense = expensesByCategory.reduce((s, e) => s + e.total, 0) + materialTotal.total;
 
@@ -84,7 +85,7 @@ export async function GET(request: NextRequest) {
       const [estimateTotal] = await db
         .select({ total: sql<number>`coalesce(sum(${estimates.totalAmount}), 0)::int` })
         .from(estimates)
-        .where(and(eq(estimates.siteId, siteId), eq(estimates.userId, uid), eq(estimates.status, "승인"), isNull(estimates.deletedAt)));
+        .where(and(eq(estimates.siteId, siteId), workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid), eq(estimates.status, "승인"), isNull(estimates.deletedAt)));
 
       // 공정 현황
       const [phaseStats] = await db
@@ -94,7 +95,7 @@ export async function GET(request: NextRequest) {
           avgProgress: sql<number>`coalesce(avg(${constructionPhases.progress}), 0)::int`,
         })
         .from(constructionPhases)
-        .where(and(eq(constructionPhases.siteId, siteId), eq(constructionPhases.userId, uid)));
+        .where(and(eq(constructionPhases.siteId, siteId), workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, wid, uid)));
 
       const profit = contractTotal.total - totalExpense;
       const profitRate = contractTotal.total > 0 ? Math.round((profit / contractTotal.total) * 100) : 0;
@@ -138,7 +139,7 @@ export async function GET(request: NextRequest) {
       .from(contractPayments)
       .innerJoin(contracts, eq(contractPayments.contractId, contracts.id))
       .where(and(
-        eq(contracts.userId, uid),
+        workspaceFilter(contracts.workspaceId, contracts.userId, wid, uid),
         isNull(contracts.deletedAt),
         eq(contractPayments.status, "완납"),
         gte(contractPayments.paidDate, dateFrom),
@@ -150,7 +151,7 @@ export async function GET(request: NextRequest) {
       .select({ total: sql<number>`coalesce(sum(${expenses.amount}), 0)::int` })
       .from(expenses)
       .where(and(
-        eq(expenses.userId, uid),
+        workspaceFilter(expenses.workspaceId, expenses.userId, wid, uid),
         isNull(expenses.deletedAt),
         gte(expenses.date, dateFrom),
         lte(expenses.date, dateTo),
@@ -160,7 +161,7 @@ export async function GET(request: NextRequest) {
       .select({ total: sql<number>`coalesce(sum(${materialOrders.totalAmount}), 0)::int` })
       .from(materialOrders)
       .where(and(
-        eq(materialOrders.userId, uid),
+        workspaceFilter(materialOrders.workspaceId, materialOrders.userId, wid, uid),
         ne(materialOrders.status, "취소"),
         gte(materialOrders.orderedDate, dateFrom),
         lte(materialOrders.orderedDate, dateTo),
@@ -176,7 +177,7 @@ export async function GET(request: NextRequest) {
       })
       .from(sites)
       .leftJoin(contracts, and(eq(contracts.siteId, sites.id), isNull(contracts.deletedAt)))
-      .where(and(eq(sites.userId, uid), isNull(sites.deletedAt)))
+      .where(and(workspaceFilter(sites.workspaceId, sites.userId, wid, uid), isNull(sites.deletedAt)))
       .groupBy(sites.id, sites.name, sites.status)
       .orderBy(desc(sites.createdAt));
 

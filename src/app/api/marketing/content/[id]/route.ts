@@ -2,22 +2,24 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { marketingContent } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError, notFound } from "@/lib/api/response";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
   try {
     const { id } = await params;
 
     const [row] = await db
       .select()
       .from(marketingContent)
-      .where(and(eq(marketingContent.id, id), eq(marketingContent.userId, auth.userId)))
+      .where(and(eq(marketingContent.id, id), workspaceFilter(marketingContent.workspaceId, marketingContent.userId, wid, uid)))
       .limit(1);
 
     if (!row) {
@@ -34,8 +36,9 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -69,7 +72,7 @@ export async function PUT(
     const [row] = await db
       .update(marketingContent)
       .set(updateData)
-      .where(and(eq(marketingContent.id, id), eq(marketingContent.userId, auth.userId)))
+      .where(and(eq(marketingContent.id, id), workspaceFilter(marketingContent.workspaceId, marketingContent.userId, wid, uid)))
       .returning();
 
     if (!row) {
@@ -86,12 +89,13 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "delete");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
   try {
     const { id } = await params;
 
-    await db.delete(marketingContent).where(and(eq(marketingContent.id, id), eq(marketingContent.userId, auth.userId)));
+    await db.delete(marketingContent).where(and(eq(marketingContent.id, id), workspaceFilter(marketingContent.workspaceId, marketingContent.userId, wid, uid)));
 
     return ok({ success: true });
   } catch (error) {

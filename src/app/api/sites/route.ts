@@ -2,20 +2,21 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { sites, customers } from "@/lib/db/schema";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 import { validateBody, siteSchema } from "@/lib/api/validate";
 import { parsePagination, buildPaginationMeta, parseFilters, searchPattern, countSql } from "@/lib/api/query-helpers";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("sites", "read");
   if (!auth.ok) return auth.response;
 
   try {
     const pagination = parsePagination(request);
     const filters = parseFilters(request, ["status", "search", "customerId"]);
 
-    const conditions = [eq(sites.userId, auth.userId), isNull(sites.deletedAt)];
+    const conditions = [workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId), isNull(sites.deletedAt)];
 
     if (filters.status) {
       conditions.push(eq(sites.status, filters.status));
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("sites", "write");
   if (!auth.ok) return auth.response;
 
   const validation = await validateBody(request, siteSchema);
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
       .insert(sites)
       .values({
         userId: auth.userId,
+        workspaceId: auth.workspaceId,
         name: validation.data.name,
         customerId: validation.data.customerId ?? null,
         address: validation.data.address ?? null,

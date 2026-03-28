@@ -2,14 +2,15 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { contracts, contractPayments, sites, customers, estimates } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, notFound, serverError } from "@/lib/api/response";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -32,7 +33,7 @@ export async function GET(
     .leftJoin(sites, eq(contracts.siteId, sites.id))
     .leftJoin(customers, eq(sites.customerId, customers.id))
     .leftJoin(estimates, eq(contracts.estimateId, estimates.id))
-    .where(and(eq(contracts.id, id), eq(contracts.userId, auth.userId), isNull(contracts.deletedAt)))
+    .where(and(eq(contracts.id, id), workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt)))
     .limit(1);
 
   if (!contract) return notFound("계약을 찾을 수 없습니다");
@@ -57,7 +58,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -74,7 +75,7 @@ export async function PUT(
     const [row] = await db
       .update(contracts)
       .set(update)
-      .where(and(eq(contracts.id, id), eq(contracts.userId, auth.userId), isNull(contracts.deletedAt)))
+      .where(and(eq(contracts.id, id), workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt)))
       .returning();
 
     if (!row) return notFound("계약을 찾을 수 없습니다");
@@ -108,7 +109,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
   const { id } = await params;
@@ -116,7 +117,7 @@ export async function DELETE(
   const [row] = await db
     .update(contracts)
     .set({ deletedAt: new Date() })
-    .where(and(eq(contracts.id, id), eq(contracts.userId, auth.userId), isNull(contracts.deletedAt)))
+    .where(and(eq(contracts.id, id), workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt)))
     .returning({ id: contracts.id });
 
   if (!row) return notFound("계약을 찾을 수 없습니다");

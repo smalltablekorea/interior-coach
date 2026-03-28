@@ -2,17 +2,20 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { estimates, estimateItems } from "@/lib/db/schema";
 import { eq, and, max } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 
 // 견적 복제 (새 버전 또는 독립 복사)
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("estimates", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId;
+  const uid = auth.userId;
+
   const { id } = await params;
-  const userId = auth.userId;
   const body = await request.json().catch(() => ({}));
   const asNewVersion = body.asNewVersion !== false; // 기본: 새 버전으로 복제
 
@@ -20,7 +23,7 @@ export async function POST(
   const [original] = await db
     .select()
     .from(estimates)
-    .where(and(eq(estimates.id, id), eq(estimates.userId, userId)));
+    .where(and(eq(estimates.id, id), workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid)));
 
   if (!original) {
     return NextResponse.json({ error: "견적을 찾을 수 없습니다" }, { status: 404 });
@@ -33,7 +36,7 @@ export async function POST(
       .select({ maxVersion: max(estimates.version) })
       .from(estimates)
       .where(
-        and(eq(estimates.userId, userId), eq(estimates.siteId, original.siteId))
+        and(workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid), eq(estimates.siteId, original.siteId))
       );
     newVersion = (result?.maxVersion ?? 0) + 1;
   }
@@ -42,7 +45,8 @@ export async function POST(
   const [newEstimate] = await db
     .insert(estimates)
     .values({
-      userId,
+      userId: uid,
+      workspaceId: wid,
       siteId: asNewVersion ? original.siteId : null,
       version: asNewVersion ? newVersion : 1,
       totalAmount: original.totalAmount,

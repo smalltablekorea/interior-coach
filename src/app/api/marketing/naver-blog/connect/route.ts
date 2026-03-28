@@ -2,14 +2,16 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { marketingChannels } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 
 const CHANNEL = "naver_blog";
 
 export async function GET() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
   try {
     const [channel] = await db
       .select({
@@ -20,7 +22,7 @@ export async function GET() {
         settings: marketingChannels.settings,
       })
       .from(marketingChannels)
-      .where(and(eq(marketingChannels.channel, CHANNEL), eq(marketingChannels.userId, auth.userId)));
+      .where(and(eq(marketingChannels.channel, CHANNEL), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, wid, uid)));
 
     if (!channel || !channel.isActive) {
       return ok({ connected: false });
@@ -40,8 +42,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
   try {
     const body = await request.json();
     const { blogId, blogUrl } = body;
@@ -53,7 +56,7 @@ export async function POST(request: NextRequest) {
     const [existing] = await db
       .select()
       .from(marketingChannels)
-      .where(and(eq(marketingChannels.channel, CHANNEL), eq(marketingChannels.userId, auth.userId)));
+      .where(and(eq(marketingChannels.channel, CHANNEL), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, wid, uid)));
 
     const payload = {
       accountName: blogId,
@@ -70,10 +73,11 @@ export async function POST(request: NextRequest) {
       await db
         .update(marketingChannels)
         .set(payload)
-        .where(and(eq(marketingChannels.id, existing.id), eq(marketingChannels.userId, auth.userId)));
+        .where(and(eq(marketingChannels.id, existing.id), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, wid, uid)));
     } else {
       await db.insert(marketingChannels).values({
-        userId: auth.userId,
+        userId: uid,
+        workspaceId: wid,
         channel: CHANNEL,
         ...payload,
       });
@@ -90,13 +94,14 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE() {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "delete");
   if (!auth.ok) return auth.response;
+  const wid = auth.workspaceId; const uid = auth.userId;
   try {
     await db
       .update(marketingChannels)
       .set({ isActive: false, settings: null, updatedAt: new Date() })
-      .where(and(eq(marketingChannels.channel, CHANNEL), eq(marketingChannels.userId, auth.userId)));
+      .where(and(eq(marketingChannels.channel, CHANNEL), workspaceFilter(marketingChannels.workspaceId, marketingChannels.userId, wid, uid)));
 
     return ok({ connected: false, message: "연결이 해제되었습니다." });
   } catch (error) {

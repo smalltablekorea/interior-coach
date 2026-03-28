@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuth } from "@/lib/api-auth";
+import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { db } from "@/lib/db";
 import { threadsComments, threadsPosts } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -7,14 +8,14 @@ import Anthropic from "@anthropic-ai/sdk";
 
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
 
   const { searchParams } = new URL(request.url);
   const postId = searchParams.get("postId");
   const replyStatus = searchParams.get("replyStatus");
 
-  const conditions = [eq(threadsComments.userId, auth.userId)];
+  const conditions = [workspaceFilter(threadsComments.workspaceId, threadsComments.userId, auth.workspaceId, auth.userId)];
   if (postId) conditions.push(eq(threadsComments.postId, postId));
   if (replyStatus) conditions.push(eq(threadsComments.replyStatus, replyStatus));
 
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -111,7 +112,7 @@ Threads 게시물에 달린 댓글에 친절하고 전문적으로 답변해주�
 }
 
 export async function PUT(request: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
 
   const body = await request.json();
@@ -128,7 +129,7 @@ export async function PUT(request: NextRequest) {
   const [updated] = await db
     .update(threadsComments)
     .set(updates)
-    .where(and(eq(threadsComments.id, id), eq(threadsComments.userId, auth.userId)))
+    .where(and(eq(threadsComments.id, id), workspaceFilter(threadsComments.workspaceId, threadsComments.userId, auth.workspaceId, auth.userId)))
     .returning();
 
   return NextResponse.json(updated || null);
