@@ -122,14 +122,12 @@ export default function ScheduleGeneratorPage() {
   const formatDate = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
   const getDayOfWeek = (d: Date) => ["일","월","화","수","목","금","토"][d.getDay()];
 
-  // Generate date tick marks for the Gantt chart
+  // Generate date tick marks for EVERY day
   const dateTicks = useMemo(() => {
     if (!result) return [];
     const total = result.totalDays;
-    // Show ~every N days depending on total duration
-    const interval = total <= 10 ? 1 : total <= 20 ? 2 : total <= 40 ? 3 : 5;
     const ticks: { day: number; label: string; dow: string; isWeekend: boolean; pct: number }[] = [];
-    for (let d = 1; d <= total; d += interval) {
+    for (let d = 1; d <= total; d++) {
       const date = addDays(startDate, d - 1);
       const dow = getDayOfWeek(date);
       ticks.push({
@@ -139,12 +137,6 @@ export default function ScheduleGeneratorPage() {
         isWeekend: date.getDay() === 0 || date.getDay() === 6,
         pct: ((d - 1) / total) * 100,
       });
-    }
-    // Always include last day
-    if (ticks.length === 0 || ticks[ticks.length - 1].day !== total) {
-      const date = addDays(startDate, total - 1);
-      const dow = getDayOfWeek(date);
-      ticks.push({ day: total, label: formatDate(date), dow, isWeekend: date.getDay() === 0 || date.getDay() === 6, pct: ((total - 1) / total) * 100 });
     }
     return ticks;
   }, [result, startDate]);
@@ -484,88 +476,88 @@ export default function ScheduleGeneratorPage() {
                   />
                 </div>
 
-                {/* Gantt chart with date axis */}
+                {/* Gantt chart with date axis — every day */}
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-x-auto">
-                  {/* Date axis header */}
-                  <div className="flex border-b border-[var(--border)]">
-                    <div className="w-20 shrink-0" />
-                    <div className="flex-1 relative h-14">
-                      {dateTicks.map((tick, i) => (
-                        <div
-                          key={i}
-                          className="absolute top-0 flex flex-col items-center"
-                          style={{ left: `${tick.pct}%` }}
-                        >
-                          <div className={cn(
-                            "text-[9px] font-bold mt-1",
-                            tick.isWeekend ? "text-red-400/70" : "text-[var(--muted)]"
-                          )}>
-                            {tick.label}
+                  <div style={{ minWidth: `${Math.max(600, maxDay * 40 + 150)}px` }}>
+                    {/* Date axis header */}
+                    <div className="flex border-b border-[var(--border)]">
+                      <div className="w-20 shrink-0 px-2 py-1.5 border-r border-[var(--border)]">
+                        <span className="text-[9px] text-[var(--muted)] font-semibold">공종</span>
+                      </div>
+                      <div className="flex-1 flex">
+                        {dateTicks.map((tick) => (
+                          <div
+                            key={tick.day}
+                            className={cn(
+                              "flex-1 min-w-[32px] flex flex-col items-center py-1 border-r border-white/[0.03]",
+                              tick.isWeekend && "bg-red-400/[0.04]"
+                            )}
+                          >
+                            <span className={cn(
+                              "text-[9px] font-bold leading-tight",
+                              tick.isWeekend ? "text-red-400/80" : "text-[var(--foreground)]"
+                            )}>
+                              {tick.label}
+                            </span>
+                            <span className={cn(
+                              "text-[8px] leading-tight",
+                              tick.isWeekend ? "text-red-400/50" : "text-[var(--muted)]"
+                            )}>
+                              {tick.dow}
+                            </span>
                           </div>
-                          <div className={cn(
-                            "text-[8px]",
-                            tick.isWeekend ? "text-red-400/50" : "text-[var(--muted)]/50"
-                          )}>
-                            {tick.dow}
-                          </div>
-                          <div className={cn(
-                            "text-[8px] font-mono",
-                            tick.isWeekend ? "text-red-400/40" : "text-[var(--muted)]/40"
-                          )}>
-                            D{tick.day}
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Chart body rows */}
+                    {Object.values(grouped).map(({ phase, items }) => (
+                      <div key={phase}>
+                        {/* Phase label row */}
+                        <div className="flex border-b border-white/[0.03]">
+                          <div className="w-20 shrink-0" />
+                          <div className="flex-1 px-2 py-1">
+                            <span className="text-[9px] font-extrabold" style={{ color: PHASE_COLORS[phase] }}>{phase}단계: {PHASE_LABELS[phase]}</span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                    <div className="w-[70px] shrink-0" />
-                  </div>
-
-                  {/* Chart body */}
-                  <div className="px-3.5 py-2.5 relative">
-                    {/* Vertical grid lines */}
-                    <div className="absolute inset-0 pointer-events-none" style={{ left: 80, right: 70 }}>
-                      {dateTicks.map((tick, i) => (
-                        <div
-                          key={i}
-                          className={cn("absolute top-0 bottom-0 w-px", tick.isWeekend ? "bg-red-400/[0.07]" : "bg-white/[0.03]")}
-                          style={{ left: `${tick.pct}%` }}
-                        />
-                      ))}
-                    </div>
-
-                    {Object.values(grouped).map(({ phase, items }) => (
-                      <div key={phase} className="mb-2.5 last:mb-0">
-                        <p className="text-[9px] font-extrabold mb-1" style={{ color: PHASE_COLORS[phase] }}>{phase}단계: {PHASE_LABELS[phase]}</p>
-                        {items.map((item, idx) => {
-                          const l = ((item.startDay - 1) / maxDay) * 100;
-                          const w = Math.max((item.days / maxDay) * 100, 4);
-                          const dateStart = addDays(startDate, item.startDay - 1);
-                          const dateEnd = addDays(startDate, item.endDay - 1);
-                          return (
-                            <div key={item.id} className="flex items-center mb-0.5 h-6">
-                              <div className="w-20 shrink-0 text-[10px] font-semibold text-[var(--muted)] flex items-center gap-1 truncate">
-                                <span className="text-xs">{item.icon}</span>
-                                <span className="truncate">{item.name}</span>
-                              </div>
-                              <div className="flex-1 relative h-full">
-                                <div
-                                  className="absolute h-[18px] top-[3px] rounded flex items-center justify-center text-[8px] font-bold text-white transition-all"
-                                  style={{
-                                    left: `${l}%`,
-                                    width: `${w}%`,
-                                    background: `linear-gradient(90deg, ${PHASE_COLORS[phase]}BB, ${PHASE_COLORS[phase]}55)`,
-                                    animationDelay: `${idx * 0.06}s`,
-                                  }}
-                                >
-                                  {item.days >= 2 ? `${item.days}일` : ""}
-                                </div>
-                              </div>
-                              <div className="w-[70px] shrink-0 text-[9px] text-[var(--muted)] text-right">
-                                {formatDate(dateStart)}~{formatDate(dateEnd)}
-                              </div>
+                        {/* Trade rows */}
+                        {items.map((item) => (
+                          <div key={item.id} className="flex border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors">
+                            <div className="w-20 shrink-0 px-2 py-1 flex items-center gap-1 border-r border-[var(--border)]">
+                              <span className="text-[11px]">{item.icon}</span>
+                              <span className="text-[10px] font-semibold text-[var(--muted)] truncate">{item.name}</span>
                             </div>
-                          );
-                        })}
+                            <div className="flex-1 flex relative">
+                              {/* Day cells background */}
+                              {dateTicks.map((tick) => {
+                                const isActive = tick.day >= item.startDay && tick.day <= item.endDay;
+                                return (
+                                  <div
+                                    key={tick.day}
+                                    className={cn(
+                                      "flex-1 min-w-[32px] h-7 border-r border-white/[0.02]",
+                                      tick.isWeekend && !isActive && "bg-red-400/[0.02]",
+                                      isActive && "relative"
+                                    )}
+                                  >
+                                    {isActive && (
+                                      <div
+                                        className="absolute inset-0.5 rounded-sm flex items-center justify-center"
+                                        style={{ background: `${PHASE_COLORS[phase]}44` }}
+                                      >
+                                        {tick.day === item.startDay && (
+                                          <span className="text-[8px] font-bold text-white/80 whitespace-nowrap">
+                                            {item.days}일
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
