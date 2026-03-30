@@ -32,10 +32,12 @@ export default function WorkspaceSetupPage() {
       const res = await fetch("/api/workspace", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ name, ceoName, businessNumber, phone }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      document.cookie = "has_workspace=1; path=/; max-age=31536000";
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "생성 실패");
@@ -55,10 +57,12 @@ export default function WorkspaceSetupPage() {
       const res = await fetch("/api/workspace/join", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ inviteCode }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
+      document.cookie = "has_workspace=1; path=/; max-age=31536000";
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "참여 실패");
