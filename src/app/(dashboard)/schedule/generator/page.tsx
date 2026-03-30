@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
-import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, GripVertical, MapPin, Search } from "lucide-react";
+import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, GripVertical, MapPin, Search, Plus, X, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { cn, fmtDate } from "@/lib/utils";
 import {
@@ -53,6 +53,7 @@ interface Site {
   areaPyeong: number | null;
   status: string;
   startDate: string | null;
+  endDate: string | null;
   customerName: string | null;
 }
 
@@ -115,6 +116,7 @@ export default function ScheduleGeneratorPage() {
     const autoSize = pyeongToSize(site.areaPyeong);
     if (autoSize) setSize(autoSize);
     if (site.startDate) setStartDate(site.startDate);
+    if (site.endDate) setEndDate(site.endDate);
     go(1);
   };
 
@@ -147,12 +149,44 @@ export default function ScheduleGeneratorPage() {
     setLoading(true);
     setTimeout(() => {
       setResult(buildSchedule(selected, sizeObj, season));
+      setLiveSelected([...selected]);
+      setDragOffsets({});
       setStep(4);
       setTab("schedule");
       setLoading(false);
       setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     }, 1800);
   };
+
+  // End date
+  const [endDate, setEndDate] = useState("");
+
+  // Live trade management (add/remove after generation)
+  const [liveSelected, setLiveSelected] = useState<string[]>([]);
+  const [showAddTrade, setShowAddTrade] = useState(false);
+
+  const availableTrades = useMemo(() => {
+    return TRADES.filter(t => !liveSelected.includes(t.id));
+  }, [liveSelected]);
+
+  const handleRemoveTrade = useCallback((tradeId: string) => {
+    if (!sizeObj) return;
+    const next = liveSelected.filter(id => id !== tradeId);
+    setLiveSelected(next);
+    setDragOffsets({});
+    const newResult = buildSchedule(next, sizeObj, season);
+    setResult(newResult);
+  }, [liveSelected, sizeObj, season]);
+
+  const handleAddTrade = useCallback((tradeId: string) => {
+    if (!sizeObj) return;
+    const next = [...liveSelected, tradeId];
+    setLiveSelected(next);
+    setShowAddTrade(false);
+    setDragOffsets({});
+    const newResult = buildSchedule(next, sizeObj, season);
+    setResult(newResult);
+  }, [liveSelected, sizeObj, season]);
 
   // Flat schedule with drag adjustments
   const [dragOffsets, setDragOffsets] = useState<Record<string, number>>({});
@@ -235,7 +269,8 @@ export default function ScheduleGeneratorPage() {
     setStep(0); setResult(null); setSelected([]); setSize(null);
     setSelectedPkg(null); setBudget("");
     setTab("schedule"); setUnlocked(false); setSelectedSite(null);
-    setDragOffsets({});
+    setDragOffsets({}); setLiveSelected([]); setShowAddTrade(false);
+    setEndDate("");
   };
 
   return (
@@ -638,16 +673,41 @@ export default function ScheduleGeneratorPage() {
             {/* TAB: 공정표 */}
             {tab === "schedule" && (
               <div className="space-y-3">
-                {/* Start date picker */}
-                <div className="flex items-center gap-2 mb-1">
-                  <Calendar size={14} className="text-[var(--muted)]" />
-                  <span className="text-xs text-[var(--muted)]">공사 시작일</span>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={e => setStartDate(e.target.value)}
-                    className="px-2 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] text-xs text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
-                  />
+                {/* Date pickers */}
+                <div className="flex items-center gap-3 mb-1 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Calendar size={14} className="text-[var(--muted)]" />
+                    <span className="text-xs text-[var(--muted)]">시작일</span>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={e => setStartDate(e.target.value)}
+                      className="px-2 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] text-xs text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-[var(--muted)]">마감일</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={e => setEndDate(e.target.value)}
+                      className="px-2 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] text-xs text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
+                    />
+                    {endDate && result && (() => {
+                      const endD = new Date(endDate + "T00:00:00");
+                      const startD = new Date(startDate + "T00:00:00");
+                      const availDays = Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24));
+                      const diff = availDays - result.totalDays;
+                      return (
+                        <span className={cn(
+                          "text-[10px] font-bold px-1.5 py-0.5 rounded",
+                          diff >= 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-red-500/10 text-red-500"
+                        )}>
+                          {diff >= 0 ? `여유 ${diff}일` : `${Math.abs(diff)}일 초과`}
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
 
                 {/* Gantt chart with date axis — every day */}
@@ -687,13 +747,22 @@ export default function ScheduleGeneratorPage() {
                     {/* Chart body rows — flat trade list */}
                     {adjustedSchedule.map((item) => (
                       <div key={item.id} className="flex border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors group">
-                        {/* Trade name + cost */}
-                        <div className="w-28 shrink-0 px-2 py-1 flex flex-col justify-center border-r border-[var(--border)]">
+                        {/* Trade name + cost + remove */}
+                        <div className="w-28 shrink-0 px-2 py-1 flex flex-col justify-center border-r border-[var(--border)] relative">
                           <div className="flex items-center gap-1">
                             <span className="text-[11px]">{item.icon}</span>
                             <span className="text-[10px] font-semibold text-[var(--foreground)] truncate">{item.name}</span>
                           </div>
                           <span className="text-[8px] text-yellow-400/80 font-medium mt-0.5">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
+                          {liveSelected.length > 1 && (
+                            <button
+                              onClick={() => handleRemoveTrade(item.id)}
+                              className="absolute -right-0.5 -top-0.5 w-4 h-4 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 z-10"
+                              title="공종 제거"
+                            >
+                              <X size={10} />
+                            </button>
+                          )}
                         </div>
                         {/* Day cells with draggable blocks */}
                         <div className="flex-1 flex relative" ref={chartRef}>
@@ -737,13 +806,50 @@ export default function ScheduleGeneratorPage() {
                         </div>
                       </div>
                     ))}
+                    {/* Add trade row */}
+                    {availableTrades.length > 0 && (
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowAddTrade(!showAddTrade)}
+                          className="w-full flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold text-[var(--green)] hover:bg-[var(--green)]/[0.04] transition-colors"
+                        >
+                          <Plus size={12} />
+                          공종 추가
+                          <ChevronDown size={10} className={cn("transition-transform", showAddTrade && "rotate-180")} />
+                        </button>
+                        {showAddTrade && (
+                          <div className="border-t border-[var(--border)] bg-[var(--card)] max-h-[200px] overflow-y-auto">
+                            {TRADE_GROUPS.map(g => {
+                              const trades = availableTrades.filter(t => t.group === g);
+                              if (!trades.length) return null;
+                              return (
+                                <div key={g}>
+                                  <p className="text-[9px] font-bold text-[var(--muted)] px-3 pt-2 pb-1 uppercase tracking-wider">{g}</p>
+                                  {trades.map(t => (
+                                    <button
+                                      key={t.id}
+                                      onClick={() => handleAddTrade(t.id)}
+                                      className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--green)]/[0.06] transition-colors text-left"
+                                    >
+                                      <span className="text-[11px]">{t.icon}</span>
+                                      <span className="text-[11px] font-medium text-[var(--foreground)]">{t.name}</span>
+                                      <span className="text-[9px] text-[var(--muted)] ml-auto">{t.baseDays}일</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Trade detail list */}
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
                   {adjustedSchedule.map(item => (
-                    <div key={item.id} className="px-3.5 py-2.5 border-b border-white/[0.03] last:border-0">
+                    <div key={item.id} className="px-3.5 py-2.5 border-b border-white/[0.03] last:border-0 group/detail">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span>{item.icon}</span>
@@ -752,7 +858,18 @@ export default function ScheduleGeneratorPage() {
                           {item.isParallel && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/[0.08] text-purple-400">∥병렬</span>}
                           <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: `${PHASE_COLORS[item.phase]}15`, color: PHASE_COLORS[item.phase] }}>{PHASE_LABELS[item.phase]}</span>
                         </div>
-                        <span className="text-[11px] font-bold text-yellow-400 whitespace-nowrap">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-bold text-yellow-400 whitespace-nowrap">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
+                          {liveSelected.length > 1 && (
+                            <button
+                              onClick={() => handleRemoveTrade(item.id)}
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-red-400 opacity-0 group-hover/detail:opacity-100 hover:bg-red-500/10 transition-all"
+                              title="공종 제거"
+                            >
+                              <X size={12} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <p className="text-[10px] text-[var(--muted)] pl-6">{item.desc}</p>
                       {item.notes && <p className="text-[10px] text-yellow-500 mt-0.5 pl-6">⚠ {item.notes}</p>}
