@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useCallback } from "react";
-import { ArrowLeft, ChevronDown, Sparkles, Lock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
@@ -58,6 +58,11 @@ export default function ScheduleGeneratorPage() {
   const [season] = useState(getSeason());
   const [showModal, setShowModal] = useState(false);
   const [unlocked, setUnlocked] = useState(false);
+  const [startDate, setStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d.toISOString().slice(0, 10);
+  });
   const ref = useRef<HTMLDivElement>(null);
 
   const sizeObj = SIZES.find(s => s.id === size) ?? null;
@@ -107,6 +112,42 @@ export default function ScheduleGeneratorPage() {
   }, [result]);
 
   const maxDay = result?.totalDays || 1;
+
+  // Date helpers
+  const addDays = (dateStr: string, days: number) => {
+    const d = new Date(dateStr + "T00:00:00");
+    d.setDate(d.getDate() + days);
+    return d;
+  };
+  const formatDate = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+  const getDayOfWeek = (d: Date) => ["일","월","화","수","목","금","토"][d.getDay()];
+
+  // Generate date tick marks for the Gantt chart
+  const dateTicks = useMemo(() => {
+    if (!result) return [];
+    const total = result.totalDays;
+    // Show ~every N days depending on total duration
+    const interval = total <= 10 ? 1 : total <= 20 ? 2 : total <= 40 ? 3 : 5;
+    const ticks: { day: number; label: string; dow: string; isWeekend: boolean; pct: number }[] = [];
+    for (let d = 1; d <= total; d += interval) {
+      const date = addDays(startDate, d - 1);
+      const dow = getDayOfWeek(date);
+      ticks.push({
+        day: d,
+        label: formatDate(date),
+        dow,
+        isWeekend: date.getDay() === 0 || date.getDay() === 6,
+        pct: ((d - 1) / total) * 100,
+      });
+    }
+    // Always include last day
+    if (ticks.length === 0 || ticks[ticks.length - 1].day !== total) {
+      const date = addDays(startDate, total - 1);
+      const dow = getDayOfWeek(date);
+      ticks.push({ day: total, label: formatDate(date), dow, isWeekend: date.getDay() === 0 || date.getDay() === 6, pct: ((total - 1) / total) * 100 });
+    }
+    return ticks;
+  }, [result, startDate]);
   const budgetNum = parseInt(budget.replace(/,/g, "")) || 0;
   const budgetFit = budgetNum > 0 && result
     ? budgetNum < result.totalCostLow * 0.1 ? "invalid"
@@ -431,39 +472,103 @@ export default function ScheduleGeneratorPage() {
             {/* TAB: 공정표 */}
             {tab === "schedule" && (
               <div className="space-y-3">
-                {/* Gantt chart */}
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3.5 overflow-x-auto">
-                  {Object.values(grouped).map(({ phase, items }) => (
-                    <div key={phase} className="mb-2.5 last:mb-0">
-                      <p className="text-[9px] font-extrabold mb-1" style={{ color: PHASE_COLORS[phase] }}>{phase}단계: {PHASE_LABELS[phase]}</p>
-                      {items.map((item, idx) => {
-                        const l = ((item.startDay - 1) / maxDay) * 100;
-                        const w = Math.max((item.days / maxDay) * 100, 4);
-                        return (
-                          <div key={item.id} className="flex items-center mb-0.5 h-6">
-                            <div className="w-20 shrink-0 text-[10px] font-semibold text-[var(--muted)] flex items-center gap-1 truncate">
-                              <span className="text-xs">{item.icon}</span>
-                              <span className="truncate">{item.name}</span>
-                            </div>
-                            <div className="flex-1 relative h-full">
-                              <div
-                                className="absolute h-[18px] top-[3px] rounded flex items-center justify-center text-[8px] font-bold text-white transition-all"
-                                style={{
-                                  left: `${l}%`,
-                                  width: `${w}%`,
-                                  background: `linear-gradient(90deg, ${PHASE_COLORS[phase]}BB, ${PHASE_COLORS[phase]}55)`,
-                                  animationDelay: `${idx * 0.06}s`,
-                                }}
-                              >
-                                {item.days >= 2 ? `${item.days}일` : ""}
+                {/* Start date picker */}
+                <div className="flex items-center gap-2 mb-1">
+                  <Calendar size={14} className="text-[var(--muted)]" />
+                  <span className="text-xs text-[var(--muted)]">공사 시작일</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    className="px-2 py-1 rounded-lg bg-[var(--card)] border border-[var(--border)] text-xs text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
+                  />
+                </div>
+
+                {/* Gantt chart with date axis */}
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-x-auto">
+                  {/* Date axis header */}
+                  <div className="flex border-b border-[var(--border)]">
+                    <div className="w-20 shrink-0" />
+                    <div className="flex-1 relative h-14">
+                      {dateTicks.map((tick, i) => (
+                        <div
+                          key={i}
+                          className="absolute top-0 flex flex-col items-center"
+                          style={{ left: `${tick.pct}%` }}
+                        >
+                          <div className={cn(
+                            "text-[9px] font-bold mt-1",
+                            tick.isWeekend ? "text-red-400/70" : "text-[var(--muted)]"
+                          )}>
+                            {tick.label}
+                          </div>
+                          <div className={cn(
+                            "text-[8px]",
+                            tick.isWeekend ? "text-red-400/50" : "text-[var(--muted)]/50"
+                          )}>
+                            {tick.dow}
+                          </div>
+                          <div className={cn(
+                            "text-[8px] font-mono",
+                            tick.isWeekend ? "text-red-400/40" : "text-[var(--muted)]/40"
+                          )}>
+                            D{tick.day}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="w-[70px] shrink-0" />
+                  </div>
+
+                  {/* Chart body */}
+                  <div className="px-3.5 py-2.5 relative">
+                    {/* Vertical grid lines */}
+                    <div className="absolute inset-0 pointer-events-none" style={{ left: 80, right: 70 }}>
+                      {dateTicks.map((tick, i) => (
+                        <div
+                          key={i}
+                          className={cn("absolute top-0 bottom-0 w-px", tick.isWeekend ? "bg-red-400/[0.07]" : "bg-white/[0.03]")}
+                          style={{ left: `${tick.pct}%` }}
+                        />
+                      ))}
+                    </div>
+
+                    {Object.values(grouped).map(({ phase, items }) => (
+                      <div key={phase} className="mb-2.5 last:mb-0">
+                        <p className="text-[9px] font-extrabold mb-1" style={{ color: PHASE_COLORS[phase] }}>{phase}단계: {PHASE_LABELS[phase]}</p>
+                        {items.map((item, idx) => {
+                          const l = ((item.startDay - 1) / maxDay) * 100;
+                          const w = Math.max((item.days / maxDay) * 100, 4);
+                          const dateStart = addDays(startDate, item.startDay - 1);
+                          const dateEnd = addDays(startDate, item.endDay - 1);
+                          return (
+                            <div key={item.id} className="flex items-center mb-0.5 h-6">
+                              <div className="w-20 shrink-0 text-[10px] font-semibold text-[var(--muted)] flex items-center gap-1 truncate">
+                                <span className="text-xs">{item.icon}</span>
+                                <span className="truncate">{item.name}</span>
+                              </div>
+                              <div className="flex-1 relative h-full">
+                                <div
+                                  className="absolute h-[18px] top-[3px] rounded flex items-center justify-center text-[8px] font-bold text-white transition-all"
+                                  style={{
+                                    left: `${l}%`,
+                                    width: `${w}%`,
+                                    background: `linear-gradient(90deg, ${PHASE_COLORS[phase]}BB, ${PHASE_COLORS[phase]}55)`,
+                                    animationDelay: `${idx * 0.06}s`,
+                                  }}
+                                >
+                                  {item.days >= 2 ? `${item.days}일` : ""}
+                                </div>
+                              </div>
+                              <div className="w-[70px] shrink-0 text-[9px] text-[var(--muted)] text-right">
+                                {formatDate(dateStart)}~{formatDate(dateEnd)}
                               </div>
                             </div>
-                            <div className="w-14 shrink-0 text-[9px] text-[var(--muted)] text-right">D{item.startDay}-D{item.endDay}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ))}
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Phase accordions */}
@@ -491,7 +596,7 @@ export default function ScheduleGeneratorPage() {
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span>{item.icon}</span>
                                 <span className="text-xs font-bold">{item.name}</span>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--green)]/[0.08] text-[var(--green)]">D{item.startDay}~D{item.endDay}</span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--green)]/[0.08] text-[var(--green)]">{formatDate(addDays(startDate, item.startDay - 1))}~{formatDate(addDays(startDate, item.endDay - 1))}</span>
                                 {item.isParallel && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/[0.08] text-purple-400">∥병렬</span>}
                               </div>
                               <span className="text-[11px] font-bold text-[var(--muted)] whitespace-nowrap">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
