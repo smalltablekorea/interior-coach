@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef, useMemo, useCallback } from "react";
-import { ArrowLeft, ChevronDown, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar } from "lucide-react";
+import { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, GripVertical, MapPin, Search } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, fmtDate } from "@/lib/utils";
 import {
   TRADES, DEP_WARNINGS, SIZES, SEASONS, TRADE_GROUPS,
   PHASE_LABELS, PHASE_COLORS,
@@ -43,6 +43,33 @@ function BlurLock({ children, label = "스탠다드 패키지부터 이용 가�
   );
 }
 
+// ─── Site type ───
+
+interface Site {
+  id: string;
+  name: string;
+  address: string | null;
+  buildingType: string | null;
+  areaPyeong: number | null;
+  status: string;
+  startDate: string | null;
+  customerName: string | null;
+}
+
+const STATUS_COLORS: Record<string, string> = {
+  "상담중": "#8B8B8B", "견적중": "#3B82F6", "계약완료": "#8B5CF6",
+  "시공중": "#F59E0B", "시공완료": "#10B981", "A/S": "#EC4899",
+};
+
+function pyeongToSize(py: number | null): string | null {
+  if (!py) return null;
+  if (py < 20) return "10s";
+  if (py < 30) return "20s";
+  if (py < 40) return "30s";
+  if (py < 50) return "40s";
+  return "50p";
+}
+
 // ─── Main ───
 
 export default function ScheduleGeneratorPage() {
@@ -53,7 +80,6 @@ export default function ScheduleGeneratorPage() {
   const [result, setResult] = useState<ScheduleResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<TabId>("schedule");
-  const [expandPhase, setExpandPhase] = useState<number | null>(null);
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
   const [season] = useState(getSeason());
   const [showModal, setShowModal] = useState(false);
@@ -64,6 +90,33 @@ export default function ScheduleGeneratorPage() {
     return d.toISOString().slice(0, 10);
   });
   const ref = useRef<HTMLDivElement>(null);
+
+  // Site selection
+  const [sites, setSites] = useState<Site[]>([]);
+  const [sitesLoading, setSitesLoading] = useState(true);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [siteSearch, setSiteSearch] = useState("");
+
+  useEffect(() => {
+    fetch("/api/sites", { credentials: "include" })
+      .then(r => r.json())
+      .then(data => { setSites(Array.isArray(data) ? data : []); setSitesLoading(false); })
+      .catch(() => setSitesLoading(false));
+  }, []);
+
+  const filteredSites = useMemo(() => {
+    if (!siteSearch.trim()) return sites;
+    const q = siteSearch.toLowerCase();
+    return sites.filter(s => s.name.toLowerCase().includes(q) || s.address?.toLowerCase().includes(q) || s.customerName?.toLowerCase().includes(q));
+  }, [sites, siteSearch]);
+
+  const handleSelectSite = (site: Site) => {
+    setSelectedSite(site);
+    const autoSize = pyeongToSize(site.areaPyeong);
+    if (autoSize) setSize(autoSize);
+    if (site.startDate) setStartDate(site.startDate);
+    go(1);
+  };
 
   const sizeObj = SIZES.find(s => s.id === size) ?? null;
 
@@ -94,24 +147,30 @@ export default function ScheduleGeneratorPage() {
     setLoading(true);
     setTimeout(() => {
       setResult(buildSchedule(selected, sizeObj, season));
-      setStep(3);
+      setStep(4);
       setTab("schedule");
       setLoading(false);
       setTimeout(() => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     }, 1800);
   };
 
-  const grouped = useMemo(() => {
-    if (!result) return {};
-    const g: Record<number, { phase: number; items: ScheduledTrade[] }> = {};
-    result.scheduled.forEach(t => {
-      if (!g[t.phase]) g[t.phase] = { phase: t.phase, items: [] };
-      g[t.phase].items.push(t);
-    });
-    return g;
-  }, [result]);
+  // Flat schedule with drag adjustments
+  const [dragOffsets, setDragOffsets] = useState<Record<string, number>>({});
+  const [dragging, setDragging] = useState<{ id: string; startX: number; origDay: number } | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
 
-  const maxDay = result?.totalDays || 1;
+  const adjustedSchedule = useMemo(() => {
+    if (!result) return [];
+    return result.scheduled.map(t => {
+      const offset = dragOffsets[t.id] || 0;
+      return { ...t, startDay: t.startDay + offset, endDay: t.endDay + offset };
+    });
+  }, [result, dragOffsets]);
+
+  const maxDay = useMemo(() => {
+    if (!adjustedSchedule.length) return 1;
+    return Math.max(...adjustedSchedule.map(s => s.endDay));
+  }, [adjustedSchedule]);
 
   // Date helpers
   const addDays = (dateStr: string, days: number) => {
@@ -124,10 +183,9 @@ export default function ScheduleGeneratorPage() {
 
   // Generate date tick marks for EVERY day
   const dateTicks = useMemo(() => {
-    if (!result) return [];
-    const total = result.totalDays;
-    const ticks: { day: number; label: string; dow: string; isWeekend: boolean; pct: number }[] = [];
-    for (let d = 1; d <= total; d++) {
+    if (!maxDay) return [];
+    const ticks: { day: number; label: string; dow: string; isWeekend: boolean }[] = [];
+    for (let d = 1; d <= maxDay; d++) {
       const date = addDays(startDate, d - 1);
       const dow = getDayOfWeek(date);
       ticks.push({
@@ -135,11 +193,38 @@ export default function ScheduleGeneratorPage() {
         label: formatDate(date),
         dow,
         isWeekend: date.getDay() === 0 || date.getDay() === 6,
-        pct: ((d - 1) / total) * 100,
       });
     }
     return ticks;
-  }, [result, startDate]);
+  }, [maxDay, startDate]);
+
+  // Drag handlers
+  const cellWidth = 32;
+  const handleDragStart = (id: string, startDay: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    setDragging({ id, startX: e.clientX, origDay: startDay });
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+    const handleMove = (e: MouseEvent) => {
+      const dx = e.clientX - dragging.startX;
+      const dayDelta = Math.round(dx / cellWidth);
+      const currentOffset = dragOffsets[dragging.id] || 0;
+      const baseStartDay = dragging.origDay - currentOffset;
+      const newStart = baseStartDay + dayDelta;
+      if (newStart >= 1) {
+        setDragOffsets(prev => ({ ...prev, [dragging.id]: dayDelta }));
+      }
+    };
+    const handleUp = () => setDragging(null);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, [dragging, dragOffsets]);
   const budgetNum = parseInt(budget.replace(/,/g, "")) || 0;
   const budgetFit = budgetNum > 0 && result
     ? budgetNum < result.totalCostLow * 0.1 ? "invalid"
@@ -148,8 +233,9 @@ export default function ScheduleGeneratorPage() {
 
   const resetAll = () => {
     setStep(0); setResult(null); setSelected([]); setSize(null);
-    setSelectedPkg(null); setExpandPhase(null); setBudget("");
-    setTab("schedule"); setUnlocked(false);
+    setSelectedPkg(null); setBudget("");
+    setTab("schedule"); setUnlocked(false); setSelectedSite(null);
+    setDragOffsets({});
   };
 
   return (
@@ -173,17 +259,29 @@ export default function ScheduleGeneratorPage() {
       </div>
 
       {/* Progress */}
-      <div className="flex items-center gap-1.5">
-        {[0, 1, 2].map(i => (
-          <div
-            key={i}
-            className={cn(
-              "h-1 rounded-full transition-all duration-300",
-              step > i ? "w-5 bg-[var(--green)]" : step === i ? "w-6 bg-[var(--green)]/60" : "w-4 bg-[var(--border)]"
-            )}
-          />
-        ))}
-      </div>
+      {step < 4 && (
+        <div className="flex items-center gap-1.5">
+          {[0, 1, 2, 3].map(i => (
+            <div
+              key={i}
+              className={cn(
+                "h-1 rounded-full transition-all duration-300",
+                step > i ? "w-5 bg-[var(--green)]" : step === i ? "w-6 bg-[var(--green)]/60" : "w-4 bg-[var(--border)]"
+              )}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Selected site badge */}
+      {selectedSite && step > 0 && step < 4 && (
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--border)]">
+          <MapPin size={12} className="text-[var(--green)]" />
+          <span className="text-[11px] font-bold text-[var(--foreground)]">{selectedSite.name}</span>
+          {selectedSite.areaPyeong && <span className="text-[10px] text-[var(--muted)]">{selectedSite.areaPyeong}평</span>}
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: `${STATUS_COLORS[selectedSite.status] || "#888"}22`, color: STATUS_COLORS[selectedSite.status] || "#888" }}>{selectedSite.status}</span>
+        </div>
+      )}
 
       {/* Dependency Warning Modal */}
       {showModal && (
@@ -223,8 +321,79 @@ export default function ScheduleGeneratorPage() {
       )}
 
       <div ref={ref}>
-        {/* STEP 0: 평수 선택 */}
+        {/* STEP 0: 현장 선택 */}
         {step === 0 && (
+          <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
+            <div className="mb-4">
+              <h2 className="text-lg font-extrabold">현장을 선택하세요</h2>
+              <p className="text-xs text-[var(--muted)]">현장 정보로 평수·시작일이 자동 입력됩니다</p>
+            </div>
+
+            {/* Search */}
+            <div className="relative mb-3">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+              <input
+                value={siteSearch}
+                onChange={e => setSiteSearch(e.target.value)}
+                placeholder="현장명, 주소, 고객명 검색"
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* Site list */}
+            <div className="space-y-1.5 mb-4 max-h-[360px] overflow-y-auto">
+              {sitesLoading ? (
+                <div className="text-center py-8">
+                  <span className="w-5 h-5 border-2 border-[var(--green)]/30 border-t-[var(--green)] rounded-full animate-spin inline-block" />
+                  <p className="text-xs text-[var(--muted)] mt-2">현장 불러오는 중...</p>
+                </div>
+              ) : filteredSites.length === 0 ? (
+                <div className="text-center py-8">
+                  <MapPin size={24} className="mx-auto text-[var(--muted)] mb-2" />
+                  <p className="text-xs text-[var(--muted)]">{siteSearch ? "검색 결과가 없습니다" : "등록된 현장이 없습니다"}</p>
+                </div>
+              ) : (
+                filteredSites.map(site => (
+                  <button
+                    key={site.id}
+                    onClick={() => handleSelectSite(site)}
+                    className={cn(
+                      "w-full text-left px-4 py-3 rounded-xl border transition-all",
+                      selectedSite?.id === site.id
+                        ? "border-[var(--green)] bg-[var(--green)]/[0.08]"
+                        : "border-[var(--border)] bg-[var(--card)] hover:border-[var(--green)]/30"
+                    )}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-bold text-[var(--foreground)]">{site.name}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold" style={{ background: `${STATUS_COLORS[site.status] || "#888"}22`, color: STATUS_COLORS[site.status] || "#888" }}>{site.status}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-[var(--muted)]">
+                      {site.address && <span>{site.address}</span>}
+                      {site.areaPyeong && <span>{site.areaPyeong}평</span>}
+                      {site.buildingType && <span>{site.buildingType}</span>}
+                      {site.customerName && <span>· {site.customerName}</span>}
+                    </div>
+                    {site.startDate && (
+                      <p className="text-[10px] text-[var(--muted)] mt-0.5">시작일: {fmtDate(site.startDate)}</p>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+
+            {/* Skip */}
+            <button
+              onClick={() => go(1)}
+              className="w-full py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm font-bold text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+            >
+              현장 없이 진행 →
+            </button>
+          </div>
+        )}
+
+        {/* STEP 1: 평수 선택 */}
+        {step === 1 && (
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
             <div className="mb-4">
               <h2 className="text-lg font-extrabold">평수를 선택하세요</h2>
@@ -247,18 +416,23 @@ export default function ScheduleGeneratorPage() {
                 </button>
               ))}
             </div>
-            <button
-              disabled={!size}
-              onClick={() => go(1)}
-              className="w-full py-3.5 rounded-xl bg-[var(--green)] text-black text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              다음 →
-            </button>
+            <div className="flex gap-1.5">
+              <button onClick={() => go(0)} className="px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] text-sm font-bold hover:bg-[var(--border)] transition-colors">
+                ←
+              </button>
+              <button
+                disabled={!size}
+                onClick={() => go(2)}
+                className="flex-1 py-3.5 rounded-xl bg-[var(--green)] text-black text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                다음 →
+              </button>
+            </div>
           </div>
         )}
 
-        {/* STEP 1: 공종 선택 */}
-        {step === 1 && (
+        {/* STEP 2: 공종 선택 */}
+        {step === 2 && (
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-lg font-extrabold">공종을 선택하세요</h2>
@@ -335,12 +509,12 @@ export default function ScheduleGeneratorPage() {
             )}
 
             <div className="flex gap-1.5">
-              <button onClick={() => go(0)} className="px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] text-sm font-bold hover:bg-[var(--border)] transition-colors">
+              <button onClick={() => go(1)} className="px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] text-sm font-bold hover:bg-[var(--border)] transition-colors">
                 ←
               </button>
               <button
                 disabled={!selected.length}
-                onClick={() => go(2)}
+                onClick={() => go(3)}
                 className="flex-1 py-3 rounded-xl bg-[var(--green)] text-black text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 다음 →
@@ -349,8 +523,8 @@ export default function ScheduleGeneratorPage() {
           </div>
         )}
 
-        {/* STEP 2: 예산 */}
-        {step === 2 && (
+        {/* STEP 3: 예산 */}
+        {step === 3 && (
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
             <div className="mb-4">
               <h2 className="text-lg font-extrabold">예산 입력</h2>
@@ -383,7 +557,7 @@ export default function ScheduleGeneratorPage() {
             </div>
 
             <div className="flex gap-1.5">
-              <button onClick={() => go(1)} className="px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] text-sm font-bold hover:bg-[var(--border)] transition-colors">
+              <button onClick={() => go(2)} className="px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--muted)] text-sm font-bold hover:bg-[var(--border)] transition-colors">
                 ←
               </button>
               <button
@@ -404,14 +578,14 @@ export default function ScheduleGeneratorPage() {
           </div>
         )}
 
-        {/* STEP 3: Results */}
-        {step === 3 && result && (
+        {/* STEP 4: Results */}
+        {step === 4 && result && (
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
             {/* Summary */}
             <div className="text-center mb-5">
               <p className="text-[10px] font-bold text-[var(--green)] tracking-widest mb-1.5">AI 공정 분석 완료</p>
               <p className="text-4xl font-black">{result.totalDays}<span className="text-sm font-normal text-[var(--muted)]">일</span></p>
-              <p className="text-xs text-[var(--muted)] mt-1">{sizeObj?.label} · {selected.length}개 공종 · {SEASONS[season].label}</p>
+              <p className="text-xs text-[var(--muted)] mt-1">{selectedSite ? `${selectedSite.name} · ` : ""}{sizeObj?.label} · {selected.length}개 공종 · {SEASONS[season].label}</p>
             </div>
 
             {/* Metrics */}
@@ -510,97 +684,81 @@ export default function ScheduleGeneratorPage() {
                       </div>
                     </div>
 
-                    {/* Chart body rows */}
-                    {Object.values(grouped).map(({ phase, items }) => (
-                      <div key={phase}>
-                        {/* Phase label row */}
-                        <div className="flex border-b border-white/[0.03]">
-                          <div className="w-20 shrink-0" />
-                          <div className="flex-1 px-2 py-1">
-                            <span className="text-[9px] font-extrabold" style={{ color: PHASE_COLORS[phase] }}>{phase}단계: {PHASE_LABELS[phase]}</span>
+                    {/* Chart body rows — flat trade list */}
+                    {adjustedSchedule.map((item) => (
+                      <div key={item.id} className="flex border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors group">
+                        {/* Trade name + cost */}
+                        <div className="w-28 shrink-0 px-2 py-1 flex flex-col justify-center border-r border-[var(--border)]">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[11px]">{item.icon}</span>
+                            <span className="text-[10px] font-semibold text-[var(--foreground)] truncate">{item.name}</span>
                           </div>
+                          <span className="text-[8px] text-yellow-400/80 font-medium mt-0.5">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
                         </div>
-                        {/* Trade rows */}
-                        {items.map((item) => (
-                          <div key={item.id} className="flex border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors">
-                            <div className="w-20 shrink-0 px-2 py-1 flex items-center gap-1 border-r border-[var(--border)]">
-                              <span className="text-[11px]">{item.icon}</span>
-                              <span className="text-[10px] font-semibold text-[var(--muted)] truncate">{item.name}</span>
-                            </div>
-                            <div className="flex-1 flex relative">
-                              {/* Day cells background */}
-                              {dateTicks.map((tick) => {
-                                const isActive = tick.day >= item.startDay && tick.day <= item.endDay;
-                                return (
+                        {/* Day cells with draggable blocks */}
+                        <div className="flex-1 flex relative" ref={chartRef}>
+                          {dateTicks.map((tick) => {
+                            const isActive = tick.day >= item.startDay && tick.day <= item.endDay;
+                            const isStart = tick.day === item.startDay;
+                            const isEnd = tick.day === item.endDay;
+                            return (
+                              <div
+                                key={tick.day}
+                                className={cn(
+                                  "flex-1 min-w-[32px] h-8 border-r border-white/[0.02]",
+                                  tick.isWeekend && !isActive && "bg-red-400/[0.02]",
+                                  isActive && "relative"
+                                )}
+                              >
+                                {isActive && (
                                   <div
-                                    key={tick.day}
                                     className={cn(
-                                      "flex-1 min-w-[32px] h-7 border-r border-white/[0.02]",
-                                      tick.isWeekend && !isActive && "bg-red-400/[0.02]",
-                                      isActive && "relative"
+                                      "absolute inset-y-0.5 flex items-center justify-center",
+                                      isStart ? "left-0.5" : "left-0",
+                                      isEnd ? "right-0.5" : "right-0",
+                                      isStart && "rounded-l-md",
+                                      isEnd && "rounded-r-md",
+                                      dragging?.id === item.id ? "cursor-grabbing opacity-70" : "cursor-grab"
                                     )}
+                                    style={{ background: `${PHASE_COLORS[item.phase]}55` }}
+                                    onMouseDown={(e) => handleDragStart(item.id, item.startDay, e)}
                                   >
-                                    {isActive && (
-                                      <div
-                                        className="absolute inset-0.5 rounded-sm flex items-center justify-center"
-                                        style={{ background: `${PHASE_COLORS[phase]}44` }}
-                                      >
-                                        {tick.day === item.startDay && (
-                                          <span className="text-[8px] font-bold text-white/80 whitespace-nowrap">
-                                            {item.days}일
-                                          </span>
-                                        )}
-                                      </div>
+                                    {isStart && (
+                                      <span className="text-[8px] font-bold text-white/90 whitespace-nowrap pl-1 flex items-center gap-0.5">
+                                        <GripVertical size={8} className="opacity-0 group-hover:opacity-60 transition-opacity" />
+                                        {item.days}일
+                                      </span>
                                     )}
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        ))}
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Phase accordions */}
-                {Object.values(grouped).map(({ phase, items }) => (
-                  <div key={phase} className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
-                    <button
-                      onClick={() => setExpandPhase(expandPhase === phase ? null : phase)}
-                      className="w-full flex items-center justify-between px-3.5 py-3 hover:bg-white/[0.02] transition-colors"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: PHASE_COLORS[phase] }} />
-                        <span className="text-xs font-bold">{phase}단계: {PHASE_LABELS[phase]}</span>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--green)]/[0.08] text-[var(--green)]">{items.length}공종</span>
+                {/* Trade detail list */}
+                <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+                  {adjustedSchedule.map(item => (
+                    <div key={item.id} className="px-3.5 py-2.5 border-b border-white/[0.03] last:border-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span>{item.icon}</span>
+                          <span className="text-xs font-bold">{item.name}</span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--green)]/[0.08] text-[var(--green)]">{formatDate(addDays(startDate, item.startDay - 1))}~{formatDate(addDays(startDate, item.endDay - 1))}</span>
+                          {item.isParallel && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/[0.08] text-purple-400">∥병렬</span>}
+                          <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: `${PHASE_COLORS[item.phase]}15`, color: PHASE_COLORS[item.phase] }}>{PHASE_LABELS[item.phase]}</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-yellow-400 whitespace-nowrap">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-bold text-yellow-400">{formatCost(items.reduce((s, i) => s + i.costLow, 0))}~{formatCost(items.reduce((s, i) => s + i.costHigh, 0))}</span>
-                        <ChevronDown size={14} className={cn("text-[var(--muted)] transition-transform", expandPhase === phase && "rotate-180")} />
-                      </div>
-                    </button>
-                    {expandPhase === phase && (
-                      <div className="px-3.5 pb-3">
-                        {items.map(item => (
-                          <div key={item.id} className="py-2 border-t border-white/[0.03]">
-                            <div className="flex items-center justify-between mb-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span>{item.icon}</span>
-                                <span className="text-xs font-bold">{item.name}</span>
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--green)]/[0.08] text-[var(--green)]">{formatDate(addDays(startDate, item.startDay - 1))}~{formatDate(addDays(startDate, item.endDay - 1))}</span>
-                                {item.isParallel && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/[0.08] text-purple-400">∥병렬</span>}
-                              </div>
-                              <span className="text-[11px] font-bold text-[var(--muted)] whitespace-nowrap">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
-                            </div>
-                            <p className="text-[10px] text-[var(--muted)]">{item.desc}</p>
-                            {item.notes && <p className="text-[10px] text-yellow-500 mt-0.5">⚠ {item.notes}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      <p className="text-[10px] text-[var(--muted)] pl-6">{item.desc}</p>
+                      {item.notes && <p className="text-[10px] text-yellow-500 mt-0.5 pl-6">⚠ {item.notes}</p>}
+                    </div>
+                  ))}
+                </div>
 
                 {/* Total */}
                 <div className="rounded-xl border border-[var(--green)]/20 bg-[var(--green)]/[0.04] p-3.5">
