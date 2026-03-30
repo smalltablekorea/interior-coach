@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Building2, Hammer, Package,
-  LayoutGrid, TableProperties, Check, Plus, Trash2,
+  LayoutGrid, TableProperties, Check, Plus, Trash2, Sparkles,
 } from "lucide-react";
+import Link from "next/link";
 import Modal from "@/components/ui/Modal";
 
 interface SiteEvent {
@@ -265,6 +266,13 @@ export default function SchedulePage() {
           <h1 className="text-xl font-bold">일정 관리</h1>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/schedule/generator"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/10 text-[var(--green)] text-xs font-medium hover:bg-[var(--green)]/20 transition-colors"
+          >
+            <Sparkles size={14} />
+            <span>AI 공정매니저</span>
+          </Link>
           <button
             onClick={() => openAddPhase()}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--green)] text-black text-xs font-medium hover:bg-[var(--green-hover)] transition-colors"
