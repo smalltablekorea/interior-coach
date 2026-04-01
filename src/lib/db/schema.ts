@@ -182,6 +182,10 @@ export const sites = pgTable("sites", {
   status: text("status").notNull().default("상담중"), // 상담중, 견적중, 계약완료, 시공중, 시공완료, A/S
   startDate: date("start_date"),
   endDate: date("end_date"),
+  progress: integer("progress").default(0), // 0~100 전체 공정 진행률
+  budget: integer("budget").default(0), // 예산 총액 (원)
+  spent: integer("spent").default(0), // 지출 누적 (원)
+  trades: jsonb("trades"), // string[] 투입 공종 ID 목록
   memo: text("memo"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -997,6 +1001,29 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ─── AI 공정매니저 (소비자용 공정표 플래너) ───
+
+export const schedulePlans = pgTable("schedule_plans", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  siteName: text("site_name").notNull(),
+  siteAddress: text("site_address"),
+  startDate: date("start_date").notNull(),
+  memo: text("memo"),
+  sizeId: text("size_id").notNull(), // 10s, 20s, 30s, 40s, 50p
+  selectedTrades: jsonb("selected_trades").notNull(), // string[] of trade IDs
+  season: text("season").notNull(), // spring, summer, fall, winter
+  resultJson: jsonb("result_json"), // full buildSchedule output
+  status: text("status").notNull().default("draft"), // draft, in_progress, completed
+  tradeProgress: jsonb("trade_progress"), // Record<tradeId, { status, completedAt? }>
+  isPublic: boolean("is_public").notNull().default(false),
+  shareToken: text("share_token").unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // ─── Q&A 자동 생성 게시판 ───
 export const qnaPosts = pgTable("qna_posts", {
   id: serial("id").primaryKey(),
@@ -1011,4 +1038,130 @@ export const qnaPosts = pgTable("qna_posts", {
   viewCount: integer("view_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull(),
   answeredAt: timestamp("answered_at"),
+});
+
+// ─── 하자관리 ───
+
+export const defects = pgTable("defects", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id")
+    .notNull()
+    .references(() => sites.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  tradeId: text("trade_id").notNull(), // 공종 ID (demolition, plumbing 등)
+  tradeName: text("trade_name").notNull(), // 공종 표시명 (철거, 배관 등)
+  title: text("title").notNull(),
+  description: text("description"),
+  photoUrls: jsonb("photo_urls"), // string[]
+  severity: text("severity").notNull(), // minor, major, critical
+  status: text("status").notNull().default("reported"), // reported, in_progress, resolved, closed
+  reportedBy: text("reported_by").references(() => user.id),
+  assignedTo: text("assigned_to"), // 담당 업체/기사 ID 또는 이름
+  assignedToName: text("assigned_to_name"),
+  resolutionNote: text("resolution_note"),
+  resolutionPhotoUrls: jsonb("resolution_photo_urls"), // string[]
+  reportedAt: timestamp("reported_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+  closedAt: timestamp("closed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ─── 일일 업무일지 ───
+
+export const dailyLogs = pgTable("daily_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id")
+    .notNull()
+    .references(() => sites.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  authorName: text("author_name").notNull(),
+  logDate: date("log_date").notNull(),
+  tradesWorked: jsonb("trades_worked"), // string[] 공종 ID 배열
+  tradesWorkedNames: jsonb("trades_worked_names"), // string[] 공종 표시명
+  summary: text("summary").notNull(),
+  detail: text("detail"),
+  photoUrls: jsonb("photo_urls"), // string[]
+  issues: text("issues"),
+  nextDayPlan: text("next_day_plan"),
+  weather: text("weather"), // sunny, cloudy, rainy, snowy, hot, cold
+  workerCount: integer("worker_count").default(1),
+  sharedToCustomer: boolean("shared_to_customer").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  unique("daily_logs_site_author_date_idx").on(table.siteId, table.userId, table.logDate),
+]);
+
+// ─── 수금관리 ───
+
+export const billings = pgTable("billings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id")
+    .notNull()
+    .references(() => sites.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  milestoneName: text("milestone_name").notNull(), // "철거 완료", "목공 완료" 등
+  tradeId: text("trade_id"), // 연결된 공종 (선택)
+  milestoneOrder: integer("milestone_order").default(0),
+  amount: integer("amount").notNull(), // 공급가액 (원)
+  taxAmount: integer("tax_amount").default(0), // 부가세
+  status: text("status").notNull().default("pending"), // pending, invoiced, paid, overdue, cancelled
+  dueDate: date("due_date"),
+  invoicedAt: timestamp("invoiced_at"),
+  paidAt: timestamp("paid_at"),
+  invoiceNumber: text("invoice_number"),
+  paymentMethod: text("payment_method"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ─── 활동 이력 (전체 모듈 공용) ───
+
+export const activityLog = pgTable("activity_log", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id").references(() => sites.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  actorName: text("actor_name"),
+  action: text("action").notNull(), // defect_created, log_submitted, billing_paid 등
+  targetType: text("target_type"), // defect, daily_log, billing
+  targetId: uuid("target_id"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── 출퇴근/출역 관리 ───
+
+export const attendance = pgTable("attendance", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id")
+    .notNull()
+    .references(() => sites.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  memberId: uuid("member_id").references(() => workers.id),
+  memberName: text("member_name").notNull(),
+  role: text("role").notNull(), // 목수, 전기, 설비, 타일, 도배 등
+  workDate: date("work_date").notNull(),
+  checkIn: text("check_in"), // "08:30" HH:mm
+  checkOut: text("check_out"), // "17:30" HH:mm
+  hoursWorked: real("hours_worked"),
+  overtimeHours: real("overtime_hours").default(0),
+  status: text("status").notNull().default("present"), // present, absent, half_day, holiday
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
