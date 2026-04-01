@@ -5,6 +5,7 @@ import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, notFound, serverError } from "@/lib/api/response";
 import { logActivity } from "@/lib/activity-log";
+import { parseTime, calculateHours } from "@/lib/attendance-utils";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -61,8 +62,14 @@ export async function PATCH(request: Request, context: RouteContext) {
     const body = await request.json();
     const updates: Record<string, unknown> = { updatedAt: new Date() };
 
-    if (body.checkIn !== undefined) updates.checkIn = body.checkIn;
-    if (body.checkOut !== undefined) updates.checkOut = body.checkOut;
+    if (body.checkIn !== undefined) {
+      if (body.checkIn && !parseTime(body.checkIn)) return err("checkIn 형식이 올바르지 않습니다. (HH:mm)");
+      updates.checkIn = body.checkIn;
+    }
+    if (body.checkOut !== undefined) {
+      if (body.checkOut && !parseTime(body.checkOut)) return err("checkOut 형식이 올바르지 않습니다. (HH:mm)");
+      updates.checkOut = body.checkOut;
+    }
     if (body.status !== undefined) {
       const validStatuses = ["present", "absent", "half_day", "holiday"];
       if (!validStatuses.includes(body.status)) return err("유효하지 않은 status입니다.");
@@ -73,29 +80,32 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (body.memberName !== undefined) updates.memberName = body.memberName;
 
     // 근무시간 자동 재계산
-    const checkIn = body.checkIn ?? undefined;
-    const checkOut = body.checkOut ?? undefined;
-    if (checkIn && checkOut) {
-      const [inH, inM] = checkIn.split(":").map(Number);
-      const [outH, outM] = checkOut.split(":").map(Number);
-      const hours = Math.max(0, (outH * 60 + outM - (inH * 60 + inM)) / 60);
-      updates.hoursWorked = hours;
-      updates.overtimeHours = Math.max(0, hours - 8);
-    } else if (checkIn !== undefined || checkOut !== undefined) {
-      // 한쪽만 바뀌면 기존 값 가져와서 재계산
+    const newCheckIn = body.checkIn ?? undefined;
+    const newCheckOut = body.checkOut ?? undefined;
+    if (newCheckIn && newCheckOut) {
+      const hours = calculateHours(newCheckIn, newCheckOut);
+      if (hours) {
+        updates.hoursWorked = hours.hoursWorked;
+        updates.overtimeHours = hours.overtimeHours;
+      }
+    } else if (newCheckIn !== undefined || newCheckOut !== undefined) {
+      // 한쪽만 바뀌면 기존 값 가져와서 재계산 (workspace 필터 적용)
       const [existing] = await db
         .select({ checkIn: attendance.checkIn, checkOut: attendance.checkOut })
         .from(attendance)
-        .where(eq(attendance.id, id));
+        .where(
+          and(
+            eq(attendance.id, id),
+            workspaceFilter(attendance.workspaceId, attendance.userId, auth.workspaceId, auth.userId),
+          ),
+        );
       if (existing) {
-        const ci = checkIn || existing.checkIn;
-        const co = checkOut || existing.checkOut;
-        if (ci && co) {
-          const [inH, inM] = ci.split(":").map(Number);
-          const [outH, outM] = co.split(":").map(Number);
-          const hours = Math.max(0, (outH * 60 + outM - (inH * 60 + inM)) / 60);
-          updates.hoursWorked = hours;
-          updates.overtimeHours = Math.max(0, hours - 8);
+        const ci = newCheckIn || existing.checkIn;
+        const co = newCheckOut || existing.checkOut;
+        const hours = calculateHours(ci, co);
+        if (hours) {
+          updates.hoursWorked = hours.hoursWorked;
+          updates.overtimeHours = hours.overtimeHours;
         }
       }
     }

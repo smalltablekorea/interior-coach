@@ -4,6 +4,7 @@ import {
   timestamp,
   boolean,
   integer,
+  bigint,
   real,
   jsonb,
   uuid,
@@ -183,8 +184,8 @@ export const sites = pgTable("sites", {
   startDate: date("start_date"),
   endDate: date("end_date"),
   progress: integer("progress").default(0), // 0~100 전체 공정 진행률
-  budget: integer("budget").default(0), // 예산 총액 (원)
-  spent: integer("spent").default(0), // 지출 누적 (원)
+  budget: bigint("budget", { mode: "number" }).default(0), // 예산 총액 (원)
+  spent: bigint("spent", { mode: "number" }).default(0), // 지출 누적 (원)
   trades: jsonb("trades"), // string[] 투입 공종 ID 목록
   memo: text("memo"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

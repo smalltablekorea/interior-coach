@@ -1,21 +1,22 @@
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { attendance, sites, workers } from "@/lib/db/schema";
-import { eq, and, desc, gte, lte, isNull } from "drizzle-orm";
+import { attendance, sites } from "@/lib/db/schema";
+import { eq, and, desc, gte, lte } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 import { parsePagination, buildPaginationMeta, parseFilters, countSql } from "@/lib/api/query-helpers";
 import { logActivity } from "@/lib/activity-log";
+import { parseTime, calculateHours } from "@/lib/attendance-utils";
 
 // ── 목록 조회 ──
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const auth = await requireWorkspaceAuth("construction", "read");
   if (!auth.ok) return auth.response;
 
   try {
-    const req = request as unknown as import("next/server").NextRequest;
-    const pagination = parsePagination(req);
-    const filters = parseFilters(req, ["siteId", "workDate", "startDate", "endDate", "role", "status"]);
+    const pagination = parsePagination(request);
+    const filters = parseFilters(request, ["siteId", "workDate", "startDate", "endDate", "role", "status"]);
 
     const conditions = [
       workspaceFilter(attendance.workspaceId, attendance.userId, auth.workspaceId, auth.userId),
@@ -79,15 +80,10 @@ export async function POST(request: Request) {
       return err("siteId, memberName, role, workDate는 필수입니다.");
     }
 
-    // 출퇴근 시간으로 근무시간 자동 계산
-    let hoursWorked: number | null = null;
-    let overtimeHours = 0;
-    if (checkIn && checkOut) {
-      const [inH, inM] = checkIn.split(":").map(Number);
-      const [outH, outM] = checkOut.split(":").map(Number);
-      hoursWorked = Math.max(0, (outH * 60 + outM - (inH * 60 + inM)) / 60);
-      overtimeHours = Math.max(0, hoursWorked - 8);
-    }
+    if (checkIn && !parseTime(checkIn)) return err("checkIn 형식이 올바르지 않습니다. (HH:mm)");
+    if (checkOut && !parseTime(checkOut)) return err("checkOut 형식이 올바르지 않습니다. (HH:mm)");
+
+    const hours = calculateHours(checkIn, checkOut);
 
     const [row] = await db
       .insert(attendance)
@@ -101,8 +97,8 @@ export async function POST(request: Request) {
         workDate,
         checkIn: checkIn || null,
         checkOut: checkOut || null,
-        hoursWorked,
-        overtimeHours,
+        hoursWorked: hours?.hoursWorked ?? null,
+        overtimeHours: hours?.overtimeHours ?? 0,
         status: status || "present",
         notes: notes || null,
       })
