@@ -160,9 +160,15 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* Mobile Bottom Nav */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[var(--sidebar)] border-t border-[var(--border)] flex items-center justify-around z-40">
-        {navItems.slice(0, 5).map((item) => {
+      {/* Mobile Bottom Nav - 현장 실무 중심 5개 */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[var(--sidebar)] border-t border-[var(--border)] flex items-center justify-around z-40 safe-area-inset-bottom">
+        {([
+          { href: "/dashboard", icon: LayoutDashboard, label: "대시보드" },
+          { href: "/sites", icon: Building2, label: "현장" },
+          { href: "/construction", icon: Hammer, label: "시공" },
+          { href: "/schedule", icon: CalendarDays, label: "일정" },
+          { href: "/settlement", icon: BarChart3, label: "정산" },
+        ] as const).map((item) => {
           const isActive =
             item.href === "/dashboard"
               ? pathname === "/dashboard"
@@ -177,7 +183,7 @@ export default function Sidebar() {
               )}
             >
               <item.icon size={20} />
-              <span>{item.label.replace(" 관리", "")}</span>
+              <span>{item.label}</span>
             </Link>
           );
         })}
