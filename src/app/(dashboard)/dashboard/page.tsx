@@ -21,25 +21,24 @@ import {
   Clock,
   PackageOpen,
   ChevronRight,
+  Users,
+  FileText,
   Sparkles,
   Hammer,
-  FileText,
+  Package,
+  HardHat,
+  Megaphone,
   BarChart3,
   Calculator,
-  HardHat,
-  Package,
-  Users,
+  Settings,
   Zap,
   Target,
-  Shield,
-  Activity,
+  ArrowUpRight,
 } from "lucide-react";
 import { fmtShort, fmtDate, cn } from "@/lib/utils";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
-// recharts SSR 비활성화
 const MonthlyTrendChart = dynamic(
   () => import("@/components/charts/MonthlyTrendChart"),
   { ssr: false },
@@ -126,6 +125,14 @@ interface DashboardData {
     revenue: number;
     expense: number;
   }[];
+  upcomingMilestones?: {
+    type: "payment" | "phase";
+    siteId: string | null;
+    siteName: string | null;
+    label: string;
+    date: string | null;
+    daysUntil: number;
+  }[];
 }
 
 interface DrilldownData {
@@ -164,15 +171,27 @@ const ACTIVITY_ICONS: Record<string, typeof Wallet> = {
   edit: Pencil,
 };
 
-// ── Quick Action Items ──
-const QUICK_ACTIONS = [
-  { href: "/sites/new", icon: Building2, label: "현장 등록", color: "var(--green)", desc: "새 현장 추가" },
-  { href: "/estimates/coach", icon: Sparkles, label: "견적코치 AI", color: "var(--blue)", desc: "AI 견적 작성" },
-  { href: "/schedule/generator", icon: Zap, label: "AI 공정매니저", color: "var(--orange)", desc: "공정표 자동생성" },
-  { href: "/construction", icon: Hammer, label: "시공 관리", color: "#8B5CF6", desc: "공정 진행률 관리" },
-  { href: "/expenses", icon: Receipt, label: "지출 등록", color: "var(--red)", desc: "비용 기록" },
-  { href: "/settlement", icon: BarChart3, label: "정산 리포트", color: "#06B6D4", desc: "수익 분석" },
+// ── Quick Access Menu Items ──
+
+const QUICK_ACCESS = [
+  { href: "/customers", icon: Users, label: "고객", color: "var(--blue)" },
+  { href: "/sites", icon: Building2, label: "현장", color: "var(--green)" },
+  { href: "/estimates", icon: FileText, label: "견적", color: "var(--orange)" },
+  { href: "/estimates/coach", icon: Sparkles, label: "AI견적", color: "#a855f7" },
+  { href: "/contracts", icon: FileCheck, label: "계약", color: "var(--blue)" },
+  { href: "/construction", icon: Hammer, label: "시공", color: "var(--orange)" },
+  { href: "/schedule", icon: CalendarDays, label: "일정", color: "var(--green)" },
+  { href: "/schedule/generator", icon: Zap, label: "공정AI", color: "#ec4899" },
+  { href: "/materials", icon: Package, label: "자재", color: "#06b6d4" },
+  { href: "/workers", icon: HardHat, label: "작업자", color: "#f59e0b" },
+  { href: "/expenses", icon: Receipt, label: "지출", color: "var(--red)" },
+  { href: "/marketing", icon: Megaphone, label: "마케팅", color: "#8b5cf6" },
+  { href: "/settlement", icon: BarChart3, label: "정산", color: "var(--blue)" },
+  { href: "/tax", icon: Calculator, label: "세무", color: "#64748b" },
+  { href: "/settings", icon: Settings, label: "설정", color: "var(--muted)" },
 ];
+
+// ── Mock trend generator ──
 
 function generateMockTrend(kpi: DashboardData["kpi"]) {
   const now = new Date();
@@ -239,7 +258,6 @@ function HealthGauge({ score, size = 80 }: { score: number; size?: number }) {
 }
 
 export default function DashboardPage() {
-  const router = useRouter();
   const [sites, setSites] = useState<Site[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -278,12 +296,13 @@ export default function DashboardPage() {
     statusCounts[s.status] = (statusCounts[s.status] || 0) + 1;
   });
 
-  if (loading || !dashboard) {
+  // ── Loading Skeleton ──
+  if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">대시보드</h1>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div className="h-8 w-48 rounded-xl animate-shimmer" />
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-20 rounded-2xl animate-shimmer" />
           ))}
         </div>
@@ -296,15 +315,101 @@ export default function DashboardPage() {
     );
   }
 
+  // ── Empty State (새 워크스페이스) ──
+  if (!dashboard) {
+    return (
+      <div className="space-y-8 animate-fade-up">
+        <OnboardingModal />
+        <div>
+          <h1 className="text-2xl font-bold">시작하기</h1>
+          <p className="text-sm text-[var(--muted)] mt-1">
+            인테리어코치에 오신 것을 환영합니다. 아래 메뉴에서 원하는 기능을 선택하세요.
+          </p>
+        </div>
+
+        {/* Quick Start Actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link
+            href="/sites/new"
+            className="group rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 hover:border-[var(--green)]/50 hover:bg-[var(--green)]/5 transition-all"
+          >
+            <div className="w-12 h-12 rounded-xl bg-[var(--green)]/10 flex items-center justify-center mb-4">
+              <Building2 size={24} style={{ color: "var(--green)" }} />
+            </div>
+            <h3 className="font-semibold mb-1">현장 등록</h3>
+            <p className="text-sm text-[var(--muted)]">
+              첫 번째 현장을 등록하고 프로젝트를 시작하세요
+            </p>
+            <div className="mt-3 flex items-center gap-1 text-sm text-[var(--green)] opacity-0 group-hover:opacity-100 transition-opacity">
+              시작하기 <ArrowRight size={14} />
+            </div>
+          </Link>
+          <Link
+            href="/estimates/coach"
+            className="group rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 hover:border-[#a855f7]/50 hover:bg-[#a855f7]/5 transition-all"
+          >
+            <div className="w-12 h-12 rounded-xl bg-[#a855f7]/10 flex items-center justify-center mb-4">
+              <Sparkles size={24} style={{ color: "#a855f7" }} />
+            </div>
+            <h3 className="font-semibold mb-1">AI 견적코치</h3>
+            <p className="text-sm text-[var(--muted)]">
+              AI가 자동으로 견적서를 작성해드립니다
+            </p>
+            <div className="mt-3 flex items-center gap-1 text-sm text-[#a855f7] opacity-0 group-hover:opacity-100 transition-opacity">
+              시작하기 <ArrowRight size={14} />
+            </div>
+          </Link>
+          <Link
+            href="/customers"
+            className="group rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 hover:border-[var(--blue)]/50 hover:bg-[var(--blue)]/5 transition-all"
+          >
+            <div className="w-12 h-12 rounded-xl bg-[var(--blue)]/10 flex items-center justify-center mb-4">
+              <Users size={24} style={{ color: "var(--blue)" }} />
+            </div>
+            <h3 className="font-semibold mb-1">고객 등록</h3>
+            <p className="text-sm text-[var(--muted)]">
+              고객 정보를 등록하고 체계적으로 관리하세요
+            </p>
+            <div className="mt-3 flex items-center gap-1 text-sm text-[var(--blue)] opacity-0 group-hover:opacity-100 transition-opacity">
+              시작하기 <ArrowRight size={14} />
+            </div>
+          </Link>
+        </div>
+
+        {/* Quick Access Grid */}
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <h2 className="text-lg font-semibold mb-4">전체 메뉴</h2>
+          <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-3">
+            {QUICK_ACCESS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl hover:bg-white/[0.04] transition-all group"
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                  style={{ backgroundColor: `${item.color}15` }}
+                >
+                  <item.icon size={20} style={{ color: item.color }} />
+                </div>
+                <span className="text-xs text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">
+                  {item.label}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const { kpi, healthScores, projectProfits, actionItems, recentActivity } =
     dashboard;
 
-  const actionCount =
-    actionItems.overduePayments.length +
-    actionItems.delayedPhases.length +
-    actionItems.needsOrdering.length;
-
-  const hasActions = actionCount > 0;
+  const hasActions =
+    actionItems.overduePayments.length > 0 ||
+    actionItems.delayedPhases.length > 0 ||
+    actionItems.needsOrdering.length > 0;
 
   const maxRevenue =
     projectProfits.length > 0
@@ -327,68 +432,80 @@ export default function DashboardPage() {
 
   const monthlyTrend = dashboard.monthlyTrend ?? generateMockTrend(kpi);
 
-  // 전체 건강도 평균
-  const avgHealth = healthScores.length > 0
-    ? Math.round(healthScores.reduce((s, h) => s + h.score, 0) / healthScores.length)
-    : 0;
+  const totalActionCount =
+    actionItems.overduePayments.length +
+    actionItems.delayedPhases.length +
+    actionItems.needsOrdering.length;
+
+  // Cash Flow 계산
+  const netCashFlow = kpi.monthlyRevenue.amount - kpi.monthlyExpenses.amount;
+  const maxBar = Math.max(kpi.monthlyRevenue.amount, kpi.monthlyExpenses.amount, 1);
+  const revenueBarPct = (kpi.monthlyRevenue.amount / maxBar) * 100;
+  const expenseBarPct = (kpi.monthlyExpenses.amount / maxBar) * 100;
+  const totalOverdue = actionItems.overduePayments.reduce((s, p) => s + p.amount, 0);
+
+  // 다가오는 일정
+  const upcomingMilestones = dashboard.upcomingMilestones ?? [];
 
   return (
     <div className="space-y-6 animate-fade-up">
       <OnboardingModal />
 
-      {/* ═══════ Header + Summary Bar ═══════ */}
+      {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{greeting}</h1>
-          <p className="text-sm text-[var(--muted)] mt-0.5">
-            {dateStr}
-            {hasActions && (
-              <span className="ml-2 px-2 py-0.5 rounded-full text-[11px] font-medium bg-[var(--orange)]/15 text-[var(--orange)]">
-                액션 {actionCount}건
-              </span>
-            )}
-            {healthScores.length > 0 && (
-              <span className={cn(
-                "ml-2 px-2 py-0.5 rounded-full text-[11px] font-medium",
-                avgHealth >= 70 ? "bg-[var(--green)]/15 text-[var(--green)]" : avgHealth >= 40 ? "bg-[var(--orange)]/15 text-[var(--orange)]" : "bg-[var(--red)]/15 text-[var(--red)]",
-              )}>
-                현장건강 {avgHealth}점
-              </span>
-            )}
-          </p>
+          <p className="text-sm text-[var(--muted)] mt-0.5">{dateStr}</p>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href="/sites/new"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)] transition-colors"
+          >
+            <Plus size={16} />
+            현장 등록
+          </Link>
+          <Link
+            href="/estimates/new"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+          >
+            <Plus size={16} />
+            견적 작성
+          </Link>
         </div>
       </div>
 
-      {/* ═══════ Quick Actions Grid ═══════ */}
-      <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {QUICK_ACTIONS.map((action) => (
-          <Link
-            key={action.href}
-            href={action.href}
-            className="group flex flex-col items-center gap-2 p-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:border-[var(--border-hover)] hover:bg-white/[0.03] transition-all"
-          >
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
-              style={{ backgroundColor: `${action.color}15` }}
+      {/* ── Quick Access Grid ── */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4">
+        <div className="flex items-center overflow-x-auto gap-1 scrollbar-none">
+          {QUICK_ACCESS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="flex flex-col items-center gap-1.5 py-2 px-3 rounded-xl hover:bg-white/[0.04] transition-all group shrink-0"
             >
-              <action.icon size={22} style={{ color: action.color }} />
-            </div>
-            <div className="text-center">
-              <p className="text-xs font-medium leading-tight">{action.label}</p>
-              <p className="text-[10px] text-[var(--muted)] mt-0.5 hidden sm:block">{action.desc}</p>
-            </div>
-          </Link>
-        ))}
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110"
+                style={{ backgroundColor: `${item.color}15` }}
+              >
+                <item.icon size={18} style={{ color: item.color }} />
+              </div>
+              <span className="text-[11px] text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors whitespace-nowrap">
+                {item.label}
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
 
-      {/* ═══════ KPI Cards — clickable ═══════ */}
+      {/* ── KPI Cards (clickable) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="진행중 현장"
           value={`${kpi.activeSites.count}건`}
           subtitle={`전체 ${kpi.activeSites.total}건`}
           icon={Building2}
-          onClick={() => router.push("/sites")}
+          href="/sites"
         />
         <KPICard
           title="이번달 수금"
@@ -397,7 +514,7 @@ export default function DashboardPage() {
           color="var(--blue)"
           trend={{ direction: kpi.monthlyRevenue.trend, label: trendLabel }}
           badge={`수금률 ${kpi.monthlyRevenue.collectionRate}%`}
-          onClick={() => router.push("/contracts")}
+          href="/settlement"
         />
         <KPICard
           title="이번달 지출"
@@ -406,7 +523,7 @@ export default function DashboardPage() {
           icon={TrendingDown}
           color="var(--orange)"
           warning={kpi.monthlyExpenses.overBudget}
-          onClick={() => router.push("/expenses")}
+          href="/expenses"
         />
         <KPICard
           title="이번주 공정"
@@ -414,25 +531,27 @@ export default function DashboardPage() {
           subtitle={`오늘 ${kpi.weeklySchedule.todayCount}건`}
           icon={CalendarDays}
           color="var(--green)"
-          onClick={() => router.push("/schedule")}
+          href="/schedule"
         />
       </div>
 
-      {/* ═══════ Action Items (urgent — always on top) ═══════ */}
+      {/* ── Action Items Alert Banner ── */}
       {hasActions && (
         <div className="rounded-2xl border border-[var(--orange)]/40 bg-[var(--card)] p-5">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <AlertTriangle size={20} style={{ color: "var(--orange)" }} />
-            긴급 액션
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--orange)]/15 text-[var(--orange)]">
-              {actionCount}
-            </span>
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <AlertTriangle size={20} style={{ color: "var(--orange)" }} />
+              액션 아이템
+              <span className="ml-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--orange)]/10 text-[var(--orange)]">
+                {totalActionCount}
+              </span>
+            </h2>
+          </div>
           <div className="space-y-2">
             {actionItems.overduePayments.map((item, i) => (
               <Link
                 key={`pay-${i}`}
-                href={item.siteId ? `/contracts?siteId=${item.siteId}` : "/contracts"}
+                href={item.siteId ? `/sites/${item.siteId}` : "/settlement"}
                 className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/[0.03] transition-colors"
               >
                 <div className="w-8 h-8 rounded-lg bg-[var(--red)]/10 flex items-center justify-center shrink-0">
@@ -502,9 +621,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ═══════ Today Schedule + Monthly Trend ═══════ */}
+      {/* ── Today's Schedule + Monthly Trend ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Today's Tasks */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -519,14 +637,14 @@ export default function DashboardPage() {
             </Link>
           </div>
           {kpi.weeklySchedule.todayTasks.length === 0 ? (
-            <div className="py-8 text-center">
-              <CalendarDays size={32} className="mx-auto mb-2 text-[var(--muted)] opacity-30" />
+            <div className="text-center py-8">
+              <CalendarDays size={32} className="mx-auto text-[var(--muted)] opacity-30 mb-3" />
               <p className="text-sm text-[var(--muted)]">오늘 예정된 공정이 없습니다</p>
               <Link
-                href="/schedule/generator"
-                className="inline-flex items-center gap-1 mt-3 text-xs text-[var(--green)] hover:underline"
+                href="/schedule"
+                className="inline-flex items-center gap-1 mt-3 text-sm text-[var(--green)] hover:underline"
               >
-                <Zap size={12} /> AI 공정매니저로 일정 생성
+                일정 관리 바로가기 <ArrowUpRight size={14} />
               </Link>
             </div>
           ) : (
@@ -550,7 +668,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Monthly Trend */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -578,20 +695,141 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ═══════ Health Score Board ═══════ */}
+      {/* ── Cash Flow + 다가오는 일정 ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Cash Flow Summary */}
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Wallet size={18} style={{ color: "var(--green)" }} />
+              이번달 캐시플로우
+            </h2>
+            <Link
+              href="/settlement"
+              className="text-sm text-[var(--green)] hover:underline flex items-center gap-1"
+            >
+              상세 보기 <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          <div className="text-center mb-5">
+            <p className="text-xs text-[var(--muted)]">순수익 (수금 - 지출)</p>
+            <p
+              className={cn(
+                "text-2xl font-bold mt-1",
+                netCashFlow >= 0 ? "text-[var(--green)]" : "text-[var(--red)]",
+              )}
+            >
+              {netCashFlow >= 0 ? "+" : ""}{fmtShort(netCashFlow)}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <div>
+              <div className="flex justify-between text-xs text-[var(--muted)] mb-1">
+                <span>수금</span>
+                <span>{fmtShort(kpi.monthlyRevenue.amount)}</span>
+              </div>
+              <div className="h-3 bg-[var(--border)] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[var(--green)] rounded-full transition-all duration-500"
+                  style={{ width: `${revenueBarPct}%` }}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs text-[var(--muted)] mb-1">
+                <span>지출</span>
+                <span>{fmtShort(kpi.monthlyExpenses.amount)}</span>
+              </div>
+              <div className="h-3 bg-[var(--border)] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-[var(--orange)] rounded-full transition-all duration-500"
+                  style={{ width: `${expenseBarPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {totalOverdue > 0 && (
+            <div className="mt-4 px-3 py-2.5 rounded-xl bg-[var(--red)]/5 flex items-center gap-2">
+              <AlertTriangle size={14} style={{ color: "var(--red)" }} />
+              <span className="text-xs">
+                미수금 합계{" "}
+                <span className="font-bold text-[var(--red)]">{fmtShort(totalOverdue)}</span>
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* 다가오는 일정 */}
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Clock size={18} style={{ color: "var(--blue)" }} />
+              다가오는 일정
+            </h2>
+            <Link
+              href="/schedule"
+              className="text-sm text-[var(--green)] hover:underline flex items-center gap-1"
+            >
+              전체 보기 <ArrowRight size={14} />
+            </Link>
+          </div>
+          {upcomingMilestones.length === 0 ? (
+            <div className="text-center py-8">
+              <CalendarDays size={32} className="mx-auto text-[var(--muted)] opacity-30 mb-3" />
+              <p className="text-sm text-[var(--muted)]">2주 내 예정된 일정이 없습니다</p>
+              <Link
+                href="/schedule"
+                className="inline-flex items-center gap-1 mt-3 text-sm text-[var(--green)] hover:underline"
+              >
+                일정 관리 바로가기 <ArrowUpRight size={14} />
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingMilestones.map((m, i) => (
+                <Link
+                  key={i}
+                  href={m.siteId ? `/sites/${m.siteId}` : "/schedule"}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors"
+                >
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
+                      m.type === "payment" ? "bg-[var(--green)]/10" : "bg-[var(--blue)]/10",
+                    )}
+                  >
+                    {m.type === "payment" ? (
+                      <Wallet size={14} style={{ color: "var(--green)" }} />
+                    ) : (
+                      <Hammer size={14} style={{ color: "var(--blue)" }} />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm">
+                      <span className="font-medium">{m.siteName}</span>{" "}
+                      {m.label}
+                    </p>
+                    <p className="text-xs text-[var(--muted)]">
+                      {fmtDate(m.date)}{" "}
+                      <span className="text-[var(--blue)]">D-{m.daysUntil}</span>
+                    </p>
+                  </div>
+                  <ChevronRight size={14} className="text-[var(--muted)] shrink-0" />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Health Score Board ── */}
       {healthScores.length > 0 && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Activity size={18} style={{ color: avgHealth >= 70 ? "var(--green)" : avgHealth >= 40 ? "var(--orange)" : "var(--red)" }} />
-              현장 헬스 스코어
-              <span className={cn(
-                "text-sm font-normal px-2 py-0.5 rounded-full",
-                avgHealth >= 70 ? "bg-[var(--green)]/10 text-[var(--green)]" : avgHealth >= 40 ? "bg-[var(--orange)]/10 text-[var(--orange)]" : "bg-[var(--red)]/10 text-[var(--red)]",
-              )}>
-                평균 {avgHealth}점
-              </span>
-            </h2>
+            <h2 className="text-lg font-semibold">현장 헬스 스코어</h2>
             <Link
               href="/sites"
               className="text-sm text-[var(--green)] hover:underline flex items-center gap-1"
@@ -604,13 +842,11 @@ export default function DashboardPage() {
               <Link
                 key={h.siteId}
                 href={`/sites/${h.siteId}`}
-                className="rounded-xl border border-[var(--border)] p-4 hover:border-[var(--border-hover)] hover:bg-white/[0.02] transition-all group"
+                className="rounded-xl border border-[var(--border)] p-4 hover:border-[var(--border-hover)] hover:bg-white/[0.02] transition-all"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate group-hover:text-[var(--green)] transition-colors">
-                      {h.siteName}
-                    </p>
+                    <p className="text-sm font-medium truncate">{h.siteName}</p>
                     <div className="mt-3 space-y-1.5">
                       <ScoreBar label="공정" score={h.progressScore} max={30} />
                       <ScoreBar label="예산" score={h.budgetScore} max={30} />
@@ -628,15 +864,11 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* ═══════ Project Profit + Recent Activity ═══════ */}
+      {/* ── Project Profit + Recent Activity ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Project Profit */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Target size={18} style={{ color: "var(--green)" }} />
-              프로젝트별 수익
-            </h2>
+            <h2 className="text-lg font-semibold">프로젝트별 수익</h2>
             <Link
               href="/settlement"
               className="text-sm text-[var(--green)] hover:underline flex items-center gap-1"
@@ -645,14 +877,14 @@ export default function DashboardPage() {
             </Link>
           </div>
           {projectProfits.length === 0 ? (
-            <div className="py-8 text-center">
-              <Target size={32} className="mx-auto mb-2 text-[var(--muted)] opacity-30" />
+            <div className="text-center py-8">
+              <BarChart3 size={32} className="mx-auto text-[var(--muted)] opacity-30 mb-3" />
               <p className="text-sm text-[var(--muted)]">계약된 프로젝트가 없습니다</p>
               <Link
                 href="/contracts"
-                className="inline-flex items-center gap-1 mt-3 text-xs text-[var(--green)] hover:underline"
+                className="inline-flex items-center gap-1 mt-3 text-sm text-[var(--green)] hover:underline"
               >
-                <Plus size={12} /> 계약 등록하기
+                계약 관리 바로가기 <ArrowUpRight size={14} />
               </Link>
             </div>
           ) : (
@@ -692,7 +924,9 @@ export default function DashboardPage() {
                     {p.expense > 0 && (
                       <div
                         className="rounded-l-lg bg-[var(--blue)] flex items-center justify-center"
-                        style={{ width: `${Math.max((p.expense / maxRevenue) * 100, 10)}%` }}
+                        style={{
+                          width: `${Math.max((p.expense / maxRevenue) * 100, 10)}%`,
+                        }}
                       >
                         <span className="text-[10px] text-white font-medium truncate px-1">
                           지출 {fmtShort(p.expense)}
@@ -705,7 +939,9 @@ export default function DashboardPage() {
                           "bg-[var(--green)] flex items-center justify-center",
                           p.expense === 0 ? "rounded-lg" : "rounded-r-lg",
                         )}
-                        style={{ width: `${Math.max((p.profit / maxRevenue) * 100, 10)}%` }}
+                        style={{
+                          width: `${Math.max((p.profit / maxRevenue) * 100, 10)}%`,
+                        }}
                       >
                         <span className="text-[10px] text-black font-medium truncate px-1">
                           이익 {fmtShort(p.profit)}
@@ -727,32 +963,28 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Recent Activity */}
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Activity size={18} className="text-[var(--muted)]" />
-            최근 활동
-          </h2>
+          <h2 className="text-lg font-semibold mb-4">최근 활동</h2>
           {recentActivity.length === 0 ? (
-            <div className="py-8 text-center">
-              <Activity size={32} className="mx-auto mb-2 text-[var(--muted)] opacity-30" />
+            <div className="text-center py-8">
+              <Clock size={32} className="mx-auto text-[var(--muted)] opacity-30 mb-3" />
               <p className="text-sm text-[var(--muted)]">최근 활동이 없습니다</p>
               <Link
                 href="/sites/new"
-                className="inline-flex items-center gap-1 mt-3 text-xs text-[var(--green)] hover:underline"
+                className="inline-flex items-center gap-1 mt-3 text-sm text-[var(--green)] hover:underline"
               >
-                <Plus size={12} /> 현장 등록으로 시작하기
+                현장을 등록하면 활동이 기록됩니다 <ArrowUpRight size={14} />
               </Link>
             </div>
           ) : (
             <div className="space-y-1">
               {recentActivity.map((a) => {
                 const Icon = ACTIVITY_ICONS[a.icon] || CircleCheck;
-                const href = a.siteId ? `/sites/${a.siteId}` : "/dashboard";
+                const activityLink = a.siteId ? `/sites/${a.siteId}` : "#";
                 return (
                   <Link
                     key={a.id}
-                    href={href}
+                    href={activityLink}
                     className="flex items-start gap-3 py-3 px-3 rounded-xl hover:bg-white/[0.02] transition-colors"
                   >
                     <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center shrink-0 mt-0.5">
@@ -761,12 +993,10 @@ export default function DashboardPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm leading-snug">{a.message}</p>
                       <p className="text-xs text-[var(--muted)] mt-0.5">
-                        {a.siteName && <span className="text-[var(--foreground)]">{a.siteName}</span>}
-                        {a.siteName && " · "}
                         {fmtDate(a.date)}
                       </p>
                     </div>
-                    <ChevronRight size={14} className="text-[var(--muted)] mt-1 shrink-0" />
+                    <ChevronRight size={14} className="text-[var(--muted)] mt-1.5 shrink-0" />
                   </Link>
                 );
               })}
@@ -775,14 +1005,11 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ═══════ Site Status + Recent Sites ═══════ */}
+      {/* ── Site Status + Recent Sites ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Shield size={18} className="text-[var(--muted)]" />
-              현장 현황
-            </h2>
+            <h2 className="text-lg font-semibold">현장 현황</h2>
             <Link
               href="/sites"
               className="text-sm text-[var(--green)] hover:underline flex items-center gap-1"
@@ -791,14 +1018,14 @@ export default function DashboardPage() {
             </Link>
           </div>
           {sites.length === 0 ? (
-            <div className="py-6 text-center">
-              <Building2 size={32} className="mx-auto mb-2 text-[var(--muted)] opacity-30" />
+            <div className="text-center py-8">
+              <Building2 size={32} className="mx-auto text-[var(--muted)] opacity-30 mb-3" />
               <p className="text-sm text-[var(--muted)]">등록된 현장이 없습니다</p>
               <Link
                 href="/sites/new"
-                className="inline-flex items-center gap-1 mt-3 px-4 py-2 rounded-xl bg-[var(--green)] text-black text-xs font-medium hover:bg-[var(--green-hover)] transition-colors"
+                className="inline-flex items-center gap-1 mt-3 text-sm text-[var(--green)] hover:underline"
               >
-                <Plus size={14} /> 첫 현장 등록하기
+                첫 현장 등록하기 <ArrowUpRight size={14} />
               </Link>
             </div>
           ) : (
@@ -806,7 +1033,7 @@ export default function DashboardPage() {
               {Object.entries(statusCounts).map(([status, count]) => (
                 <Link
                   key={status}
-                  href={`/sites?status=${encodeURIComponent(status)}`}
+                  href={`/sites?status=${status}`}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors"
                 >
                   <StatusBadge status={status} />
@@ -819,10 +1046,7 @@ export default function DashboardPage() {
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Building2 size={18} className="text-[var(--muted)]" />
-              최근 현장
-            </h2>
+            <h2 className="text-lg font-semibold">최근 현장</h2>
             <Link
               href="/sites"
               className="text-sm text-[var(--green)] hover:underline flex items-center gap-1"
@@ -831,20 +1055,22 @@ export default function DashboardPage() {
             </Link>
           </div>
           {sites.length === 0 ? (
-            <p className="text-sm text-[var(--muted)] text-center py-4">등록된 현장이 없습니다</p>
+            <div className="text-center py-8">
+              <Target size={32} className="mx-auto text-[var(--muted)] opacity-30 mb-3" />
+              <p className="text-sm text-[var(--muted)]">현장을 등록해보세요</p>
+            </div>
           ) : (
             <div className="space-y-2">
               {sites.slice(0, 4).map((site) => (
                 <Link
                   key={site.id}
                   href={`/sites/${site.id}`}
-                  className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/[0.03] transition-colors group"
+                  className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white/[0.03] transition-colors"
                 >
                   <div>
-                    <p className="text-sm font-medium group-hover:text-[var(--green)] transition-colors">{site.name}</p>
+                    <p className="text-sm font-medium">{site.name}</p>
                     <p className="text-xs text-[var(--muted)]">
                       {site.customerName || "고객 미지정"}
-                      {site.startDate && ` · ${fmtDate(site.startDate)}`}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -858,40 +1084,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ═══════ Feature Navigator (Bottom) ═══════ */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-        <h2 className="text-lg font-semibold mb-4">전체 기능</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-          {[
-            { href: "/customers", icon: Users, label: "고객 관리", color: "var(--blue)" },
-            { href: "/sites", icon: Building2, label: "현장 관리", color: "var(--green)" },
-            { href: "/estimates", icon: FileText, label: "견적 관리", color: "#8B5CF6" },
-            { href: "/contracts", icon: FileCheck, label: "계약 관리", color: "var(--blue)" },
-            { href: "/construction", icon: Hammer, label: "시공 관리", color: "var(--orange)" },
-            { href: "/schedule", icon: CalendarDays, label: "일정 관리", color: "var(--green)" },
-            { href: "/materials", icon: Package, label: "자재 관리", color: "#06B6D4" },
-            { href: "/workers", icon: HardHat, label: "작업자 관리", color: "#F59E0B" },
-            { href: "/expenses", icon: Receipt, label: "지출 관리", color: "var(--red)" },
-            { href: "/tax", icon: Calculator, label: "세무/회계", color: "#8B5CF6" },
-          ].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors group"
-            >
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ backgroundColor: `${item.color}15` }}
-              >
-                <item.icon size={16} style={{ color: item.color }} />
-              </div>
-              <span className="text-sm text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">{item.label}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* ═══════ Drilldown Modal ═══════ */}
+      {/* ── Drilldown Modal ── */}
       <Modal
         open={drilldown !== null || drilldownLoading}
         onClose={() => setDrilldown(null)}
@@ -919,10 +1112,12 @@ export default function DashboardPage() {
               </div>
               <div className="rounded-xl bg-white/[0.03] p-3 text-center">
                 <p className="text-xs text-[var(--muted)]">예상 이익</p>
-                <p className={cn(
-                  "text-lg font-bold mt-1",
-                  drilldown.expectedProfit >= 0 ? "text-[var(--green)]" : "text-[var(--red)]",
-                )}>
+                <p
+                  className={cn(
+                    "text-lg font-bold mt-1",
+                    drilldown.expectedProfit >= 0 ? "text-[var(--green)]" : "text-[var(--red)]",
+                  )}
+                >
                   {fmtShort(drilldown.expectedProfit)}
                   <span className="text-xs font-normal ml-1">({drilldown.expectedProfitRate}%)</span>
                 </p>
@@ -948,17 +1143,25 @@ export default function DashboardPage() {
                         <td className="px-4 py-2.5 font-medium">{c.category}</td>
                         <td className="px-4 py-2.5 text-right">{fmtShort(c.estimate)}</td>
                         <td className="px-4 py-2.5 text-right">{fmtShort(c.actual)}</td>
-                        <td className={cn(
-                          "px-4 py-2.5 text-right font-medium",
-                          c.isOver ? "text-[var(--red)]" : "text-[var(--green)]",
-                        )}>
+                        <td
+                          className={cn(
+                            "px-4 py-2.5 text-right font-medium",
+                            c.isOver ? "text-[var(--red)]" : "text-[var(--green)]",
+                          )}
+                        >
                           {c.diff >= 0 ? "+" : ""}{fmtShort(c.diff)}
                         </td>
                         <td className="px-4 py-2.5 text-right">
-                          <span className={cn(
-                            "px-1.5 py-0.5 rounded text-[10px] font-medium",
-                            c.rate > 100 ? "bg-[var(--red)]/10 text-[var(--red)]" : c.rate > 80 ? "bg-[var(--orange)]/10 text-[var(--orange)]" : "bg-[var(--green)]/10 text-[var(--green)]",
-                          )}>
+                          <span
+                            className={cn(
+                              "px-1.5 py-0.5 rounded text-[10px] font-medium",
+                              c.rate > 100
+                                ? "bg-[var(--red)]/10 text-[var(--red)]"
+                                : c.rate > 80
+                                  ? "bg-[var(--orange)]/10 text-[var(--orange)]"
+                                  : "bg-[var(--green)]/10 text-[var(--green)]",
+                            )}
+                          >
                             {c.rate}%
                           </span>
                         </td>
@@ -974,16 +1177,6 @@ export default function DashboardPage() {
                 * 자재 발주 비용 {fmtShort(drilldown.totalMaterialCost)} 별도 포함
               </p>
             )}
-
-            <div className="flex justify-end">
-              <Link
-                href={`/sites/${drilldown.siteId}`}
-                className="text-sm text-[var(--green)] hover:underline flex items-center gap-1"
-                onClick={() => setDrilldown(null)}
-              >
-                현장 상세 보기 <ArrowRight size={14} />
-              </Link>
-            </div>
           </div>
         ) : null}
       </Modal>

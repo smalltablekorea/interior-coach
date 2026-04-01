@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { type LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
+import Link from "next/link";
 
 interface KPICardProps {
   title: string;
@@ -10,6 +11,7 @@ interface KPICardProps {
   icon: LucideIcon;
   color?: string;
   onClick?: () => void;
+  href?: string;
   trend?: { direction: "up" | "down"; label: string };
   warning?: boolean;
   badge?: string;
@@ -22,6 +24,7 @@ export default function KPICard({
   icon: Icon,
   color = "var(--green)",
   onClick,
+  href,
   trend,
   warning,
   badge,
@@ -29,15 +32,69 @@ export default function KPICard({
   const TrendIcon = trend?.direction === "up" ? TrendingUp : TrendingDown;
   const trendColor = trend?.direction === "up" ? "var(--green)" : "var(--red)";
 
+  const className = cn(
+    "rounded-2xl border bg-[var(--card)] p-5 transition-all block",
+    warning ? "border-[var(--red)]/40" : "border-[var(--border)] hover:border-[var(--border-hover)]",
+    (onClick || href) && "cursor-pointer hover:bg-[var(--card-hover)]",
+  );
+
+  if (href) {
+    return (
+      <Link href={href} onClick={onClick} className={className}>
+        <CardInner
+          title={title}
+          value={value}
+          subtitle={subtitle}
+          Icon={Icon}
+          color={color}
+          badge={badge}
+          trend={trend}
+          TrendIcon={TrendIcon}
+          trendColor={trendColor}
+        />
+      </Link>
+    );
+  }
+
   return (
-    <div
-      onClick={onClick}
-      className={cn(
-        "rounded-2xl border bg-[var(--card)] p-5 transition-all",
-        warning ? "border-[var(--red)]/40" : "border-[var(--border)] hover:border-[var(--border-hover)]",
-        onClick && "cursor-pointer hover:bg-[var(--card-hover)]",
-      )}
-    >
+    <div onClick={onClick} className={className}>
+      <CardInner
+        title={title}
+        value={value}
+        subtitle={subtitle}
+        Icon={Icon}
+        color={color}
+        badge={badge}
+        trend={trend}
+        TrendIcon={TrendIcon}
+        trendColor={trendColor}
+      />
+    </div>
+  );
+}
+
+function CardInner({
+  title,
+  value,
+  subtitle,
+  Icon,
+  color,
+  badge,
+  trend,
+  TrendIcon,
+  trendColor,
+}: {
+  title: string;
+  value: string;
+  subtitle?: string;
+  Icon: LucideIcon;
+  color: string;
+  badge?: string;
+  trend?: { direction: "up" | "down"; label: string };
+  TrendIcon: LucideIcon;
+  trendColor: string;
+}) {
+  return (
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-sm text-[var(--muted)]">{title}</p>
@@ -71,6 +128,5 @@ export default function KPICard({
           <Icon size={20} style={{ color }} />
         </div>
       </div>
-    </div>
   );
 }
