@@ -35,9 +35,6 @@ import {
   DollarSign,
   Clapperboard,
   Info,
-  Link2,
-  Key,
-  Shield,
   ChevronRight,
   Trash2,
   AlertCircle,
@@ -46,7 +43,7 @@ import {
 import KPICard from "@/components/ui/KPICard";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
-import { fmt, fmtDate, cn } from "@/lib/utils";
+import { fmtDate, cn } from "@/lib/utils";
 
 /* ── Types ── */
 type TabKey = "videos" | "shorts" | "longform" | "seo" | "analytics" | "settings";
@@ -285,7 +282,6 @@ export default function YouTubePage() {
     language: "ko",
     visibility: "공개",
   });
-  const [showApiKey, setShowApiKey] = useState(false);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [channelConnection, setChannelConnection] = useState<{
     accountName: string | null;

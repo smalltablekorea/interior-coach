@@ -19,11 +19,9 @@ import {
   Instagram,
   Heart,
   MessageCircle,
-  Eye,
   Hash,
   Image,
   Images,
-  Play,
   Clock,
   Info,
   Trash2,
@@ -32,21 +30,17 @@ import {
   TrendingUp,
   FileText,
   ToggleLeft,
-  ToggleRight,
   Paintbrush,
   Wrench,
   Lightbulb,
   Camera,
-  Clapperboard,
-  Bookmark,
   Zap,
   RefreshCw,
 } from "lucide-react";
 import KPICard from "@/components/ui/KPICard";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
-import StatusBadge from "@/components/ui/StatusBadge";
-import { fmt, fmtDate, cn } from "@/lib/utils";
+import { fmtDate, cn } from "@/lib/utils";
 
 /* ══════════════════════════════════════════════════════════════════════════
    Types
@@ -189,27 +183,6 @@ const STORY_TEMPLATES = [
   },
 ];
 
-const DUMMY_POSTS: FeedPost[] = Array.from({ length: 9 }, (_, i) => ({
-  id: `post-${i + 1}`,
-  caption: [
-    "30평 아파트 전체 리모델링 완료! 모던 화이트 톤으로...",
-    "주방 싱크대 교체 시공 과정을 공유합니다...",
-    "욕실 리모델링 비포 & 애프터. 이 변화 실화?!",
-    "20평대 원룸 인테리어 팁 5가지를 알려드립니다...",
-    "거실 포인트 조명으로 분위기 완전 변신!",
-    "시공 현장 타일 작업 중. 장인의 손길...",
-    "고객님 맞춤 수납장 제작 완료!",
-    "트렌디한 아치형 출입구 시공 과정",
-    "올해 인테리어 트렌드 컬러 소개합니다.",
-  ][i],
-  status: (["published", "published", "published", "scheduled", "published", "draft", "published", "published", "draft"] as const)[i],
-  likes: Math.floor(Math.random() * 200) + 20,
-  comments: Math.floor(Math.random() * 30) + 2,
-  reach: Math.floor(Math.random() * 2000) + 200,
-  gradient: FEED_GRADIENTS[i % FEED_GRADIENTS.length],
-  createdAt: new Date(Date.now() - i * 86400000 * 3).toISOString(),
-}));
-
 /* ── Styling Helpers ── */
 
 const inputCls =
@@ -265,9 +238,6 @@ export default function InstagramPage() {
   const [statsLoading, setStatsLoading] = useState(false);
 
   /* ── Settings State ── */
-  const [igUsername, setIgUsername] = useState("");
-  const [igConnected, setIgConnected] = useState(false);
-  const [autoPost, setAutoPost] = useState(false);
   const [channelConnection, setChannelConnection] = useState<{
     accountName: string | null;
     hasToken: boolean;

@@ -29,15 +29,13 @@ import {
   Trash2,
   PlusCircle,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
+import dynamic from "next/dynamic";
+
+const GradeComparisonChart = dynamic(
+  () => import("@/components/charts/GradeComparisonChart"),
+  { ssr: false, loading: () => <div className="h-[300px] rounded-xl animate-shimmer" /> },
+);
+
 import {
   CATS,
   GRADES,
@@ -1292,65 +1290,19 @@ export default function EstimateCoachPage() {
               </button>
             </div>
             <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={visibleGrades.map((g) => ({
-                    name: g.label,
-                    key: g.key,
-                    total: g.total,
-                    color: g.color,
-                    tag: g.tag,
-                  }))}
-                  margin={{ top: 5, right: 10, left: 10, bottom: 5 }}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  onClick={(state: any) => {
-                    const key = state?.activePayload?.[0]?.payload?.key;
-                    if (key) setGrade(key);
-                  }}
-                >
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fill: "#888", fontSize: 12 }}
-                    axisLine={{ stroke: "rgba(255,255,255,0.08)" }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tickFormatter={(v: number) => fmtShort(v)}
-                    tick={{ fill: "#888", fontSize: 11 }}
-                    axisLine={false}
-                    tickLine={false}
-                    width={60}
-                  />
-                  <RechartsTooltip
-                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
-                    contentStyle={{
-                      backgroundColor: "#111",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: "12px",
-                      fontSize: "12px",
-                    }}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    formatter={(value: any, _name: any, props: any) => {
-                      const v = Number(value) || 0;
-                      const diff = v - selectedGradeTotal;
-                      const diffLabel = diff === 0 ? "(현재 선택)" : diff > 0 ? `+${fmtShort(diff)}` : fmtShort(diff);
-                      return [`${fmtShort(v)} ${diffLabel}`, `${props?.payload?.tag || ""}`];
-                    }}
-                    labelFormatter={(label: any) => `${label} 등급`}
-                  />
-                  <Bar dataKey="total" radius={[6, 6, 0, 0]} cursor="pointer">
-                    {visibleGrades.map((g) => (
-                      <Cell
-                        key={g.key}
-                        fill={g.color}
-                        fillOpacity={g.key === grade ? 0.9 : 0.35}
-                        stroke={g.key === grade ? g.color : "transparent"}
-                        strokeWidth={g.key === grade ? 2 : 0}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <GradeComparisonChart
+                data={visibleGrades.map((g) => ({
+                  name: g.label,
+                  key: g.key,
+                  total: g.total,
+                  color: g.color,
+                  tag: g.tag,
+                  fill: g.color,
+                  fillOpacity: g.key === grade ? 0.9 : 0.35,
+                }))}
+                selectedGradeTotal={selectedGradeTotal}
+                onBarClick={(key) => setGrade(key)}
+              />
             </div>
             {/* Selected grade info */}
             <div className="mt-3 flex items-center justify-between p-3 rounded-xl bg-[var(--green)]/[0.03] border border-[var(--green)]/20">

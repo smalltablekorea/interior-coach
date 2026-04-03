@@ -1,5 +1,3 @@
-"use client";
-
 import type { PlanId } from "@/lib/plans";
 import { PLANS } from "@/lib/plans";
 

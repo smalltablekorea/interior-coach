@@ -1,5 +1,3 @@
-"use client";
-
 import { STATUS_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 

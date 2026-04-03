@@ -1,5 +1,3 @@
-"use client";
-
 interface GaugeChartProps {
   score: number; // 0-100
   size?: number;
