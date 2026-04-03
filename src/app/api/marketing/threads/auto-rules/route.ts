@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { db } from "@/lib/db";
 import { threadsAutoRules, threadsTemplates } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { ok, err, notFound, serverError } from "@/lib/api/response";
 
 
 export async function GET() {
@@ -11,26 +12,30 @@ export async function GET() {
   if (!auth.ok) return auth.response;
   const wid = auth.workspaceId; const uid = auth.userId;
 
-  const rules = await db
-    .select({
-      id: threadsAutoRules.id,
-      name: threadsAutoRules.name,
-      type: threadsAutoRules.type,
-      templateId: threadsAutoRules.templateId,
-      templateName: threadsTemplates.name,
-      schedule: threadsAutoRules.schedule,
-      isActive: threadsAutoRules.isActive,
-      lastTriggeredAt: threadsAutoRules.lastTriggeredAt,
-      triggerCount: threadsAutoRules.triggerCount,
-      config: threadsAutoRules.config,
-      createdAt: threadsAutoRules.createdAt,
-    })
-    .from(threadsAutoRules)
-    .leftJoin(threadsTemplates, eq(threadsAutoRules.templateId, threadsTemplates.id))
-    .where(workspaceFilter(threadsAutoRules.workspaceId, threadsAutoRules.userId, wid, uid))
-    .orderBy(desc(threadsAutoRules.createdAt));
+  try {
+    const rules = await db
+      .select({
+        id: threadsAutoRules.id,
+        name: threadsAutoRules.name,
+        type: threadsAutoRules.type,
+        templateId: threadsAutoRules.templateId,
+        templateName: threadsTemplates.name,
+        schedule: threadsAutoRules.schedule,
+        isActive: threadsAutoRules.isActive,
+        lastTriggeredAt: threadsAutoRules.lastTriggeredAt,
+        triggerCount: threadsAutoRules.triggerCount,
+        config: threadsAutoRules.config,
+        createdAt: threadsAutoRules.createdAt,
+      })
+      .from(threadsAutoRules)
+      .leftJoin(threadsTemplates, eq(threadsAutoRules.templateId, threadsTemplates.id))
+      .where(workspaceFilter(threadsAutoRules.workspaceId, threadsAutoRules.userId, wid, uid))
+      .orderBy(desc(threadsAutoRules.createdAt));
 
-  return NextResponse.json(rules);
+    return ok(rules);
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -38,27 +43,31 @@ export async function POST(request: NextRequest) {
   if (!auth.ok) return auth.response;
   const wid = auth.workspaceId; const uid = auth.userId;
 
-  const body = await request.json();
-  const { name, type, templateId, schedule, config } = body;
+  try {
+    const body = await request.json();
+    const { name, type, templateId, schedule, config } = body;
 
-  if (!name || !type) {
-    return NextResponse.json({ error: "name, type 필수" }, { status: 400 });
+    if (!name || !type) {
+      return err("name, type 필수");
+    }
+
+    const [created] = await db
+      .insert(threadsAutoRules)
+      .values({
+        userId: uid,
+        workspaceId: wid,
+        name,
+        type,
+        templateId: templateId || null,
+        schedule: schedule || null,
+        config: config || null,
+      })
+      .returning();
+
+    return ok(created);
+  } catch (error) {
+    return serverError(error);
   }
-
-  const [created] = await db
-    .insert(threadsAutoRules)
-    .values({
-      userId: uid,
-      workspaceId: wid,
-      name,
-      type,
-      templateId: templateId || null,
-      schedule: schedule || null,
-      config: config || null,
-    })
-    .returning();
-
-  return NextResponse.json(created);
 }
 
 export async function PUT(request: NextRequest) {
@@ -66,20 +75,25 @@ export async function PUT(request: NextRequest) {
   if (!auth.ok) return auth.response;
   const wid = auth.workspaceId; const uid = auth.userId;
 
-  const body = await request.json();
-  const { id, ...updates } = body;
+  try {
+    const body = await request.json();
+    const { id, ...updates } = body;
 
-  if (!id) {
-    return NextResponse.json({ error: "id 필수" }, { status: 400 });
+    if (!id) {
+      return err("id 필수");
+    }
+
+    const [updated] = await db
+      .update(threadsAutoRules)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(and(eq(threadsAutoRules.id, id), workspaceFilter(threadsAutoRules.workspaceId, threadsAutoRules.userId, wid, uid)))
+      .returning();
+
+    if (!updated) return notFound("자동 규칙을 찾을 수 없습니다.");
+    return ok(updated);
+  } catch (error) {
+    return serverError(error);
   }
-
-  const [updated] = await db
-    .update(threadsAutoRules)
-    .set({ ...updates, updatedAt: new Date() })
-    .where(and(eq(threadsAutoRules.id, id), workspaceFilter(threadsAutoRules.workspaceId, threadsAutoRules.userId, wid, uid)))
-    .returning();
-
-  return NextResponse.json(updated || null);
 }
 
 export async function DELETE(request: NextRequest) {
@@ -87,16 +101,20 @@ export async function DELETE(request: NextRequest) {
   if (!auth.ok) return auth.response;
   const wid = auth.workspaceId; const uid = auth.userId;
 
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
 
-  if (!id) {
-    return NextResponse.json({ error: "id 필수" }, { status: 400 });
+    if (!id) {
+      return err("id 필수");
+    }
+
+    await db
+      .delete(threadsAutoRules)
+      .where(and(eq(threadsAutoRules.id, id), workspaceFilter(threadsAutoRules.workspaceId, threadsAutoRules.userId, wid, uid)));
+
+    return ok({ success: true });
+  } catch (error) {
+    return serverError(error);
   }
-
-  await db
-    .delete(threadsAutoRules)
-    .where(and(eq(threadsAutoRules.id, id), workspaceFilter(threadsAutoRules.workspaceId, threadsAutoRules.userId, wid, uid)));
-
-  return NextResponse.json({ success: true });
 }

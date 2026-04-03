@@ -24,26 +24,26 @@ export async function GET() {
     const plan = (subscription?.plan || "free") as PlanId;
     const planConfig = PLANS[plan];
 
-    const [siteCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(sites)
-      .where(and(workspaceFilter(sites.workspaceId, sites.userId, wid, uid), isNull(sites.deletedAt)));
-
-    const [customerCount] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(customers)
-      .where(and(workspaceFilter(customers.workspaceId, customers.userId, wid, uid), isNull(customers.deletedAt)));
-
     const period = new Date().toISOString().slice(0, 7);
-    const usageRows = await db
-      .select()
-      .from(usageRecords)
-      .where(
-        and(
-          workspaceFilter(usageRecords.workspaceId, usageRecords.userId, wid, uid),
-          eq(usageRecords.period, period)
-        )
-      );
+    const [[siteCount], [customerCount], usageRows] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(sites)
+        .where(and(workspaceFilter(sites.workspaceId, sites.userId, wid, uid), isNull(sites.deletedAt))),
+      db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(customers)
+        .where(and(workspaceFilter(customers.workspaceId, customers.userId, wid, uid), isNull(customers.deletedAt))),
+      db
+        .select()
+        .from(usageRecords)
+        .where(
+          and(
+            workspaceFilter(usageRecords.workspaceId, usageRecords.userId, wid, uid),
+            eq(usageRecords.period, period)
+          )
+        ),
+    ]);
 
     const usageMap: Record<string, number> = {};
     for (const row of usageRows) {

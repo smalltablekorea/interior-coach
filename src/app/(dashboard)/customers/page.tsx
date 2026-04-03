@@ -7,6 +7,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
 import UpgradeModal from "@/components/subscription/UpgradeModal";
 import { useSubscription } from "@/hooks/useSubscription";
+import { apiFetch } from "@/lib/api-client";
 import { CUSTOMER_STATUSES } from "@/lib/constants";
 import { fmtDate } from "@/lib/utils";
 import Link from "next/link";
@@ -36,7 +37,7 @@ export default function CustomersPage() {
 
   const fetchCustomers = (status?: string) => {
     const url = status ? `/api/customers?status=${status}` : "/api/customers";
-    fetch(url)
+    apiFetch(url)
       .then((r) => r.json())
       .then((data) => {
         setCustomers(data);
@@ -52,7 +53,7 @@ export default function CustomersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch("/api/customers", {
+    const res = await apiFetch("/api/customers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),

@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { db } from "@/lib/db";
 import { threadsAccount } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { ok, err, serverError } from "@/lib/api/response";
 
 
 export async function GET() {
@@ -11,13 +12,17 @@ export async function GET() {
   if (!auth.ok) return auth.response;
   const wid = auth.workspaceId; const uid = auth.userId;
 
-  const accounts = await db
-    .select()
-    .from(threadsAccount)
-    .where(workspaceFilter(threadsAccount.workspaceId, threadsAccount.userId, wid, uid))
-    .limit(1);
+  try {
+    const accounts = await db
+      .select()
+      .from(threadsAccount)
+      .where(workspaceFilter(threadsAccount.workspaceId, threadsAccount.userId, wid, uid))
+      .limit(1);
 
-  return NextResponse.json(accounts[0] || null);
+    return ok(accounts[0] || null);
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -25,35 +30,39 @@ export async function POST(request: NextRequest) {
   if (!auth.ok) return auth.response;
   const wid = auth.workspaceId; const uid = auth.userId;
 
-  const body = await request.json();
-  const { username } = body as { username: string };
+  try {
+    const body = await request.json();
+    const { username } = body as { username: string };
 
-  if (!username) {
-    return NextResponse.json({ error: "username 필수" }, { status: 400 });
-  }
+    if (!username) {
+      return err("username 필수");
+    }
 
-  // Check existing
-  const existing = await db
-    .select()
-    .from(threadsAccount)
-    .where(workspaceFilter(threadsAccount.workspaceId, threadsAccount.userId, wid, uid))
-    .limit(1);
+    // Check existing
+    const existing = await db
+      .select()
+      .from(threadsAccount)
+      .where(workspaceFilter(threadsAccount.workspaceId, threadsAccount.userId, wid, uid))
+      .limit(1);
 
-  if (existing.length > 0) {
-    const [updated] = await db
-      .update(threadsAccount)
-      .set({ username, isConnected: true, connectedAt: new Date(), updatedAt: new Date() })
-      .where(eq(threadsAccount.id, existing[0].id))
+    if (existing.length > 0) {
+      const [updated] = await db
+        .update(threadsAccount)
+        .set({ username, isConnected: true, connectedAt: new Date(), updatedAt: new Date() })
+        .where(eq(threadsAccount.id, existing[0].id))
+        .returning();
+      return ok(updated);
+    }
+
+    const [created] = await db
+      .insert(threadsAccount)
+      .values({ userId: uid, workspaceId: wid, username, isConnected: true, connectedAt: new Date() })
       .returning();
-    return NextResponse.json(updated);
+
+    return ok(created);
+  } catch (error) {
+    return serverError(error);
   }
-
-  const [created] = await db
-    .insert(threadsAccount)
-    .values({ userId: uid, workspaceId: wid, username, isConnected: true, connectedAt: new Date() })
-    .returning();
-
-  return NextResponse.json(created);
 }
 
 export async function DELETE() {
@@ -61,20 +70,24 @@ export async function DELETE() {
   if (!auth.ok) return auth.response;
   const wid = auth.workspaceId; const uid = auth.userId;
 
-  const existing = await db
-    .select()
-    .from(threadsAccount)
-    .where(workspaceFilter(threadsAccount.workspaceId, threadsAccount.userId, wid, uid))
-    .limit(1);
+  try {
+    const existing = await db
+      .select()
+      .from(threadsAccount)
+      .where(workspaceFilter(threadsAccount.workspaceId, threadsAccount.userId, wid, uid))
+      .limit(1);
 
-  if (existing.length > 0) {
-    const [updated] = await db
-      .update(threadsAccount)
-      .set({ isConnected: false, updatedAt: new Date() })
-      .where(eq(threadsAccount.id, existing[0].id))
-      .returning();
-    return NextResponse.json(updated);
+    if (existing.length > 0) {
+      const [updated] = await db
+        .update(threadsAccount)
+        .set({ isConnected: false, updatedAt: new Date() })
+        .where(eq(threadsAccount.id, existing[0].id))
+        .returning();
+      return ok(updated);
+    }
+
+    return ok(null);
+  } catch (error) {
+    return serverError(error);
   }
-
-  return NextResponse.json(null);
 }

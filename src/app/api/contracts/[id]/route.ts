@@ -13,45 +13,49 @@ export async function GET(
   const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  const [contract] = await db
-    .select({
-      id: contracts.id,
-      contractAmount: contracts.contractAmount,
-      contractDate: contracts.contractDate,
-      siteId: contracts.siteId,
-      siteName: sites.name,
-      customerName: customers.name,
-      customerPhone: customers.phone,
-      memo: contracts.memo,
-      createdAt: contracts.createdAt,
-      estimateId: contracts.estimateId,
-      estimateAmount: estimates.totalAmount,
-    })
-    .from(contracts)
-    .leftJoin(sites, eq(contracts.siteId, sites.id))
-    .leftJoin(customers, eq(sites.customerId, customers.id))
-    .leftJoin(estimates, eq(contracts.estimateId, estimates.id))
-    .where(and(eq(contracts.id, id), workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt)))
-    .limit(1);
+    const [contract] = await db
+      .select({
+        id: contracts.id,
+        contractAmount: contracts.contractAmount,
+        contractDate: contracts.contractDate,
+        siteId: contracts.siteId,
+        siteName: sites.name,
+        customerName: customers.name,
+        customerPhone: customers.phone,
+        memo: contracts.memo,
+        createdAt: contracts.createdAt,
+        estimateId: contracts.estimateId,
+        estimateAmount: estimates.totalAmount,
+      })
+      .from(contracts)
+      .leftJoin(sites, eq(contracts.siteId, sites.id))
+      .leftJoin(customers, eq(sites.customerId, customers.id))
+      .leftJoin(estimates, eq(contracts.estimateId, estimates.id))
+      .where(and(eq(contracts.id, id), workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt)))
+      .limit(1);
 
-  if (!contract) return notFound("계약을 찾을 수 없습니다");
+    if (!contract) return notFound("계약을 찾을 수 없습니다");
 
-  const payments = await db
-    .select({
-      id: contractPayments.id,
-      type: contractPayments.type,
-      amount: contractPayments.amount,
-      dueDate: contractPayments.dueDate,
-      paidDate: contractPayments.paidDate,
-      status: contractPayments.status,
-      memo: contractPayments.memo,
-    })
-    .from(contractPayments)
-    .where(eq(contractPayments.contractId, id));
+    const payments = await db
+      .select({
+        id: contractPayments.id,
+        type: contractPayments.type,
+        amount: contractPayments.amount,
+        dueDate: contractPayments.dueDate,
+        paidDate: contractPayments.paidDate,
+        status: contractPayments.status,
+        memo: contractPayments.memo,
+      })
+      .from(contractPayments)
+      .where(eq(contractPayments.contractId, id));
 
-  return ok({ ...contract, payments });
+    return ok({ ...contract, payments });
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
 export async function PUT(
@@ -112,14 +116,18 @@ export async function DELETE(
   const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  const [row] = await db
-    .update(contracts)
-    .set({ deletedAt: new Date() })
-    .where(and(eq(contracts.id, id), workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt)))
-    .returning({ id: contracts.id });
+    const [row] = await db
+      .update(contracts)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(contracts.id, id), workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt)))
+      .returning({ id: contracts.id });
 
-  if (!row) return notFound("계약을 찾을 수 없습니다");
-  return ok({ id: row.id });
+    if (!row) return notFound("계약을 찾을 수 없습니다");
+    return ok({ id: row.id });
+  } catch (error) {
+    return serverError(error);
+  }
 }

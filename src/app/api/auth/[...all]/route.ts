@@ -131,6 +131,7 @@ export async function POST(req: NextRequest) {
         ? "__Secure-better-auth.session_token"
         : "better-auth.session_token";
       response.cookies.delete(cookieName);
+      response.cookies.delete("has_workspace");
       return response;
     }
 

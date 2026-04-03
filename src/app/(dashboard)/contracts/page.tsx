@@ -5,6 +5,7 @@ import { Plus, FileCheck, AlertTriangle, Search } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
+import { apiFetch } from "@/lib/api-client";
 import { fmt, fmtDate, fmtShort, cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -66,9 +67,9 @@ export default function ContractsPage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/contracts").then((r) => r.json()),
-      fetch("/api/sites").then((r) => r.json()),
-      fetch("/api/unpaid").then((r) => r.json()),
+      apiFetch("/api/contracts").then((r) => r.json()),
+      apiFetch("/api/sites").then((r) => r.json()),
+      apiFetch("/api/unpaid").then((r) => r.json()),
     ])
       .then(([contractData, siteData, unpaidData]) => {
         setContracts(Array.isArray(contractData) ? contractData : []);
@@ -86,7 +87,7 @@ export default function ContractsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch("/api/contracts", {
+    const res = await apiFetch("/api/contracts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

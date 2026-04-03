@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Plus, Search, Receipt, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
+import { apiFetch } from "@/lib/api-client";
 import { fmt, fmtDate, fmtShort } from "@/lib/utils";
 
 interface Expense {
@@ -86,7 +87,7 @@ export default function ExpensesPage() {
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
 
   const loadExpenses = useCallback(() => {
-    fetch("/api/expenses")
+    apiFetch("/api/expenses")
       .then((r) => r.json())
       .then((data) => setExpenses(Array.isArray(data) ? data : []))
       .catch(() => {});
@@ -94,8 +95,8 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/expenses").then((r) => r.json()),
-      fetch("/api/sites").then((r) => r.json()),
+      apiFetch("/api/expenses").then((r) => r.json()),
+      apiFetch("/api/sites").then((r) => r.json()),
     ])
       .then(([expData, siteData]) => {
         setExpenses(Array.isArray(expData) ? expData : []);
@@ -108,7 +109,7 @@ export default function ExpensesPage() {
   // Load budget data when site filter changes
   useEffect(() => {
     if (filterSite) {
-      fetch(`/api/sites/${filterSite}/budget`)
+      apiFetch(`/api/sites/${filterSite}/budget`)
         .then((r) => r.json())
         .then((data) => setBudget(data))
         .catch(() => setBudget(null));
@@ -140,7 +141,7 @@ export default function ExpensesPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch("/api/expenses", {
+      const res = await apiFetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -186,7 +187,7 @@ export default function ExpensesPage() {
     if (!editExpense) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/expenses/${editExpense.id}`, {
+      const res = await apiFetch(`/api/expenses/${editExpense.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -207,7 +208,7 @@ export default function ExpensesPage() {
 
   const handleDeleteExpense = async (expenseId: string) => {
     try {
-      const res = await fetch(`/api/expenses/${expenseId}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/expenses/${expenseId}`, { method: "DELETE" });
       if (res.ok) {
         setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
       }

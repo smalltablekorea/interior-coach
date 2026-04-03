@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { db } from "@/lib/db";
 import { sites, constructionPhases, estimates, expenses, contracts, contractPayments } from "@/lib/db/schema";
 import { eq, sql, and } from "drizzle-orm";
+import { ok, forbidden, serverError } from "@/lib/api/response";
 
 export async function GET(
   _request: Request,
@@ -16,14 +16,15 @@ export async function GET(
 
   const { id: siteId } = await params;
 
-  // 본인 현장인지 확인
-  const [site] = await db
-    .select({ id: sites.id })
-    .from(sites)
-    .where(and(eq(sites.id, siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid)));
-  if (!site) {
-    return NextResponse.json({ error: "접근 권한이 없습니다" }, { status: 403 });
-  }
+  try {
+    // 본인 현장인지 확인
+    const [site] = await db
+      .select({ id: sites.id })
+      .from(sites)
+      .where(and(eq(sites.id, siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid)));
+    if (!site) {
+      return forbidden("접근 권한이 없습니다");
+    }
 
   // 1. 공정 진행률 (30점)
   const phases = await db
@@ -108,19 +109,22 @@ export async function GET(
 
   const totalScore = progressScore + budgetScore + paymentScore + issueScore + responseScore;
 
-  return NextResponse.json({
-    totalScore,
-    breakdown: {
-      progress: { score: progressScore, max: 30, label: "공정 진행률" },
-      budget: { score: budgetScore, max: 30, label: "예산 건전성" },
-      payment: { score: paymentScore, max: 20, label: "수금 상태" },
-      issue: { score: issueScore + responseScore, max: 20, label: "이슈/응답" },
-    },
-    meta: {
-      phaseCount: phases.length,
-      avgProgress: phases.length > 0 ? Math.round(phases.reduce((s, p) => s + p.progress, 0) / phases.length) : 0,
-      budgetRatio: totalBudget > 0 ? Math.round((totalExpense / totalBudget) * 100) : null,
-      paymentCount: payments.length,
-    },
-  });
+    return ok({
+      totalScore,
+      breakdown: {
+        progress: { score: progressScore, max: 30, label: "공정 진행률" },
+        budget: { score: budgetScore, max: 30, label: "예산 건전성" },
+        payment: { score: paymentScore, max: 20, label: "수금 상태" },
+        issue: { score: issueScore + responseScore, max: 20, label: "이슈/응답" },
+      },
+      meta: {
+        phaseCount: phases.length,
+        avgProgress: phases.length > 0 ? Math.round(phases.reduce((s, p) => s + p.progress, 0) / phases.length) : 0,
+        budgetRatio: totalBudget > 0 ? Math.round((totalExpense / totalBudget) * 100) : null,
+        paymentCount: payments.length,
+      },
+    });
+  } catch (error) {
+    return serverError(error);
+  }
 }

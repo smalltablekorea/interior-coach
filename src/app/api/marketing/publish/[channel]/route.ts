@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { getValidToken } from "@/lib/marketing-oauth/token-manager";
 import { db } from "@/lib/db";
 import { marketingPosts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { ok, err, serverError } from "@/lib/api/response";
 
 export async function POST(
   request: NextRequest,
@@ -14,16 +15,26 @@ export async function POST(
   const uid = auth.userId;
 
   const { channel } = await params;
-  const body = await request.json();
-  const { postId, content, mediaUrls, title, hashtags } = body;
+
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return err("잘못된 요청 본문입니다.");
+  }
+
+  const { postId, content, mediaUrls, title, hashtags } = body as {
+    postId?: string;
+    content?: string;
+    mediaUrls?: string[];
+    title?: string;
+    hashtags?: string[];
+  };
 
   // Get valid token (auto-refreshes if needed)
   const token = await getValidToken(uid, channel);
   if (!token) {
-    return NextResponse.json(
-      { error: "인증이 만료되었습니다. 계정을 다시 연결해주세요." },
-      { status: 401 }
-    );
+    return err("인증이 만료되었습니다. 계정을 다시 연결해주세요.", 401);
   }
 
   try {
@@ -31,23 +42,20 @@ export async function POST(
 
     switch (channel) {
       case "threads":
-        result = await publishToThreads(token, content, mediaUrls);
+        result = await publishToThreads(token, content as string, mediaUrls);
         break;
       case "instagram":
-        result = await publishToInstagram(token, content, mediaUrls);
+        result = await publishToInstagram(token, content as string, mediaUrls);
         break;
       case "youtube":
         result = await updateYouTubeMetadata(token, {
-          title,
-          description: content,
+          title: title as string,
+          description: content as string,
           tags: hashtags,
         });
         break;
       default:
-        return NextResponse.json(
-          { error: `지원하지 않는 채널: ${channel}` },
-          { status: 400 }
-        );
+        return err(`지원하지 않는 채널: ${channel}`);
     }
 
     // Update post record if postId provided
@@ -61,13 +69,13 @@ export async function POST(
           status: "published",
           updatedAt: new Date(),
         })
-        .where(eq(marketingPosts.id, postId));
+        .where(eq(marketingPosts.id, postId as string));
     }
 
-    return NextResponse.json({ success: true, ...result });
-  } catch (err) {
+    return ok({ success: true, ...result });
+  } catch (error) {
     const message =
-      err instanceof Error ? err.message : "발행에 실패했습니다.";
+      error instanceof Error ? error.message : "발행에 실패했습니다.";
 
     if (postId) {
       await db
@@ -77,10 +85,10 @@ export async function POST(
           errorMessage: message,
           updatedAt: new Date(),
         })
-        .where(eq(marketingPosts.id, postId));
+        .where(eq(marketingPosts.id, postId as string));
     }
 
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }
 

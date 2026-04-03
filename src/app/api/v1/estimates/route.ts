@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { estimates, estimateItems, sites } from "@/lib/db/schema";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
+import { ok, serverError } from "@/lib/api/response";
 
 interface LineItem {
   name: string;
@@ -33,9 +34,10 @@ export async function POST(request: NextRequest) {
   if (!auth.ok) return auth.response;
   const userId = auth.userId;
   const wid = auth.workspaceId;
-  const body = await request.json();
+  try {
+    const body = await request.json();
 
-  const {
+    const {
     title,
     clientName,
     siteAddress,
@@ -155,17 +157,17 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  if (allItems.length > 0) {
-    await db.insert(estimateItems).values(allItems);
-  }
+    if (allItems.length > 0) {
+      await db.insert(estimateItems).values(allItems);
+    }
 
-  return NextResponse.json(
-    {
+    return ok({
       id: estimate.id,
       siteId: site.id,
       totalAmount: estimate.totalAmount,
       status: estimate.status,
-    },
-    { status: 201 }
-  );
+    });
+  } catch (error) {
+    return serverError(error);
+  }
 }

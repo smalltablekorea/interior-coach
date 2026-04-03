@@ -5,6 +5,7 @@ import { Plus, Search, HardHat, Phone } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import FeatureGate from "@/components/subscription/FeatureGate";
+import { apiFetch } from "@/lib/api-client";
 import { fmt } from "@/lib/utils";
 import { TRADES } from "@/lib/constants";
 import Link from "next/link";
@@ -34,7 +35,7 @@ export default function WorkersPage() {
   });
 
   const fetchWorkers = () => {
-    fetch("/api/workers")
+    apiFetch("/api/workers")
       .then((r) => r.json())
       .then((data) => {
         setWorkers(data);
@@ -50,7 +51,7 @@ export default function WorkersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch("/api/workers", {
+    const res = await apiFetch("/api/workers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

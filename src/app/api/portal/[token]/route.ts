@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
   customerPortalTokens,
@@ -10,6 +9,7 @@ import {
   sitePhotos,
 } from "@/lib/db/schema";
 import { eq, desc, sql } from "drizzle-orm";
+import { ok, notFound, err, serverError } from "@/lib/api/response";
 
 export async function GET(
   _request: Request,
@@ -17,33 +17,34 @@ export async function GET(
 ) {
   const { token } = await params;
 
-  // Verify token
-  const [tokenRow] = await db
-    .select()
-    .from(customerPortalTokens)
-    .where(eq(customerPortalTokens.token, token))
-    .limit(1);
+  try {
+    // Verify token
+    const [tokenRow] = await db
+      .select()
+      .from(customerPortalTokens)
+      .where(eq(customerPortalTokens.token, token))
+      .limit(1);
 
-  if (!tokenRow) {
-    return NextResponse.json({ error: "유효하지 않은 링크입니다" }, { status: 404 });
-  }
+    if (!tokenRow) {
+      return notFound("유효하지 않은 링크입니다");
+    }
 
-  if (new Date(tokenRow.expiresAt) < new Date()) {
-    return NextResponse.json({ error: "만료된 링크입니다" }, { status: 410 });
-  }
+    if (new Date(tokenRow.expiresAt) < new Date()) {
+      return err("만료된 링크입니다", 410);
+    }
 
-  const customerId = tokenRow.customerId;
+    const customerId = tokenRow.customerId;
 
-  // Customer info
-  const [customer] = await db
-    .select({ id: customers.id, name: customers.name })
-    .from(customers)
-    .where(eq(customers.id, customerId))
-    .limit(1);
+    // Customer info
+    const [customer] = await db
+      .select({ id: customers.id, name: customers.name })
+      .from(customers)
+      .where(eq(customers.id, customerId))
+      .limit(1);
 
-  if (!customer) {
-    return NextResponse.json({ error: "고객 정보를 찾을 수 없습니다" }, { status: 404 });
-  }
+    if (!customer) {
+      return notFound("고객 정보를 찾을 수 없습니다");
+    }
 
   // Sites
   const customerSites = await db
@@ -133,8 +134,11 @@ export async function GET(
     })
   );
 
-  return NextResponse.json({
-    customer,
-    sites: sitesData,
-  });
+    return ok({
+      customer,
+      sites: sitesData,
+    });
+  } catch (error) {
+    return serverError(error);
+  }
 }

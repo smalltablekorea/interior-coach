@@ -5,6 +5,7 @@ import { Plus, Search, FileText } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
+import { apiFetch } from "@/lib/api-client";
 import { fmt, fmtDate } from "@/lib/utils";
 import { TRADES, ESTIMATE_STATUSES } from "@/lib/constants";
 import Link from "next/link";
@@ -54,8 +55,8 @@ export default function EstimatesPage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/estimates").then((r) => r.json()),
-      fetch("/api/sites").then((r) => r.json()),
+      apiFetch("/api/estimates").then((r) => r.json()),
+      apiFetch("/api/sites").then((r) => r.json()),
     ])
       .then(([estData, siteData]) => {
         setEstimates(estData);
@@ -95,7 +96,7 @@ export default function EstimatesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch("/api/estimates", {
+    const res = await apiFetch("/api/estimates", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

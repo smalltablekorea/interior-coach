@@ -1,86 +1,92 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { db } from "@/lib/db";
 import { threadsComments, threadsPosts } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import Anthropic from "@anthropic-ai/sdk";
+import { ok, err, notFound, serverError } from "@/lib/api/response";
 
 
 export async function GET(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "read");
   if (!auth.ok) return auth.response;
 
-  const { searchParams } = new URL(request.url);
-  const postId = searchParams.get("postId");
-  const replyStatus = searchParams.get("replyStatus");
+  try {
+    const { searchParams } = new URL(request.url);
+    const postId = searchParams.get("postId");
+    const replyStatus = searchParams.get("replyStatus");
 
-  const conditions = [workspaceFilter(threadsComments.workspaceId, threadsComments.userId, auth.workspaceId, auth.userId)];
-  if (postId) conditions.push(eq(threadsComments.postId, postId));
-  if (replyStatus) conditions.push(eq(threadsComments.replyStatus, replyStatus));
+    const conditions = [workspaceFilter(threadsComments.workspaceId, threadsComments.userId, auth.workspaceId, auth.userId)];
+    if (postId) conditions.push(eq(threadsComments.postId, postId));
+    if (replyStatus) conditions.push(eq(threadsComments.replyStatus, replyStatus));
 
-  const comments = await db
-    .select({
-      id: threadsComments.id,
-      postId: threadsComments.postId,
-      postContent: threadsPosts.content,
-      authorName: threadsComments.authorName,
-      commentText: threadsComments.commentText,
-      replyText: threadsComments.replyText,
-      replyStatus: threadsComments.replyStatus,
-      isAutoReply: threadsComments.isAutoReply,
-      createdAt: threadsComments.createdAt,
-    })
-    .from(threadsComments)
-    .leftJoin(threadsPosts, eq(threadsComments.postId, threadsPosts.id))
-    .where(and(...conditions))
-    .orderBy(desc(threadsComments.createdAt));
+    const comments = await db
+      .select({
+        id: threadsComments.id,
+        postId: threadsComments.postId,
+        postContent: threadsPosts.content,
+        authorName: threadsComments.authorName,
+        commentText: threadsComments.commentText,
+        replyText: threadsComments.replyText,
+        replyStatus: threadsComments.replyStatus,
+        isAutoReply: threadsComments.isAutoReply,
+        createdAt: threadsComments.createdAt,
+      })
+      .from(threadsComments)
+      .leftJoin(threadsPosts, eq(threadsComments.postId, threadsPosts.id))
+      .where(and(...conditions))
+      .orderBy(desc(threadsComments.createdAt));
 
-  return NextResponse.json(comments);
+    return ok(comments);
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "ANTHROPIC_API_KEY가 설정되지 않았습니다." }, { status: 500 });
-  }
+  try {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return err("ANTHROPIC_API_KEY가 설정되지 않았습니다.", 500);
+    }
 
-  const body = await request.json();
-  const { commentId } = body as { commentId: string };
+    const body = await request.json();
+    const { commentId } = body as { commentId: string };
 
-  if (!commentId) {
-    return NextResponse.json({ error: "commentId 필수" }, { status: 400 });
-  }
+    if (!commentId) {
+      return err("commentId 필수");
+    }
 
-  // Get comment with post content
-  const [comment] = await db
-    .select({
-      id: threadsComments.id,
-      commentText: threadsComments.commentText,
-      authorName: threadsComments.authorName,
-      postContent: threadsPosts.content,
-    })
-    .from(threadsComments)
-    .leftJoin(threadsPosts, eq(threadsComments.postId, threadsPosts.id))
-    .where(eq(threadsComments.id, commentId))
-    .limit(1);
+    // Get comment with post content
+    const [comment] = await db
+      .select({
+        id: threadsComments.id,
+        commentText: threadsComments.commentText,
+        authorName: threadsComments.authorName,
+        postContent: threadsPosts.content,
+      })
+      .from(threadsComments)
+      .leftJoin(threadsPosts, eq(threadsComments.postId, threadsPosts.id))
+      .where(eq(threadsComments.id, commentId))
+      .limit(1);
 
-  if (!comment) {
-    return NextResponse.json({ error: "댓글을 찾을 수 없습니다." }, { status: 404 });
-  }
+    if (!comment) {
+      return notFound("댓글을 찾을 수 없습니다.");
+    }
 
-  const client = new Anthropic({ apiKey });
+    const client = new Anthropic({ apiKey });
 
-  const response = await client.messages.create({
-    model: "claude-sonnet-4-20250514",
-    max_tokens: 300,
-    messages: [
-      {
-        role: "user",
-        content: `당신은 한국 인테리어 업체의 SNS 담당자입니다.
+    const response = await client.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 300,
+      messages: [
+        {
+          role: "user",
+          content: `당신은 한국 인테리어 업체의 SNS 담당자입니다.
 Threads 게시물에 달린 댓글에 친절하고 전문적으로 답변해주세요.
 
 원본 게시물: ${comment.postContent || ""}
@@ -96,41 +102,49 @@ Threads 게시물에 달린 댓글에 친절하고 전문적으로 답변해주�
 - 칭찬이면 감사 표현 + 추가 정보 제공
 
 답변 텍스트만 반환해주세요 (JSON 아님, 순수 텍스트만).`,
-      },
-    ],
-  });
+        },
+      ],
+    });
 
-  const replyText = response.content[0].type === "text" ? response.content[0].text.trim() : "";
+    const replyText = response.content[0].type === "text" ? response.content[0].text.trim() : "";
 
-  const [updated] = await db
-    .update(threadsComments)
-    .set({ replyText, isAutoReply: true, replyStatus: "대기" })
-    .where(eq(threadsComments.id, commentId))
-    .returning();
+    const [updated] = await db
+      .update(threadsComments)
+      .set({ replyText, isAutoReply: true, replyStatus: "대기" })
+      .where(eq(threadsComments.id, commentId))
+      .returning();
 
-  return NextResponse.json(updated);
+    return ok(updated);
+  } catch (error) {
+    return serverError(error);
+  }
 }
 
 export async function PUT(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
 
-  const body = await request.json();
-  const { id, replyText, replyStatus } = body;
+  try {
+    const body = await request.json();
+    const { id, replyText, replyStatus } = body;
 
-  if (!id) {
-    return NextResponse.json({ error: "id 필수" }, { status: 400 });
+    if (!id) {
+      return err("id 필수");
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (replyText !== undefined) updates.replyText = replyText;
+    if (replyStatus !== undefined) updates.replyStatus = replyStatus;
+
+    const [updated] = await db
+      .update(threadsComments)
+      .set(updates)
+      .where(and(eq(threadsComments.id, id), workspaceFilter(threadsComments.workspaceId, threadsComments.userId, auth.workspaceId, auth.userId)))
+      .returning();
+
+    if (!updated) return notFound("댓글을 찾을 수 없습니다.");
+    return ok(updated);
+  } catch (error) {
+    return serverError(error);
   }
-
-  const updates: Record<string, unknown> = {};
-  if (replyText !== undefined) updates.replyText = replyText;
-  if (replyStatus !== undefined) updates.replyStatus = replyStatus;
-
-  const [updated] = await db
-    .update(threadsComments)
-    .set(updates)
-    .where(and(eq(threadsComments.id, id), workspaceFilter(threadsComments.workspaceId, threadsComments.userId, auth.workspaceId, auth.userId)))
-    .returning();
-
-  return NextResponse.json(updated || null);
 }

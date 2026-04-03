@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { analysisCredits } from "@/lib/db/schema";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
+import { ok, err, forbidden, serverError } from "@/lib/api/response";
 
 /** POST: 관리자용 크레딧 설정/추가 */
 export async function POST(request: NextRequest) {
@@ -14,36 +15,40 @@ export async function POST(request: NextRequest) {
 
   // 관리자 이메일 체크
   if (auth.session.user.email !== "smalltablekorea@gmail.com") {
-    return NextResponse.json({ error: "관리자만 사용 가능" }, { status: 403 });
+    return forbidden("관리자만 사용 가능");
   }
 
-  const body = await request.json();
-  const totalCredits = Number(body.totalCredits) || 14;
+  try {
+    const body = await request.json();
+    const totalCredits = Number(body.totalCredits) || 14;
 
-  const [existing] = await db
-    .select()
-    .from(analysisCredits)
-    .where(workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid))
-    .limit(1);
+    const [existing] = await db
+      .select()
+      .from(analysisCredits)
+      .where(workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid))
+      .limit(1);
 
-  if (existing) {
-    await db
-      .update(analysisCredits)
-      .set({ totalCredits, updatedAt: new Date() })
-      .where(workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid));
-  } else {
-    await db.insert(analysisCredits).values({
-      userId: uid,
-      workspaceId: wid,
-      totalCredits,
-      usedCredits: 0,
+    if (existing) {
+      await db
+        .update(analysisCredits)
+        .set({ totalCredits, updatedAt: new Date() })
+        .where(workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid));
+    } else {
+      await db.insert(analysisCredits).values({
+        userId: uid,
+        workspaceId: wid,
+        totalCredits,
+        usedCredits: 0,
+      });
+    }
+
+    return ok({
+      success: true,
+      total: totalCredits,
+      used: existing?.usedCredits ?? 0,
+      remaining: totalCredits - (existing?.usedCredits ?? 0),
     });
+  } catch (error) {
+    return serverError(error);
   }
-
-  return NextResponse.json({
-    success: true,
-    total: totalCredits,
-    used: existing?.usedCredits ?? 0,
-    remaining: totalCredits - (existing?.usedCredits ?? 0),
-  });
 }

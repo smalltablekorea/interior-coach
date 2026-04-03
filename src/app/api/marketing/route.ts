@@ -1,4 +1,3 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
   marketingContent,
@@ -6,9 +5,10 @@ import {
   marketingInquiries,
   marketingChannels,
 } from "@/lib/db/schema";
-import { desc, sql, eq } from "drizzle-orm";
+import { desc, sql, and } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
+import { ok, serverError } from "@/lib/api/response";
 
 const CHANNEL_MAP: Record<string, { slug: string; name: string; icon: string }> = {
   threads: { slug: "threads", name: "스레드", icon: "🧵" },
@@ -29,22 +29,26 @@ export async function GET() {
     // Total content count
     const [contentCount] = await db
       .select({ count: sql<number>`count(*)::int` })
-      .from(marketingContent);
+      .from(marketingContent)
+      .where(workspaceFilter(marketingContent.workspaceId, marketingContent.userId, wid, uid));
 
     // Total posts count
     const [postsCount] = await db
       .select({ count: sql<number>`count(*)::int` })
-      .from(marketingPosts);
+      .from(marketingPosts)
+      .where(workspaceFilter(marketingPosts.workspaceId, marketingPosts.userId, wid, uid));
 
     // Total inquiries count
     const [inquiriesCount] = await db
       .select({ count: sql<number>`count(*)::int` })
-      .from(marketingInquiries);
+      .from(marketingInquiries)
+      .where(workspaceFilter(marketingInquiries.workspaceId, marketingInquiries.userId, wid, uid));
 
     // Recent 10 inquiries
     const recentInquiries = await db
       .select()
       .from(marketingInquiries)
+      .where(workspaceFilter(marketingInquiries.workspaceId, marketingInquiries.userId, wid, uid))
       .orderBy(desc(marketingInquiries.createdAt))
       .limit(10);
 
@@ -55,6 +59,7 @@ export async function GET() {
         count: sql<number>`count(*)::int`,
       })
       .from(marketingPosts)
+      .where(workspaceFilter(marketingPosts.workspaceId, marketingPosts.userId, wid, uid))
       .groupBy(marketingPosts.channel);
 
     // Channel connections: actual connection status
@@ -91,11 +96,12 @@ export async function GET() {
         count: sql<number>`count(*)::int`,
       })
       .from(marketingInquiries)
+      .where(workspaceFilter(marketingInquiries.workspaceId, marketingInquiries.userId, wid, uid))
       .groupBy(marketingInquiries.status);
 
     const contractCount = inquiryStats.find((s) => s.status === "계약완료")?.count ?? 0;
 
-    return NextResponse.json({
+    return ok({
       totalContent: contentCount.count,
       totalPosts: postsCount.count,
       totalInquiries: inquiriesCount.count,
@@ -104,8 +110,6 @@ export async function GET() {
       inquiryStats: { contractCount },
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "마케팅 데이터 조회에 실패했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(error);
   }
 }

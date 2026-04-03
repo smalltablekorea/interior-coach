@@ -1,26 +1,25 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { getValidToken } from "@/lib/marketing-oauth/token-manager";
+import { ok, err, serverError } from "@/lib/api/response";
 
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
 
-  const { channel } = await request.json();
-  if (!channel) {
-    return NextResponse.json(
-      { error: "channel required" },
-      { status: 400 }
-    );
-  }
+  try {
+    const { channel } = await request.json();
+    if (!channel) {
+      return err("channel required");
+    }
 
-  const token = await getValidToken(auth.userId, channel);
-  if (!token) {
-    return NextResponse.json(
-      { error: "토큰 갱신에 실패했습니다. 계정을 다시 연결해주세요." },
-      { status: 401 }
-    );
-  }
+    const token = await getValidToken(auth.userId, channel);
+    if (!token) {
+      return err("토큰 갱신에 실패했습니다. 계정을 다시 연결해주세요.", 401);
+    }
 
-  return NextResponse.json({ success: true });
+    return ok({ success: true });
+  } catch (error) {
+    return serverError(error);
+  }
 }

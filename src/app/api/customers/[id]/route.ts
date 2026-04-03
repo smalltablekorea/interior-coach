@@ -14,59 +14,63 @@ export async function GET(
   const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  const [customer] = await db
-    .select()
-    .from(customers)
-    .where(and(eq(customers.id, id), workspaceFilter(customers.workspaceId, customers.userId, auth.workspaceId, auth.userId), isNull(customers.deletedAt)))
-    .limit(1);
+    const [customer] = await db
+      .select()
+      .from(customers)
+      .where(and(eq(customers.id, id), workspaceFilter(customers.workspaceId, customers.userId, auth.workspaceId, auth.userId), isNull(customers.deletedAt)))
+      .limit(1);
 
-  if (!customer) {
-    return notFound("고객을 찾을 수 없습니다");
+    if (!customer) {
+      return notFound("고객을 찾을 수 없습니다");
+    }
+
+    const [customerSites, customerEstimates, customerContracts] = await Promise.all([
+      db
+        .select({
+          id: sites.id,
+          name: sites.name,
+          status: sites.status,
+          areaPyeong: sites.areaPyeong,
+        })
+        .from(sites)
+        .where(and(eq(sites.customerId, id), workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId), isNull(sites.deletedAt))),
+      db
+        .select({
+          id: estimates.id,
+          siteName: sites.name,
+          totalAmount: estimates.totalAmount,
+          status: estimates.status,
+          createdAt: estimates.createdAt,
+        })
+        .from(estimates)
+        .leftJoin(sites, eq(estimates.siteId, sites.id))
+        .where(and(eq(sites.customerId, id), workspaceFilter(estimates.workspaceId, estimates.userId, auth.workspaceId, auth.userId), isNull(estimates.deletedAt))),
+      db
+        .select({
+          id: contracts.id,
+          siteName: sites.name,
+          contractAmount: contracts.contractAmount,
+          paidAmount: sql<number>`COALESCE(SUM(CASE WHEN ${contractPayments.status} = '완납' THEN ${contractPayments.amount} ELSE 0 END), 0)`,
+        })
+        .from(contracts)
+        .leftJoin(sites, eq(contracts.siteId, sites.id))
+        .leftJoin(contractPayments, eq(contractPayments.contractId, contracts.id))
+        .where(and(eq(sites.customerId, id), workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt)))
+        .groupBy(contracts.id, sites.name),
+    ]);
+
+    return ok({
+      ...customer,
+      sites: customerSites,
+      estimates: customerEstimates,
+      contracts: customerContracts,
+    });
+  } catch (error) {
+    return serverError(error);
   }
-
-  const customerSites = await db
-    .select({
-      id: sites.id,
-      name: sites.name,
-      status: sites.status,
-      areaPyeong: sites.areaPyeong,
-    })
-    .from(sites)
-    .where(and(eq(sites.customerId, id), workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId), isNull(sites.deletedAt)));
-
-  const customerEstimates = await db
-    .select({
-      id: estimates.id,
-      siteName: sites.name,
-      totalAmount: estimates.totalAmount,
-      status: estimates.status,
-      createdAt: estimates.createdAt,
-    })
-    .from(estimates)
-    .leftJoin(sites, eq(estimates.siteId, sites.id))
-    .where(and(eq(sites.customerId, id), workspaceFilter(estimates.workspaceId, estimates.userId, auth.workspaceId, auth.userId), isNull(estimates.deletedAt)));
-
-  const customerContracts = await db
-    .select({
-      id: contracts.id,
-      siteName: sites.name,
-      contractAmount: contracts.contractAmount,
-      paidAmount: sql<number>`COALESCE(SUM(CASE WHEN ${contractPayments.status} = '완납' THEN ${contractPayments.amount} ELSE 0 END), 0)`,
-    })
-    .from(contracts)
-    .leftJoin(sites, eq(contracts.siteId, sites.id))
-    .leftJoin(contractPayments, eq(contractPayments.contractId, contracts.id))
-    .where(and(eq(sites.customerId, id), workspaceFilter(contracts.workspaceId, contracts.userId, auth.workspaceId, auth.userId), isNull(contracts.deletedAt)))
-    .groupBy(contracts.id, sites.name);
-
-  return ok({
-    ...customer,
-    sites: customerSites,
-    estimates: customerEstimates,
-    contracts: customerContracts,
-  });
 }
 
 export async function PUT(
@@ -102,14 +106,18 @@ export async function DELETE(
   const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
-  const { id } = await params;
+  try {
+    const { id } = await params;
 
-  const [row] = await db
-    .update(customers)
-    .set({ deletedAt: new Date() })
-    .where(and(eq(customers.id, id), workspaceFilter(customers.workspaceId, customers.userId, auth.workspaceId, auth.userId), isNull(customers.deletedAt)))
-    .returning({ id: customers.id });
+    const [row] = await db
+      .update(customers)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(customers.id, id), workspaceFilter(customers.workspaceId, customers.userId, auth.workspaceId, auth.userId), isNull(customers.deletedAt)))
+      .returning({ id: customers.id });
 
-  if (!row) return notFound("고객을 찾을 수 없습니다");
-  return ok({ id: row.id });
+    if (!row) return notFound("고객을 찾을 수 없습니다");
+    return ok({ id: row.id });
+  } catch (error) {
+    return serverError(error);
+  }
 }

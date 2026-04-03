@@ -7,6 +7,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
 import UpgradeModal from "@/components/subscription/UpgradeModal";
 import { useSubscription } from "@/hooks/useSubscription";
+import { apiFetch } from "@/lib/api-client";
 import { fmtDate } from "@/lib/utils";
 import { SITE_STATUSES, BUILDING_TYPES } from "@/lib/constants";
 import Link from "next/link";
@@ -54,8 +55,8 @@ export default function SitesPage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/sites").then((r) => r.json()),
-      fetch("/api/customers").then((r) => r.json()),
+      apiFetch("/api/sites").then((r) => r.json()),
+      apiFetch("/api/customers").then((r) => r.json()),
     ])
       .then(([sitesData, customersData]) => {
         setSites(sitesData);
@@ -72,7 +73,7 @@ export default function SitesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const res = await fetch("/api/sites", {
+    const res = await apiFetch("/api/sites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

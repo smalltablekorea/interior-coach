@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { contracts, contractPayments, sites } from "@/lib/db/schema";
-import { eq, and, desc, isNull } from "drizzle-orm";
+import { eq, and, desc, isNull, inArray } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
@@ -47,11 +47,12 @@ export async function GET(request: NextRequest) {
       .limit(pagination.limit)
       .offset(pagination.offset);
 
-    const result = await Promise.all(
-      rows.map(async (c) => {
-        const pays = await db
+    const contractIds = rows.map((c) => c.id);
+    const allPayments = contractIds.length > 0
+      ? await db
           .select({
             id: contractPayments.id,
+            contractId: contractPayments.contractId,
             type: contractPayments.type,
             amount: contractPayments.amount,
             dueDate: contractPayments.dueDate,
@@ -59,10 +60,20 @@ export async function GET(request: NextRequest) {
             status: contractPayments.status,
           })
           .from(contractPayments)
-          .where(eq(contractPayments.contractId, c.id));
-        return { ...c, payments: pays };
-      })
-    );
+          .where(inArray(contractPayments.contractId, contractIds))
+      : [];
+
+    const paymentsByContract = new Map<string, typeof allPayments>();
+    for (const p of allPayments) {
+      const arr = paymentsByContract.get(p.contractId) || [];
+      arr.push(p);
+      paymentsByContract.set(p.contractId, arr);
+    }
+
+    const result = rows.map((c) => ({
+      ...c,
+      payments: (paymentsByContract.get(c.id) || []).map(({ contractId, ...rest }) => rest),
+    }));
 
     return ok(result, buildPaginationMeta(total, pagination));
   } catch (error) {

@@ -1,9 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { estimateItems, estimates, expenses, sites } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
+import { ok, forbidden, serverError } from "@/lib/api/response";
 
 export async function GET(
   _request: NextRequest,
@@ -16,26 +17,27 @@ export async function GET(
 
   const { id: siteId } = await params;
 
-  // 본인 현장인지 확인
-  const [site] = await db
-    .select({ id: sites.id })
-    .from(sites)
-    .where(and(eq(sites.id, siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid)));
-  if (!site) {
-    return NextResponse.json({ error: "접근 권한이 없습니다" }, { status: 403 });
-  }
+  try {
+    // 본인 현장인지 확인
+    const [site] = await db
+      .select({ id: sites.id })
+      .from(sites)
+      .where(and(eq(sites.id, siteId), workspaceFilter(sites.workspaceId, sites.userId, wid, uid)));
+    if (!site) {
+      return forbidden("접근 권한이 없습니다");
+    }
 
-  // Get the latest estimate for this site
-  const [latestEstimate] = await db
+    // Get the latest estimate for this site
+    const [latestEstimate] = await db
     .select({ id: estimates.id, totalAmount: estimates.totalAmount })
     .from(estimates)
     .where(eq(estimates.siteId, siteId))
     .orderBy(sql`${estimates.createdAt} DESC`)
     .limit(1);
 
-  if (!latestEstimate) {
-    return NextResponse.json({ hasEstimate: false, categories: [], totalBudget: 0, totalSpent: 0 });
-  }
+    if (!latestEstimate) {
+      return ok({ hasEstimate: false, categories: [], totalBudget: 0, totalSpent: 0 });
+    }
 
   // Get estimate items grouped by category
   const budgetByCategory = await db
@@ -82,12 +84,15 @@ export async function GET(
   const totalBudget = latestEstimate.totalAmount || categories.reduce((s, c) => s + c.budget, 0);
   const totalSpent = categories.reduce((s, c) => s + c.spent, 0);
 
-  return NextResponse.json({
-    hasEstimate: true,
-    estimateId: latestEstimate.id,
-    totalBudget,
-    totalSpent,
-    totalRate: totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0,
-    categories,
-  });
+    return ok({
+      hasEstimate: true,
+      estimateId: latestEstimate.id,
+      totalBudget,
+      totalSpent,
+      totalRate: totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0,
+      categories,
+    });
+  } catch (error) {
+    return serverError(error);
+  }
 }

@@ -188,18 +188,22 @@ export async function DELETE(request: NextRequest) {
   const auth = await requireWorkspaceAuth();
   if (!auth.ok) return auth.response;
 
-  const type = request.nextUrl.searchParams.get("type");
-  const id = request.nextUrl.searchParams.get("id");
+  try {
+    const type = request.nextUrl.searchParams.get("type");
+    const id = request.nextUrl.searchParams.get("id");
 
-  if (type === "orders" && id) {
-    const [row] = await db
-      .delete(materialOrders)
-      .where(and(eq(materialOrders.id, id), eq(materialOrders.userId, auth.userId), eq(materialOrders.workspaceId, auth.workspaceId)))
-      .returning({ id: materialOrders.id });
+    if (type === "orders" && id) {
+      const [row] = await db
+        .delete(materialOrders)
+        .where(and(eq(materialOrders.id, id), eq(materialOrders.userId, auth.userId), eq(materialOrders.workspaceId, auth.workspaceId)))
+        .returning({ id: materialOrders.id });
 
-    if (!row) return err("주문을 찾을 수 없습니다", 404);
-    return ok({ id: row.id });
+      if (!row) return err("주문을 찾을 수 없습니다", 404);
+      return ok({ id: row.id });
+    }
+
+    return err("지원하지 않는 요청입니다");
+  } catch (error) {
+    return serverError(error);
   }
-
-  return err("지원하지 않는 요청입니다");
 }

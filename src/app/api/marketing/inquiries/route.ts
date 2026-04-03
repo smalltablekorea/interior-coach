@@ -5,6 +5,7 @@ import { desc, eq, and } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
+import { parsePagination, buildPaginationMeta, countSql } from "@/lib/api/query-helpers";
 
 export async function GET(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "read");
@@ -12,6 +13,7 @@ export async function GET(request: NextRequest) {
   const wid = auth.workspaceId; const uid = auth.userId;
 
   try {
+    const pagination = parsePagination(request);
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
 
@@ -20,13 +22,20 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(marketingInquiries.status, status));
     }
 
-    const rows = await db
-      .select()
-      .from(marketingInquiries)
-      .where(conditions.length === 1 ? conditions[0] : and(...conditions))
-      .orderBy(desc(marketingInquiries.createdAt));
+    const where = conditions.length === 1 ? conditions[0] : and(...conditions);
 
-    return ok(rows);
+    const [items, [{ count: total }]] = await Promise.all([
+      db
+        .select()
+        .from(marketingInquiries)
+        .where(where)
+        .orderBy(desc(marketingInquiries.createdAt))
+        .limit(pagination.limit)
+        .offset(pagination.offset),
+      db.select({ count: countSql() }).from(marketingInquiries).where(where),
+    ]);
+
+    return ok({ items, meta: buildPaginationMeta(total, pagination) });
   } catch (error) {
     return serverError(error);
   }

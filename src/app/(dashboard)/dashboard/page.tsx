@@ -41,6 +41,7 @@ import {
   Activity,
 } from "lucide-react";
 import { fmtShort, fmtDate, cn } from "@/lib/utils";
+import { apiFetch } from "@/lib/api-client";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
 import Link from "next/link";
 
@@ -293,8 +294,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/dashboard").then((r) => (r.ok ? r.json() : null)),
+      apiFetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
+      apiFetch("/api/dashboard").then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([siteData, dashData]) => {
         setSites(Array.isArray(siteData) ? siteData : []);
@@ -308,7 +309,7 @@ export default function DashboardPage() {
     if (!siteId) return;
     setDrilldownLoading(true);
     try {
-      const res = await fetch(`/api/dashboard/drilldown?siteId=${siteId}`);
+      const res = await apiFetch(`/api/dashboard/drilldown?siteId=${siteId}`);
       const data = await res.json();
       setDrilldown(data);
     } catch {
