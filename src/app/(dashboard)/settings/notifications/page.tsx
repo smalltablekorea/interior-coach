@@ -19,6 +19,12 @@ import {
   Loader2,
   Clock,
   RefreshCw,
+  HardHat,
+  Package,
+  UserCog,
+  Plus,
+  Trash2,
+  Users,
 } from "lucide-react";
 import { cn, fmtDate } from "@/lib/utils";
 
@@ -31,6 +37,15 @@ interface EventSetting {
 }
 
 type EventType = "stage_change" | "photo_upload" | "defect_report" | "payment_due" | "schedule_change";
+
+type RecipientRole = "foreman" | "supplier" | "manager";
+
+interface Recipient {
+  id: string;
+  name: string;
+  phone: string;
+  role: RecipientRole;
+}
 
 interface LogEntry {
   id: string;
@@ -52,6 +67,14 @@ const EVENT_CONFIG: { key: EventType; label: string; desc: string; icon: typeof 
   { key: "schedule_change", label: "일정 변경", desc: "공정 일정이 변경될 때", icon: CalendarDays },
 ];
 
+const PHONE_REGEX = /^01[016789]\d{7,8}$/;
+
+const ROLES: { key: RecipientRole; label: string; desc: string; icon: typeof HardHat }[] = [
+  { key: "foreman", label: "반장님", desc: "현장 시공 담당자", icon: HardHat },
+  { key: "supplier", label: "자재상", desc: "자재 납품 담당자", icon: Package },
+  { key: "manager", label: "매니저", desc: "프로젝트 매니저", icon: UserCog },
+];
+
 const EVENT_LABEL: Record<string, string> = {
   stage_change: "공정 변경",
   photo_upload: "사진 업로드",
@@ -65,16 +88,26 @@ const EVENT_LABEL: Record<string, string> = {
 
 export default function NotificationSettingsPage() {
   const [settings, setSettings] = useState<Record<EventType, EventSetting> | null>(null);
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [addingRole, setAddingRole] = useState<RecipientRole | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [addingSaving, setAddingSaving] = useState(false);
 
-  // ── Fetch Settings ──
+  // ── Fetch Settings + Recipients ──
   useEffect(() => {
-    fetch("/api/notification-settings")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => { if (data) setSettings(data); })
+    Promise.all([
+      fetch("/api/notification-settings").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/notification-recipients").then((r) => (r.ok ? r.json() : [])),
+    ])
+      .then(([settingsData, recipientData]) => {
+        if (settingsData) setSettings(settingsData);
+        if (Array.isArray(recipientData)) setRecipients(recipientData.filter((r: { role: string }) => r.role !== "client"));
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -116,6 +149,47 @@ export default function NotificationSettingsPage() {
       setError("설정 저장에 실패했습니다.");
     } finally {
       setSavingKey(null);
+    }
+  };
+
+  // ── Add Recipient ──
+  const handleAddRecipient = async () => {
+    if (!addingRole || !newName.trim() || !newPhone.trim()) return;
+    const phone = newPhone.replace(/-/g, "");
+    if (!PHONE_REGEX.test(phone)) {
+      setError("올바른 전화번호 형식이 아닙니다 (010XXXXXXXX)");
+      return;
+    }
+    setAddingSaving(true);
+    try {
+      const res = await fetch("/api/notification-recipients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName.trim(), phone, role: addingRole }),
+      });
+      if (!res.ok) throw new Error();
+      const row = await res.json();
+      setRecipients((prev) => [...prev, row]);
+      setNewName("");
+      setNewPhone("");
+      setAddingRole(null);
+    } catch {
+      setError("수신자 추가에 실패했습니다.");
+    } finally {
+      setAddingSaving(false);
+    }
+  };
+
+  // ── Delete Recipient ──
+  const handleDeleteRecipient = async (id: string) => {
+    const prev = recipients;
+    setRecipients((r) => r.filter((x) => x.id !== id));
+    try {
+      const res = await fetch(`/api/notification-recipients?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+    } catch {
+      setRecipients(prev);
+      setError("수신자 삭제에 실패했습니다.");
     }
   };
 
@@ -244,7 +318,106 @@ export default function NotificationSettingsPage() {
       </section>
 
       {/* ══════════════════════════
-          2. 발송 채널
+          2. 수신 대상 (고객 제외 — 반장님/자재상/매니저)
+          ══════════════════════════ */}
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[var(--border)]">
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <Users size={16} style={{ color: "var(--blue)" }} />
+            수신 대상
+          </h2>
+          <p className="text-xs text-[var(--muted)] mt-0.5">SMS 알림을 받을 역할별 수신자를 등록하세요</p>
+        </div>
+
+        <div className="divide-y divide-[var(--border)]">
+          {ROLES.map((role) => {
+            const roleRecipients = recipients.filter((r) => r.role === role.key);
+            const isAdding = addingRole === role.key;
+
+            return (
+              <div key={role.key} className="px-5 py-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: "var(--blue)" + "15" }}
+                  >
+                    <role.icon size={16} style={{ color: "var(--blue)" }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{role.label}</p>
+                    <p className="text-[10px] text-[var(--muted)]">{role.desc}</p>
+                  </div>
+                  <button
+                    onClick={() => setAddingRole(isAdding ? null : role.key)}
+                    className="text-xs text-[var(--green)] hover:underline flex items-center gap-1"
+                  >
+                    <Plus size={12} /> 추가
+                  </button>
+                </div>
+
+                {/* 수신자 목록 */}
+                {roleRecipients.length > 0 && (
+                  <div className="space-y-1.5 mb-3 ml-11">
+                    {roleRecipients.map((r) => (
+                      <div key={r.id} className="flex items-center gap-2 text-xs px-3 py-2 rounded-lg bg-white/[0.03]">
+                        <span className="flex-1">{r.name}</span>
+                        <span className="text-[var(--muted)]">{r.phone.replace(/(\d{3})(\d{3,4})(\d{4})/, "$1-$2-$3")}</span>
+                        <button
+                          onClick={() => handleDeleteRecipient(r.id)}
+                          className="text-[var(--muted)] hover:text-[var(--red)] transition-colors"
+                          aria-label={`${r.name} 삭제`}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 추가 폼 */}
+                {isAdding && (
+                  <div className="ml-11 flex items-end gap-2">
+                    <div className="flex-1">
+                      <label className="text-[10px] text-[var(--muted)] mb-1 block">이름</label>
+                      <input
+                        type="text"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        placeholder="홍길동"
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs focus:border-[var(--green)] focus:outline-none"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-[10px] text-[var(--muted)] mb-1 block">전화번호</label>
+                      <input
+                        type="tel"
+                        value={newPhone}
+                        onChange={(e) => setNewPhone(e.target.value)}
+                        placeholder="01012345678"
+                        className="w-full px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs focus:border-[var(--green)] focus:outline-none"
+                      />
+                    </div>
+                    <button
+                      onClick={handleAddRecipient}
+                      disabled={addingSaving || !newName.trim() || !newPhone.trim()}
+                      className="px-3 py-2 rounded-lg bg-[var(--green)] text-black text-xs font-medium disabled:opacity-50 shrink-0"
+                    >
+                      {addingSaving ? <Loader2 size={12} className="animate-spin" /> : "저장"}
+                    </button>
+                  </div>
+                )}
+
+                {roleRecipients.length === 0 && !isAdding && (
+                  <p className="text-[10px] text-[var(--muted)] ml-11">등록된 수신자가 없습니다</p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ══════════════════════════
+          3. 발송 채널
           ══════════════════════════ */}
       <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <h2 className="text-sm font-semibold flex items-center gap-2 mb-4">
@@ -299,7 +472,7 @@ export default function NotificationSettingsPage() {
           </div>
         ) : (
           <div className="divide-y divide-[var(--border)] max-h-[400px] overflow-y-auto">
-            {logs.map((log) => (
+            {logs.filter((log) => !log.recipient.startsWith("client:")).map((log) => (
               <div
                 key={log.id}
                 className={cn(

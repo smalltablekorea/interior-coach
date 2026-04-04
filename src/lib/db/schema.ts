@@ -1200,6 +1200,20 @@ export const notificationSettings = pgTable("notification_settings", {
   unique("notification_settings_ws_event_idx").on(table.workspaceId, table.eventType),
 ]);
 
+// ─── 알림 수신자 ───
+
+export const notificationRecipients = pgTable("notification_recipients", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  phone: text("phone").notNull(),
+  role: text("role").notNull(), // foreman, supplier, manager
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // ─── 알림 발송 로그 ───
 
 export const notificationLogs = pgTable("notification_logs", {
