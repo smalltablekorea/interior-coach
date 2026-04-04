@@ -202,7 +202,7 @@ export default function MetaAdsPage() {
       const res = await fetch("/api/marketing/campaigns?channel=meta");
       if (res.ok) {
         const data = await res.json();
-        setCampaigns(Array.isArray(data) ? data : []);
+        setCampaigns(data?.items ?? (Array.isArray(data) ? data : []));
       }
     } catch {
       /* silent fallback */

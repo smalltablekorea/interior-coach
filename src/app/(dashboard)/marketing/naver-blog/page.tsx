@@ -231,7 +231,7 @@ export default function NaverBlogPage() {
       const res = await fetch("/api/marketing/posts?channel=naver_blog");
       if (res.ok) {
         const data = await res.json();
-        setPosts(data);
+        setPosts(data?.items ?? data ?? []);
       }
     } catch {
       /* silent */
@@ -243,7 +243,7 @@ export default function NaverBlogPage() {
       const res = await fetch("/api/marketing/keywords?channel=naver");
       if (res.ok) {
         const data = await res.json();
-        setKeywords(data);
+        setKeywords(data?.items ?? data ?? []);
       }
     } catch {
       /* silent */

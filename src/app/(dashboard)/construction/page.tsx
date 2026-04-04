@@ -63,8 +63,8 @@ export default function ConstructionPage() {
       apiFetch("/api/sites").then((r) => r.json()),
     ])
       .then(([phaseData, siteData]) => {
-        setPhases(phaseData);
-        setSites(siteData);
+        setPhases(phaseData?.items ?? phaseData ?? []);
+        setSites(Array.isArray(siteData) ? siteData : siteData?.items ?? []);
         setLoading(false);
       })
       .catch(() => setLoading(false));

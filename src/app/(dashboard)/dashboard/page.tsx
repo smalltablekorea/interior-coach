@@ -8,7 +8,6 @@ import Modal from "@/components/ui/Modal";
 import {
   Building2,
   Wallet,
-  TrendingDown,
   CalendarDays,
   ArrowRight,
   Receipt,
@@ -27,7 +26,6 @@ import {
   Hammer,
   Package,
   HardHat,
-  Megaphone,
   BarChart3,
   Calculator,
   Settings,
@@ -35,10 +33,11 @@ import {
   Target,
   ArrowUpRight,
   Bell,
-  ClipboardList,
   Banknote,
   ShieldAlert,
   Activity,
+  Check,
+  SkipForward,
 } from "lucide-react";
 import { fmtShort, fmtDate, cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-client";
@@ -344,90 +343,11 @@ export default function DashboardPage() {
     );
   }
 
-  // ── Empty State (새 워크스페이스) ──
+  // ── Empty State ──
   if (!dashboard) {
     return (
-      <div className="space-y-8 animate-fade-up">
-        <OnboardingModal />
-        <div>
-          <h1 className="text-2xl font-bold">시작하기</h1>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            인테리어코치에 오신 것을 환영합니다. 아래 메뉴에서 원하는 기능을 선택하세요.
-          </p>
-        </div>
-
-        {/* Quick Start Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Link
-            href="/sites/new"
-            className="group rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 hover:border-[var(--green)]/50 hover:bg-[var(--green)]/5 transition-all card-lift"
-          >
-            <div className="w-12 h-12 rounded-xl bg-[var(--green)]/10 flex items-center justify-center mb-4">
-              <Building2 size={24} style={{ color: "var(--green)" }} />
-            </div>
-            <h3 className="font-semibold mb-1">현장 등록</h3>
-            <p className="text-sm text-[var(--muted)]">
-              첫 번째 현장을 등록하고 프로젝트를 시작하세요
-            </p>
-            <div className="mt-3 flex items-center gap-1 text-sm text-[var(--green)] opacity-0 group-hover:opacity-100 transition-opacity">
-              시작하기 <ArrowRight size={14} />
-            </div>
-          </Link>
-          <Link
-            href="/estimates/coach"
-            className="group rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 hover:border-[#a855f7]/50 hover:bg-[#a855f7]/5 transition-all card-lift"
-          >
-            <div className="w-12 h-12 rounded-xl bg-[#a855f7]/10 flex items-center justify-center mb-4">
-              <Sparkles size={24} style={{ color: "#a855f7" }} />
-            </div>
-            <h3 className="font-semibold mb-1">AI 견적코치</h3>
-            <p className="text-sm text-[var(--muted)]">
-              AI가 자동으로 견적서를 작성해드립니다
-            </p>
-            <div className="mt-3 flex items-center gap-1 text-sm text-[#a855f7] opacity-0 group-hover:opacity-100 transition-opacity">
-              시작하기 <ArrowRight size={14} />
-            </div>
-          </Link>
-          <Link
-            href="/customers"
-            className="group rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 hover:border-[var(--blue)]/50 hover:bg-[var(--blue)]/5 transition-all card-lift"
-          >
-            <div className="w-12 h-12 rounded-xl bg-[var(--blue)]/10 flex items-center justify-center mb-4">
-              <Users size={24} style={{ color: "var(--blue)" }} />
-            </div>
-            <h3 className="font-semibold mb-1">고객 등록</h3>
-            <p className="text-sm text-[var(--muted)]">
-              고객 정보를 등록하고 체계적으로 관리하세요
-            </p>
-            <div className="mt-3 flex items-center gap-1 text-sm text-[var(--blue)] opacity-0 group-hover:opacity-100 transition-opacity">
-              시작하기 <ArrowRight size={14} />
-            </div>
-          </Link>
-        </div>
-
-        {/* Full Menu Grid */}
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-          <h2 className="text-lg font-semibold mb-4">전체 메뉴</h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-            {MENU_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl hover:bg-white/[0.04] transition-all group"
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
-                  style={{ backgroundColor: `${item.color}15` }}
-                >
-                  <item.icon size={20} style={{ color: item.color }} />
-                </div>
-                <span className="text-xs text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">
-                  {item.label}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh] text-[var(--muted)]">
+        <p>데이터를 불러올 수 없습니다. 새로고침 해주세요.</p>
       </div>
     );
   }
@@ -1420,6 +1340,153 @@ function ScoreBar({
       <span className="text-[10px] text-[var(--muted)] w-6 text-right">
         {score}
       </span>
+    </div>
+  );
+}
+
+// ── 온보딩 가이드 (5단계) ──
+
+const ONBOARDING_STEPS = [
+  { step: 1, title: "첫 고객을 등록해보세요", desc: "고객 정보를 등록하면 현장과 계약을 연결할 수 있습니다", href: "/customers", icon: Users, color: "var(--blue)" },
+  { step: 2, title: "현장을 등록하고 고객과 연결하세요", desc: "현장 정보를 입력하면 공정·지출·수금을 한눈에 관리합니다", href: "/sites/new", icon: Building2, color: "var(--green)" },
+  { step: 3, title: "AI로 견적을 시뮬레이션해보세요", desc: "평수와 공종만 입력하면 AI가 등급별 견적서를 생성합니다", href: "/estimates/coach", icon: Sparkles, color: "#a855f7" },
+  { step: 4, title: "계약을 등록하면 수금 일정이 자동 생성됩니다", desc: "계약금·중도금·잔금 일정을 등록하고 수금 현황을 추적하세요", href: "/contracts", icon: FileCheck, color: "var(--orange)" },
+  { step: 5, title: "공정을 추가하면 일정이 자동으로 잡힙니다", desc: "AI 공정매니저가 평수 기반으로 최적 일정을 생성합니다", href: "/schedule/generator", icon: Zap, color: "#ec4899" },
+];
+
+function OnboardingGuide() {
+  const [currentStep, setCurrentStep] = useState(() => {
+    if (typeof window === "undefined") return 0;
+    const stored = localStorage.getItem("onboarding-step");
+    return stored ? parseInt(stored, 10) : 0;
+  });
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("onboarding-dismissed") === "true";
+  });
+
+  const handleSkipStep = () => {
+    const next = currentStep + 1;
+    if (next >= ONBOARDING_STEPS.length) {
+      handleDismiss();
+    } else {
+      setCurrentStep(next);
+      localStorage.setItem("onboarding-step", String(next));
+    }
+  };
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    localStorage.setItem("onboarding-dismissed", "true");
+  };
+
+  if (dismissed) {
+    return (
+      <div className="space-y-6 animate-fade-up">
+        <OnboardingModal />
+        <div>
+          <h1 className="text-2xl font-bold">대시보드</h1>
+          <p className="text-sm text-[var(--muted)] mt-1">현장을 등록하면 대시보드가 활성화됩니다</p>
+        </div>
+        <button
+          onClick={() => { setDismissed(false); localStorage.removeItem("onboarding-dismissed"); }}
+          className="w-full rounded-2xl border border-[var(--green)]/30 bg-[var(--green)]/5 p-5 flex items-center gap-4 hover:bg-[var(--green)]/10 transition-colors text-left"
+        >
+          <div className="w-12 h-12 rounded-xl bg-[var(--green)]/10 flex items-center justify-center shrink-0">
+            <Sparkles size={24} style={{ color: "var(--green)" }} />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold">설정 마무리하기</p>
+            <p className="text-xs text-[var(--muted)] mt-0.5">{currentStep}/5 완료 — 나머지 단계를 진행하세요</p>
+          </div>
+          <ArrowRight size={18} style={{ color: "var(--green)" }} />
+        </button>
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <h2 className="text-lg font-semibold mb-4">전체 메뉴</h2>
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+            {MENU_ITEMS.map((item) => (
+              <Link key={item.href} href={item.href} className="flex flex-col items-center gap-2 py-3 px-2 rounded-xl hover:bg-white/[0.04] transition-all group">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110" style={{ backgroundColor: `${item.color}15` }}>
+                  <item.icon size={20} style={{ color: item.color }} />
+                </div>
+                <span className="text-xs text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">{item.label}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const step = ONBOARDING_STEPS[currentStep];
+  if (!step) { handleDismiss(); return null; }
+
+  return (
+    <div className="space-y-6 animate-fade-up max-w-2xl mx-auto">
+      <OnboardingModal />
+      <div className="text-center pt-8">
+        <h1 className="text-2xl font-bold">인테리어코치 시작하기</h1>
+        <p className="text-sm text-[var(--muted)] mt-1">5단계만 따라하면 준비 완료!</p>
+      </div>
+
+      {/* 진행률 */}
+      <div className="flex items-center gap-2">
+        {ONBOARDING_STEPS.map((_, i) => (
+          <div key={i} className={cn("h-1.5 flex-1 rounded-full transition-colors", i < currentStep ? "bg-[var(--green)]" : i === currentStep ? "bg-[var(--green)]/50" : "bg-[var(--border)]")} />
+        ))}
+        <span className="text-xs text-[var(--muted)] shrink-0 ml-1">{currentStep + 1}/5</span>
+      </div>
+
+      {/* 현재 단계 카드 */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 text-center">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: `${step.color}15` }}>
+          <step.icon size={32} style={{ color: step.color }} />
+        </div>
+        <p className="text-xs text-[var(--muted)] mb-2">STEP {step.step}</p>
+        <h2 className="text-xl font-bold mb-2">{step.title}</h2>
+        <p className="text-sm text-[var(--muted)] mb-6">{step.desc}</p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href={step.href}
+            onClick={() => { const next = currentStep + 1; setCurrentStep(next); localStorage.setItem("onboarding-step", String(next)); }}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-black transition-colors"
+            style={{ backgroundColor: step.color }}
+          >
+            시작하기 <ArrowRight size={16} />
+          </Link>
+          <button onClick={handleSkipStep} className="flex items-center gap-1.5 px-4 py-3 rounded-xl text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+            <SkipForward size={14} /> 건너뛰기
+          </button>
+        </div>
+      </div>
+
+      {/* 완료/남은 단계 */}
+      {currentStep > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-[var(--muted)]">완료한 단계</p>
+          {ONBOARDING_STEPS.slice(0, currentStep).map((s) => (
+            <div key={s.step} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.03]">
+              <Check size={14} style={{ color: "var(--green)" }} />
+              <span className="text-sm text-[var(--muted)]">{s.title}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {currentStep < ONBOARDING_STEPS.length - 1 && (
+        <div className="space-y-2">
+          <p className="text-xs text-[var(--muted)]">남은 단계</p>
+          {ONBOARDING_STEPS.slice(currentStep + 1).map((s) => (
+            <div key={s.step} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.02] opacity-50">
+              <div className="w-3.5 h-3.5 rounded-full border border-[var(--border)]" />
+              <span className="text-sm text-[var(--muted)]">{s.title}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="text-center pb-8">
+        <button onClick={handleDismiss} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] underline transition-colors">나중에 하기</button>
+      </div>
     </div>
   );
 }

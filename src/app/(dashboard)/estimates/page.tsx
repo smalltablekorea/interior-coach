@@ -59,8 +59,8 @@ export default function EstimatesPage() {
       apiFetch("/api/sites").then((r) => r.json()),
     ])
       .then(([estData, siteData]) => {
-        setEstimates(estData);
-        setSites(siteData);
+        setEstimates(estData?.items ?? estData ?? []);
+        setSites(Array.isArray(siteData) ? siteData : siteData?.items ?? []);
         setLoading(false);
       })
       .catch(() => setLoading(false));
