@@ -14,13 +14,17 @@ interface TemplateResult {
   link: string;
 }
 
-/** payload 값을 안전하게 문자열로 변환 (SQL injection 방지) */
+/** payload 값을 안전하게 문자열로 변환 */
 function safe(val: unknown): string {
   if (val == null) return "";
   return String(val).replace(/[<>"'&]/g, "");
 }
 
-/** 이벤트별 한국어 메시지 템플릿 */
+/**
+ * 이벤트별 한국어 메시지 템플릿
+ * 수신 대상: 업체 내부 관계자 (반장/자재상/매니저)
+ * 톤: 간결한 업무 보고체
+ */
 export function renderTemplate(
   eventType: NotificationEventType,
   payload: Record<string, unknown>,
@@ -31,60 +35,60 @@ export function renderTemplate(
   switch (eventType) {
     case "phase_delayed":
       return {
-        title: `[공정 지연] ${siteName}`,
-        message: `${siteName} 현장의 "${safe(payload.category)}" 공정이 ${safe(payload.daysDelayed)}일 지연되었습니다. 확인이 필요합니다.`,
+        title: `공정지연 ${siteName}`,
+        message: `${siteName} "${safe(payload.category)}" ${safe(payload.daysDelayed)}일 지연. 확인 필요.`,
         link: `/construction?siteId=${siteId}`,
       };
 
     case "payment_due": {
       const daysUntil = Number(payload.daysUntil) || 0;
-      const label = daysUntil === 0 ? "오늘" : `${daysUntil}일 후`;
+      const label = daysUntil === 0 ? "당일" : `D-${daysUntil}`;
       return {
-        title: `[수금 알림] ${siteName}`,
-        message: `${siteName} 현장의 ${safe(payload.paymentType)} ${fmtAmount(payload.amount)}이 ${label} 만기입니다.`,
+        title: `수금예정 ${siteName} ${label}`,
+        message: `${siteName} ${safe(payload.paymentType)} ${fmtAmount(payload.amount)} 만기 ${label}.`,
         link: `/contracts?siteId=${siteId}`,
       };
     }
 
     case "payment_overdue":
       return {
-        title: `[수금 연체] ${siteName}`,
-        message: `${siteName} 현장의 ${safe(payload.paymentType)} ${fmtAmount(payload.amount)}이 ${safe(payload.daysOverdue)}일 연체 중입니다.`,
+        title: `수금연체 ${siteName}`,
+        message: `${siteName} ${safe(payload.paymentType)} ${fmtAmount(payload.amount)} ${safe(payload.daysOverdue)}일 연체.`,
         link: `/contracts?siteId=${siteId}`,
       };
 
     case "defect_status":
       return {
-        title: `[하자 상태변경] ${siteName}`,
-        message: `${siteName} 현장의 하자 "${safe(payload.defectTitle)}"가 ${safe(payload.oldStatus)} → ${safe(payload.newStatus)}로 변경되었습니다.`,
+        title: `하자변경 ${siteName}`,
+        message: `${siteName} "${safe(payload.defectTitle)}" ${safe(payload.oldStatus)}→${safe(payload.newStatus)}.`,
         link: `/construction?tab=defects&siteId=${siteId}`,
       };
 
     case "billing_overdue":
       return {
-        title: `[청구 연체] ${siteName}`,
-        message: `${siteName} 현장의 "${safe(payload.milestoneName)}" 청구서 ${fmtAmount(payload.amount)}이 연체되었습니다.`,
+        title: `청구연체 ${siteName}`,
+        message: `${siteName} "${safe(payload.milestoneName)}" ${fmtAmount(payload.amount)} 연체.`,
         link: `/settlement?siteId=${siteId}`,
       };
 
     case "photo_upload":
       return {
-        title: `[사진 업로드] ${siteName}`,
-        message: `${siteName} 현장에 새 사진이 ${safe(payload.count)}장 업로드되었습니다.`,
+        title: `사진등록 ${siteName}`,
+        message: `${siteName} 사진 ${safe(payload.count)}장 등록.`,
         link: `/sites/${siteId}?tab=photos`,
       };
 
     case "change_request":
       return {
-        title: `[고객 변경요청] ${siteName}`,
-        message: `${safe(payload.customerName)}님이 "${safe(payload.title)}" 변경을 요청했습니다.`,
+        title: `변경요청 ${siteName}`,
+        message: `${siteName} 고객이 "${safe(payload.title)}" 변경 요청. 검토 필요.`,
         link: `/sites/${siteId}?tab=changes`,
       };
 
     default:
       return {
         title: "알림",
-        message: String(payload.message || "새 알림이 있습니다."),
+        message: String(payload.message || "새 알림"),
         link: "/dashboard",
       };
   }
@@ -96,14 +100,13 @@ function fmtAmount(val: unknown): string {
   return `${num.toLocaleString()}원`;
 }
 
-/** SMS용 짧은 메시지 (90바이트 이하 = SMS, 초과 = LMS) */
+/** SMS용 메시지 (90바이트 이하 = SMS, 초과 = LMS) */
 export function renderSmsMessage(
   eventType: NotificationEventType,
   payload: Record<string, unknown>,
 ): { text: string; isLms: boolean } {
   const { title, message } = renderTemplate(eventType, payload);
   const text = `[인테리어코치] ${title}\n${message}`;
-  // 한국어 SMS: 한글 1자 = 2바이트, 영문/숫자 = 1바이트 (EUC-KR 기준)
   let byteLength = 0;
   for (const ch of text) {
     byteLength += ch.charCodeAt(0) > 127 ? 2 : 1;

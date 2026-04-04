@@ -3,7 +3,10 @@ import {
   notificationQueue, notificationSettings, notificationLogs,
   notifications, workspaceMembers,
 } from "@/lib/db/schema";
-import { eq, and, lte } from "drizzle-orm";
+import { eq, and, lte, inArray } from "drizzle-orm";
+
+/** 알림 수신 대상 역할 — 업체 내부 관계자만 (고객 제외) */
+const NOTIFY_ROLES = ["owner", "admin", "manager"];
 import { isFeatureEnabled } from "@/lib/feature-flags";
 import { renderTemplate, renderSmsMessage, type NotificationEventType } from "@/lib/notifications/templates";
 import { sendSms, rateLimitDelay } from "@/lib/solapi";
@@ -69,12 +72,15 @@ export async function processQueue(): Promise<{
       const smsEnabled = settings?.smsEnabled ?? false;
       const smsPhone = settings?.smsRecipientPhone;
 
-      // 인앱 알림: 워크스페이스 전체 멤버에게
+      // 인앱 알림: 내부 관계자(owner/admin/manager)에게만
       if (inAppEnabled) {
         const members = await db
           .select({ userId: workspaceMembers.userId })
           .from(workspaceMembers)
-          .where(eq(workspaceMembers.workspaceId, item.workspaceId));
+          .where(and(
+            eq(workspaceMembers.workspaceId, item.workspaceId),
+            inArray(workspaceMembers.role, NOTIFY_ROLES),
+          ));
 
         if (members.length > 0) {
           await db.insert(notifications).values(
