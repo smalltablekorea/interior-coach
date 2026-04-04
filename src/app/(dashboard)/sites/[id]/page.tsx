@@ -7,6 +7,7 @@ import {
   ArrowLeft, MapPin, User, Calendar, FileText, FileCheck, Hammer,
   Receipt, Camera, Plus, Send, X, ChevronLeft, ChevronRight, MessageCircle,
   Upload, Image as ImageIcon, Pencil, Trash2, Save,
+  Package, HardHat, ShieldAlert, CalendarDays, AlertTriangle,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -89,7 +90,7 @@ interface SiteDetail {
   expenses: ExpenseRef[];
 }
 
-type TabKey = "overview" | "estimates" | "contracts" | "construction" | "photos";
+type TabKey = "overview" | "construction" | "estimates" | "contracts" | "materials" | "workers" | "expenses" | "photos" | "defects";
 
 export default function SiteDetailPage() {
   const params = useParams();
@@ -369,11 +370,15 @@ export default function SiteDetailPage() {
     : 0;
 
   const tabs = [
-    { key: "overview" as const, label: "기본정보", icon: MapPin },
+    { key: "overview" as const, label: "기본", icon: MapPin },
+    { key: "construction" as const, label: "공정", icon: Hammer, count: site.phases.length },
+    { key: "materials" as const, label: "자재", icon: Package },
+    { key: "workers" as const, label: "작업자", icon: HardHat },
+    { key: "expenses" as const, label: "지출", icon: Receipt },
     { key: "photos" as const, label: "사진", icon: Camera },
+    { key: "defects" as const, label: "하자", icon: ShieldAlert },
     { key: "estimates" as const, label: "견적", icon: FileText, count: site.estimates.length },
     { key: "contracts" as const, label: "계약", icon: FileCheck, count: site.contracts.length },
-    { key: "construction" as const, label: "시공", icon: Hammer, count: site.phases.length },
   ];
 
   return (
@@ -393,9 +398,9 @@ export default function SiteDetailPage() {
               <StatusBadge status={site.status} />
             </div>
             <p className="text-sm text-[var(--muted)]">
-              {site.buildingType && `${site.buildingType} · `}
+              {site.customerName && <><User size={12} className="inline -mt-0.5 mr-1" />{site.customerName} · </>}
               {site.areaPyeong && `${site.areaPyeong}평 · `}
-              등록일 {fmtDate(site.createdAt)}
+              {site.address && <><MapPin size={12} className="inline -mt-0.5 mr-0.5" />{site.address}</>}
             </p>
           </div>
         </div>
@@ -438,6 +443,37 @@ export default function SiteDetailPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Progress Bar */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium">전체 진행률</span>
+          <span className="text-sm font-bold" style={{ color: overallProgress >= 70 ? "var(--green)" : overallProgress >= 30 ? "var(--orange)" : "var(--red)" }}>
+            {overallProgress}%
+          </span>
+        </div>
+        <div className="h-2.5 bg-[var(--border)] rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{
+              width: `${overallProgress}%`,
+              backgroundColor: overallProgress >= 70 ? "var(--green)" : overallProgress >= 30 ? "var(--orange)" : "var(--red)",
+            }}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-2 text-[10px] text-[var(--muted)]">
+          <span>시작 {fmtDate(site.startDate)}</span>
+          {site.endDate && (
+            <span>
+              완공 {fmtDate(site.endDate)}
+              {(() => {
+                const d = Math.ceil((new Date(site.endDate).getTime() - Date.now()) / 86400000);
+                return d > 0 ? ` (D-${d})` : d < 0 ? ` (D+${Math.abs(d)})` : " (오늘)";
+              })()}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -1137,6 +1173,123 @@ export default function SiteDetailPage() {
           )}
         </div>
       )}
+      {/* ===== 자재 탭 ===== */}
+      {tab === "materials" && (
+        <SiteTabPlaceholder
+          icon={Package}
+          title="자재 관리"
+          desc="이 현장에 발주된 자재 목록과 입고 상태를 확인합니다"
+          linkHref={`/materials?siteId=${id}`}
+          linkLabel="자재 관리로 이동"
+        />
+      )}
+
+      {/* ===== 작업자 탭 ===== */}
+      {tab === "workers" && (
+        <SiteTabPlaceholder
+          icon={HardHat}
+          title="작업자 배정"
+          desc="이 현장에 배정된 작업자 목록과 투입 일정을 확인합니다"
+          linkHref={`/workers?siteId=${id}`}
+          linkLabel="작업자 관리로 이동"
+        />
+      )}
+
+      {/* ===== 지출 탭 ===== */}
+      {tab === "expenses" && (
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold">지출 내역</h2>
+            <Link href={`/expenses?siteId=${id}`} className="text-xs text-[var(--green)] hover:underline">
+              지출 관리 →
+            </Link>
+          </div>
+          {site.expenses.length === 0 ? (
+            <div className="text-center py-8">
+              <Receipt size={28} className="mx-auto text-[var(--muted)] opacity-30 mb-2" />
+              <p className="text-sm text-[var(--muted)]">등록된 지출이 없습니다</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="rounded-xl bg-white/[0.03] p-3 text-center">
+                  <p className="text-lg font-bold text-[var(--orange)]">{fmt(totalExpense)}</p>
+                  <p className="text-[10px] text-[var(--muted)]">총 지출</p>
+                </div>
+                <div className="rounded-xl bg-white/[0.03] p-3 text-center">
+                  <p className="text-lg font-bold">{fmt(site.contracts[0]?.contractAmount ?? 0)}</p>
+                  <p className="text-[10px] text-[var(--muted)]">계약액</p>
+                </div>
+              </div>
+              {site.contracts[0]?.contractAmount && (
+                <div className="mb-4">
+                  <div className="flex justify-between text-xs text-[var(--muted)] mb-1">
+                    <span>예산 소진률</span>
+                    <span>{Math.round((totalExpense / site.contracts[0].contractAmount) * 100)}%</span>
+                  </div>
+                  <div className="h-2 bg-[var(--border)] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${Math.min((totalExpense / site.contracts[0].contractAmount) * 100, 100)}%`,
+                        backgroundColor: totalExpense > site.contracts[0].contractAmount ? "var(--red)" : "var(--orange)",
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="space-y-2">
+                {site.expenses.map((e, i) => (
+                  <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.02]">
+                    <span className="text-sm">{e.category}</span>
+                    <span className="text-sm font-medium">{fmt(e.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ===== 하자 탭 ===== */}
+      {tab === "defects" && (
+        <SiteTabPlaceholder
+          icon={ShieldAlert}
+          title="하자 관리"
+          desc="이 현장의 하자 목록과 처리 상태를 확인합니다"
+          linkHref={`/construction?siteId=${id}&tab=defects`}
+          linkLabel="하자 관리로 이동"
+        />
+      )}
+    </div>
+  );
+}
+
+// ── 탭 플레이스홀더 (자재/작업자/하자 → 해당 페이지 링크) ──
+function SiteTabPlaceholder({
+  icon: Icon,
+  title,
+  desc,
+  linkHref,
+  linkLabel,
+}: {
+  icon: typeof Package;
+  title: string;
+  desc: string;
+  linkHref: string;
+  linkLabel: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 text-center">
+      <Icon size={32} className="mx-auto text-[var(--muted)] opacity-30 mb-3" />
+      <h3 className="text-sm font-semibold mb-1">{title}</h3>
+      <p className="text-xs text-[var(--muted)] mb-4">{desc}</p>
+      <Link
+        href={linkHref}
+        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)] transition-colors"
+      >
+        {linkLabel} <ChevronRight size={14} />
+      </Link>
     </div>
   );
 }
