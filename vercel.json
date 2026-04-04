@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/notifications/process",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 9 * * *"
     },
     {
       "path": "/api/notifications/check-payments",
