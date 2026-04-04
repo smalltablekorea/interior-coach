@@ -18,7 +18,6 @@ import {
   TrendingUp,
   AlertTriangle,
   Clock,
-  PackageOpen,
   ChevronRight,
   Users,
   FileText,
@@ -286,22 +285,56 @@ function ProgressBar({ value, color = "var(--green)", height = 6 }: { value: num
 export default function DashboardPage() {
   const [sites, setSites] = useState<Site[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [todayData, setTodayData] = useState<{
+    alerts: { type: string; severity: string; message: string; siteId: string | null; link: string }[];
+    tasks: { siteId: string; siteName: string; items: { id: string; type: string; label: string; link: string }[] }[];
+    moneySummary: { todayCollectionTotal: number; weekCollectionTotal: number; overdueTotal: number; overdueCount: number };
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [drilldown, setDrilldown] = useState<DrilldownData | null>(null);
   const [drilldownLoading, setDrilldownLoading] = useState(false);
   const [showAllMenu, setShowAllMenu] = useState(false);
+  const [completedTasks, setCompletedTasks] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    const key = `dashboard-tasks-${new Date().toISOString().slice(0, 10)}`;
+    const stored = localStorage.getItem(key);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  });
+
+  const toggleTask = (taskId: string) => {
+    setCompletedTasks((prev) => {
+      const next = new Set(prev);
+      next.has(taskId) ? next.delete(taskId) : next.add(taskId);
+      const key = `dashboard-tasks-${new Date().toISOString().slice(0, 10)}`;
+      localStorage.setItem(key, JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   useEffect(() => {
     Promise.all([
       apiFetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
       apiFetch("/api/dashboard").then((r) => (r.ok ? r.json() : null)),
+      apiFetch("/api/dashboard/today").then((r) => (r.ok ? r.json() : null)),
     ])
-      .then(([siteData, dashData]) => {
+      .then(([siteData, dashData, todayResult]) => {
         setSites(Array.isArray(siteData) ? siteData : []);
         if (dashData?.kpi) setDashboard(dashData);
+        if (todayResult?.alerts) setTodayData(todayResult);
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  }, []);
+
+  // 60초 폴링 + 탭 복귀 시 리프레시
+  useEffect(() => {
+    const refresh = () => {
+      apiFetch("/api/dashboard/today").then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.alerts) setTodayData(d); });
+    };
+    const handleVisibility = () => { if (document.visibilityState === "visible") refresh(); };
+    document.addEventListener("visibilitychange", handleVisibility);
+    const interval = setInterval(refresh, 60000);
+    return () => { clearInterval(interval); document.removeEventListener("visibilitychange", handleVisibility); };
   }, []);
 
   const openDrilldown = async (siteId: string | null) => {
@@ -354,13 +387,6 @@ export default function DashboardPage() {
 
   const { kpi, healthScores, projectProfits, actionItems, recentActivity } =
     dashboard;
-
-  const totalActionCount =
-    actionItems.overduePayments.length +
-    actionItems.delayedPhases.length +
-    actionItems.needsOrdering.length;
-
-  const hasActions = totalActionCount > 0;
 
   const maxRevenue =
     projectProfits.length > 0
@@ -420,129 +446,155 @@ export default function DashboardPage() {
       </div>
 
       {/* ══════════════════════════════════════════════
-          2. 오늘의 할 일 HERO CARD
+          2. 긴급 알림 배너
           ══════════════════════════════════════════════ */}
-      <div className="animate-fade-up stagger-2">
-        <div className={cn(
-          "rounded-2xl border bg-[var(--card)] p-5 sm:p-6",
-          hasActions ? "border-[var(--orange)]/40" : "border-[var(--border)]",
-        )}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center",
-                hasActions ? "bg-[var(--orange)]/10" : "bg-[var(--green)]/10",
-              )}>
-                {hasActions ? (
-                  <Bell size={20} style={{ color: "var(--orange)" }} />
-                ) : (
-                  <CircleCheck size={20} style={{ color: "var(--green)" }} />
+      {todayData && todayData.alerts.length > 0 ? (
+        <div className="space-y-2 animate-fade-up stagger-2">
+          {todayData.alerts.slice(0, 4).map((alert, i) => (
+            <Link
+              key={i}
+              href={alert.link}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-colors group",
+                alert.severity === "critical"
+                  ? "bg-[var(--red)]/5 border border-[var(--red)]/20 hover:bg-[var(--red)]/10"
+                  : "bg-[var(--orange)]/5 border border-[var(--orange)]/20 hover:bg-[var(--orange)]/10",
+              )}
+            >
+              {alert.severity === "critical" ? (
+                <AlertTriangle size={16} style={{ color: "var(--red)" }} />
+              ) : (
+                <Bell size={16} style={{ color: "var(--orange)" }} />
+              )}
+              <span className="text-sm flex-1">{alert.message}</span>
+              <ChevronRight size={14} className="text-[var(--muted)] opacity-0 group-hover:opacity-100" />
+            </Link>
+          ))}
+        </div>
+      ) : todayData && todayData.alerts.length === 0 ? (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--green)]/5 border border-[var(--green)]/20 animate-fade-up stagger-2">
+          <CircleCheck size={16} style={{ color: "var(--green)" }} />
+          <span className="text-sm text-[var(--green)]">모든 항목이 정상입니다</span>
+          <Link href="/schedule" className="ml-auto text-sm text-[var(--green)] hover:underline flex items-center gap-1 shrink-0">
+            일정 확인 <ArrowRight size={14} />
+          </Link>
+        </div>
+      ) : null}
+
+      {/* ══════════════════════════════════════════════
+          2.5. 오늘의 할 일 + 돈 현황 (2컬럼)
+          ══════════════════════════════════════════════ */}
+      {todayData && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-up stagger-2">
+          {/* 좌: 오늘의 할 일 */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold flex items-center gap-2">
+                <CalendarDays size={16} style={{ color: "var(--green)" }} />
+                오늘의 할 일
+                {todayData.tasks.reduce((s, g) => s + g.items.length, 0) > 0 && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--green)]/10 text-[var(--green)]">
+                    {todayData.tasks.reduce((s, g) => s + g.items.length, 0)}
+                  </span>
                 )}
-              </div>
-              <div>
-                <h2 className="text-lg font-bold">오늘의 할 일</h2>
-                <p className="text-xs text-[var(--muted)]">
-                  {hasActions
-                    ? `${totalActionCount}건의 처리가 필요합니다`
-                    : "모든 항목이 정상입니다"}
-                </p>
-              </div>
+              </h2>
             </div>
-            {hasActions && (
-              <span className="animate-pulse-glow px-3 py-1 rounded-full text-sm font-bold bg-[var(--red)]/10 text-[var(--red)]">
-                {totalActionCount}
-              </span>
+            {todayData.tasks.length === 0 ? (
+              <div className="text-center py-6">
+                <CircleCheck size={24} className="mx-auto text-[var(--green)] opacity-40 mb-2" />
+                <p className="text-sm text-[var(--muted)]">오늘 예정된 작업이 없습니다</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {todayData.tasks.map((group) => (
+                  <div key={group.siteId}>
+                    <Link href={`/sites/${group.siteId}`} className="text-xs font-medium text-[var(--blue)] hover:underline mb-2 block">
+                      ▸ {group.siteName}
+                    </Link>
+                    <div className="space-y-1 ml-3">
+                      {group.items.map((task) => {
+                        const done = completedTasks.has(task.id);
+                        return (
+                          <div key={task.id} className="flex items-center gap-2.5 py-1.5">
+                            <button
+                              onClick={() => toggleTask(task.id)}
+                              className={cn(
+                                "w-4.5 h-4.5 rounded border shrink-0 flex items-center justify-center transition-colors",
+                                done
+                                  ? "bg-[var(--green)] border-[var(--green)]"
+                                  : "border-[var(--border)] hover:border-[var(--green)]",
+                              )}
+                              aria-label={`${task.label} ${done ? "완료 취소" : "완료"}`}
+                            >
+                              {done && <Check size={10} className="text-black" />}
+                            </button>
+                            <Link
+                              href={task.link}
+                              className={cn(
+                                "text-sm flex-1 hover:text-[var(--foreground)] transition-colors",
+                                done ? "line-through text-[var(--muted)]" : "text-[var(--foreground)]",
+                              )}
+                            >
+                              {task.label}
+                            </Link>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
-          {hasActions ? (
-            <div className="space-y-2">
-              {/* 연체 수금 */}
-              {actionItems.overduePayments.slice(0, 3).map((item, i) => (
-                <Link
-                  key={`pay-${i}`}
-                  href={item.siteId ? `/sites/${item.siteId}` : "/settlement"}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/[0.03] transition-colors group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-[var(--red)]/10 flex items-center justify-center shrink-0">
-                    <Banknote size={16} style={{ color: "var(--red)" }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">
-                      <span className="font-medium">{item.siteName}</span>{" "}
-                      {item.type} 미수금
-                    </p>
-                    <p className="text-xs text-[var(--muted)]">
-                      {fmtShort(item.amount)} · 납기 {fmtDate(item.dueDate)}
-                    </p>
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--red)]/10 text-[var(--red)]">
-                    D+{item.daysOverdue}
-                  </span>
-                  <ChevronRight size={16} className="text-[var(--muted)] shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              ))}
-              {/* 지연 공정 */}
-              {actionItems.delayedPhases.slice(0, 3).map((item, i) => (
-                <Link
-                  key={`delay-${i}`}
-                  href={item.siteId ? `/construction?siteId=${item.siteId}` : "/construction"}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/[0.03] transition-colors group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-[var(--orange)]/10 flex items-center justify-center shrink-0">
-                    <Clock size={16} style={{ color: "var(--orange)" }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">
-                      <span className="font-medium">{item.siteName}</span>{" "}
-                      {item.category} 공정 지연
-                    </p>
-                    <p className="text-xs text-[var(--muted)]">
-                      진행률 {item.progress}% · 예정 완료 {fmtDate(item.plannedEnd)}
-                    </p>
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[var(--orange)]/10 text-[var(--orange)]">
-                    D+{item.daysDelayed}
-                  </span>
-                  <ChevronRight size={16} className="text-[var(--muted)] shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              ))}
-              {/* 자재 발주 필요 */}
-              {actionItems.needsOrdering.slice(0, 2).map((item, i) => (
-                <Link
-                  key={`order-${i}`}
-                  href={item.siteId ? `/materials?siteId=${item.siteId}` : "/materials"}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/[0.03] transition-colors group"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-[var(--blue)]/10 flex items-center justify-center shrink-0">
-                    <PackageOpen size={16} style={{ color: "var(--blue)" }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">
-                      <span className="font-medium">{item.siteName}</span>{" "}
-                      {item.category} 자재 발주 필요
-                    </p>
-                    <p className="text-xs text-[var(--muted)]">
-                      공정 시작 {fmtDate(item.plannedStart)}
-                    </p>
-                  </div>
-                  <ChevronRight size={16} className="text-[var(--muted)] shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--green)]/5">
-              <CircleCheck size={18} style={{ color: "var(--green)" }} />
-              <p className="text-sm text-[var(--green)]">
-                오늘 처리할 긴급 항목이 없습니다. 오늘의 일정을 확인하세요.
-              </p>
-              <Link href="/schedule" className="ml-auto text-sm text-[var(--green)] hover:underline flex items-center gap-1 shrink-0">
-                일정 <ArrowRight size={14} />
+          {/* 우: 돈 현황 */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold flex items-center gap-2">
+                <Banknote size={16} style={{ color: "var(--orange)" }} />
+                돈 현황
+              </h2>
+              <Link href="/settlement" className="text-xs text-[var(--green)] hover:underline flex items-center gap-1">
+                정산 리포트 <ArrowRight size={12} />
               </Link>
             </div>
-          )}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-white/[0.03]">
+                <span className="text-xs text-[var(--muted)]">오늘 수금 예정</span>
+                <span className="text-sm font-bold">{fmtShort(todayData.moneySummary.todayCollectionTotal)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-white/[0.03]">
+                <span className="text-xs text-[var(--muted)]">이번주 수금 예정</span>
+                <span className="text-sm font-bold">{fmtShort(todayData.moneySummary.weekCollectionTotal)}</span>
+              </div>
+              <div className="h-px bg-[var(--border)]" />
+              <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-white/[0.03]">
+                <span className="text-xs text-[var(--muted)]">미수금 총액</span>
+                <div className="flex items-center gap-2">
+                  <span className={cn("text-sm font-bold", todayData.moneySummary.overdueTotal > 0 && "text-[var(--red)]")}>
+                    {fmtShort(todayData.moneySummary.overdueTotal)}
+                  </span>
+                  {todayData.moneySummary.overdueCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[var(--red)]/10 text-[var(--red)]">
+                      {todayData.moneySummary.overdueCount}건
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-white/[0.03]">
+                <span className="text-xs text-[var(--muted)]">이번달 지출</span>
+                <span className="text-sm font-bold">{fmtShort(kpi.monthlyExpenses.amount)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-white/[0.03]">
+                <span className="text-xs text-[var(--muted)]">예산 소진률</span>
+                <span className={cn("text-sm font-bold", kpi.monthlyExpenses.overBudget ? "text-[var(--red)]" : "text-[var(--green)]")}>
+                  {kpi.monthlyExpenses.burnRate}%
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ══════════════════════════════════════════════
           3. 2×2 STATS GRID
