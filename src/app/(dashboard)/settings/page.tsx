@@ -4,7 +4,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
 import PlanBadge from "@/components/subscription/PlanBadge";
 import { PLANS, formatPrice, formatLimit } from "@/lib/plans";
-import { Crown, ExternalLink } from "lucide-react";
+import { Crown, ExternalLink, Bell, ChevronRight, Users } from "lucide-react";
 import Link from "next/link";
 
 export default function SettingsPage() {
@@ -78,6 +78,27 @@ export default function SettingsPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* 바로가기 */}
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 space-y-2">
+        <h2 className="text-lg font-semibold mb-3">설정 메뉴</h2>
+        <Link
+          href="/settings/notifications"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/[0.03] transition-colors"
+        >
+          <Bell size={18} style={{ color: "var(--orange)" }} />
+          <span className="flex-1 text-sm">알림 설정</span>
+          <ChevronRight size={16} className="text-[var(--muted)]" />
+        </Link>
+        <Link
+          href="/settings/workspace/members"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/[0.03] transition-colors"
+        >
+          <Users size={18} style={{ color: "var(--blue)" }} />
+          <span className="flex-1 text-sm">멤버 관리</span>
+          <ChevronRight size={16} className="text-[var(--muted)]" />
+        </Link>
       </div>
 
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
