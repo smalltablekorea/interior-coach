@@ -3,6 +3,14 @@
     {
       "path": "/api/qna/generate",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/notifications/process",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/notifications/check-payments",
+      "schedule": "0 0 * * *"
     }
   ]
 }

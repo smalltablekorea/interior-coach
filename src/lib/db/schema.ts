@@ -1166,3 +1166,167 @@ export const attendance = pgTable("attendance", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// ─── 알림 큐 (자동화) ───
+
+export const notificationQueue = pgTable("notification_queue", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(), // phase_delayed, payment_due, defect_status, billing_overdue, photo_upload
+  eventPayload: jsonb("event_payload").notNull(), // { siteId, siteName, ... }
+  processed: boolean("processed").notNull().default(false),
+  processedAt: timestamp("processed_at"),
+  retryCount: integer("retry_count").notNull().default(0),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── 알림 설정 (워크스페이스별) ───
+
+export const notificationSettings = pgTable("notification_settings", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(), // phase_delayed, payment_due 등
+  inAppEnabled: boolean("in_app_enabled").notNull().default(true),
+  smsEnabled: boolean("sms_enabled").notNull().default(false),
+  smsRecipientPhone: text("sms_recipient_phone"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => [
+  unique("notification_settings_ws_event_idx").on(table.workspaceId, table.eventType),
+]);
+
+// ─── 알림 발송 로그 ───
+
+export const notificationLogs = pgTable("notification_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  queueId: uuid("queue_id").references(() => notificationQueue.id),
+  channel: text("channel").notNull(), // in_app, sms
+  recipient: text("recipient").notNull(), // userId or phone
+  eventType: text("event_type").notNull(),
+  title: text("title").notNull(),
+  message: text("message"),
+  status: text("status").notNull(), // sent, failed
+  errorMessage: text("error_message"),
+  solapiMessageId: text("solapi_message_id"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── 피처 플래그 ───
+
+export const featureFlags = pgTable("feature_flags", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  key: text("key").notNull().unique(),
+  enabled: boolean("enabled").notNull().default(false),
+  allowedWorkspaces: jsonb("allowed_workspaces"), // string[] (null = 전체)
+  rolloutPercent: integer("rollout_percent").default(100),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ─── 고객 변경요청 (Phase 2) ───
+
+export const changeRequests = pgTable("change_requests", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id")
+    .notNull()
+    .references(() => sites.id, { onDelete: "cascade" }),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  tokenId: uuid("token_id").references(() => customerPortalTokens.id),
+  customerName: text("customer_name").notNull(),
+  category: text("category").notNull(), // design_change, material_change, schedule_change, defect_report, other
+  title: text("title").notNull(),
+  description: text("description"),
+  photoUrls: jsonb("photo_urls"), // string[]
+  status: text("status").notNull().default("pending"), // pending, reviewed, approved, rejected
+  reviewedBy: text("reviewed_by"),
+  reviewNote: text("review_note"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ============================================================
+// 인테리어코치 schema.ts 추가분 (Antigravity 통합)
+// ============================================================
+// 인테리어코치는 이미 대부분의 테이블이 있음.
+// 추가 필요한 것: CWICR, 시장가, zone_ranges, n8n 로그
+// 기존 schema.ts 맨 아래에 이 내용을 추가하세요.
+// ============================================================
+
+// ─── CWICR 공종 마스터 DB (DDC Skills) ───
+
+export const cwicr_items = pgTable("cwicr_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  category: text("category").notNull(),
+  subcategory: text("subcategory"),
+  itemName: text("item_name").notNull(),
+  unit: text("unit").default("EA"),
+  materialCost: integer("material_cost").default(0),
+  laborCost: integer("labor_cost").default(0),
+  expenseCost: integer("expense_cost").default(0),
+  totalUnitCost: integer("total_unit_cost").default(0),
+  region: text("region").default("전국"),
+  source: text("source").default("CWICR"),
+  year: integer("year").default(2026),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ─── 18개 공종 ↔ CWICR 매핑 ───
+
+export const gyeonjeokCategoryMap = pgTable("gyeonjeok_category_map", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  gyeonjeokCategory: text("gyeonjeok_category").notNull(),
+  cwicr_category: text("cwicr_category").notNull(),
+  aliases: jsonb("aliases").$type<string[]>().default([]),
+  matchConfidence: real("match_confidence").default(0.85),
+  displayOrder: integer("display_order").default(99),
+});
+
+// ─── 시장가 샘플 (Firecrawl 크롤링) ───
+
+export const marketPriceSamples = pgTable("market_price_samples", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  source: text("source").notNull(),
+  sourceType: text("source_type").default("marketplace"),
+  category: text("category").notNull(),
+  originalCategoryName: text("original_category_name"),
+  costManwon: real("cost_manwon"),
+  areaPyeong: real("area_pyeong"),
+  costPerPyeong: real("cost_per_pyeong"),
+  region: text("region").default("미상"),
+  crawledAt: timestamp("crawled_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── 5-Zone 레인지 ───
+
+export const zoneRanges = pgTable("zone_ranges", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  category: text("category").notNull(),
+  zone: text("zone").notNull(),
+  zoneDisplay: text("zone_display").notNull(),
+  minPerPyeong: real("min_per_pyeong"),
+  maxPerPyeong: real("max_per_pyeong"),
+  medianPerPyeong: real("median_per_pyeong"),
+  sampleCount: integer("sample_count").default(0),
+  totalSamples: integer("total_samples").default(0),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ─── n8n 웹훅 로그 ───
+
+export const n8nWebhookLogs = pgTable("n8n_webhook_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  webhookName: text("webhook_name").notNull(),
+  payload: jsonb("payload").notNull(),
+  responseStatus: integer("response_status"),
+  responseBody: text("response_body"),
+  executedAt: timestamp("executed_at").notNull().defaultNow(),
+});
