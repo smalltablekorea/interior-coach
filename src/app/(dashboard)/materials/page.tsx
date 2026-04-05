@@ -114,9 +114,9 @@ export default function MaterialsPage() {
       fetch("/api/sites").then((r) => r.json()),
     ])
       .then(([matData, ordData, siteData]) => {
-        setMaterials(matData);
-        setOrders(ordData);
-        setSites(siteData);
+        setMaterials(Array.isArray(matData) ? matData : matData?.items ?? []);
+        setOrders(Array.isArray(ordData) ? ordData : ordData?.items ?? []);
+        setSites(Array.isArray(siteData) ? siteData : siteData?.items ?? []);
         setLoading(false);
       })
       .catch(() => setLoading(false));

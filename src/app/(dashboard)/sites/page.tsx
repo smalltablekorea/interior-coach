@@ -59,8 +59,8 @@ export default function SitesPage() {
       apiFetch("/api/customers").then((r) => r.json()),
     ])
       .then(([sitesData, customersData]) => {
-        setSites(sitesData);
-        setCustomers(customersData);
+        setSites(Array.isArray(sitesData) ? sitesData : sitesData?.items ?? []);
+        setCustomers(Array.isArray(customersData) ? customersData : customersData?.items ?? []);
         setLoading(false);
       })
       .catch(() => setLoading(false));

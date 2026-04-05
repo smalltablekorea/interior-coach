@@ -255,7 +255,7 @@ export default function NaverBlogPage() {
       const res = await fetch("/api/sites");
       if (res.ok) {
         const data = await res.json();
-        setSites(data);
+        setSites(Array.isArray(data) ? data : data?.items ?? []);
       }
     } catch {
       /* silent */
