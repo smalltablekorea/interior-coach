@@ -364,21 +364,25 @@ export default function SiteDetailPage() {
     );
   }
 
-  const totalExpense = site.expenses.reduce((s, e) => s + e.amount, 0);
-  const overallProgress = site.phases.length > 0
-    ? Math.round(site.phases.reduce((s, p) => s + p.progress, 0) / site.phases.length)
+  const siteExpenses: ExpenseRef[] = site.expenses ?? [];
+  const sitePhases: PhaseRef[] = site.phases ?? [];
+  const siteEstimates: EstimateRef[] = site.estimates ?? [];
+  const siteContracts: ContractRef[] = site.contracts ?? [];
+  const totalExpense = siteExpenses.reduce((s, e) => s + e.amount, 0);
+  const overallProgress = sitePhases.length > 0
+    ? Math.round(sitePhases.reduce((s, p) => s + p.progress, 0) / sitePhases.length)
     : 0;
 
   const tabs = [
     { key: "overview" as const, label: "기본", icon: MapPin },
-    { key: "construction" as const, label: "공정", icon: Hammer, count: site.phases.length },
+    { key: "construction" as const, label: "공정", icon: Hammer, count: sitePhases.length },
     { key: "materials" as const, label: "자재", icon: Package },
     { key: "workers" as const, label: "작업자", icon: HardHat },
     { key: "expenses" as const, label: "지출", icon: Receipt },
     { key: "photos" as const, label: "사진", icon: Camera },
     { key: "defects" as const, label: "하자", icon: ShieldAlert },
-    { key: "estimates" as const, label: "견적", icon: FileText, count: site.estimates.length },
-    { key: "contracts" as const, label: "계약", icon: FileCheck, count: site.contracts.length },
+    { key: "estimates" as const, label: "견적", icon: FileText, count: siteEstimates.length },
+    { key: "contracts" as const, label: "계약", icon: FileCheck, count: siteContracts.length },
   ];
 
   return (
@@ -484,7 +488,7 @@ export default function SiteDetailPage() {
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-center">
           <p className="text-xl font-bold text-[var(--blue)]">
-            {fmt(site.contracts[0]?.contractAmount ?? 0)}
+            {fmt(siteContracts[0]?.contractAmount ?? 0)}
           </p>
           <p className="text-xs text-[var(--muted)] mt-1">계약액</p>
         </div>
@@ -493,7 +497,7 @@ export default function SiteDetailPage() {
           <p className="text-xs text-[var(--muted)] mt-1">지출합계</p>
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 text-center">
-          <p className="text-xl font-bold">{site.phases.length}개</p>
+          <p className="text-xl font-bold">{sitePhases.length}개</p>
           <p className="text-xs text-[var(--muted)] mt-1">공정</p>
         </div>
       </div>
@@ -673,14 +677,14 @@ export default function SiteDetailPage() {
             )}
 
             {/* Expenses */}
-            {site.expenses.length > 0 && (
+            {siteExpenses.length > 0 && (
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <Receipt size={16} className="text-[var(--muted)]" />
                   <h2 className="text-sm font-semibold text-[var(--muted)]">지출 현황</h2>
                 </div>
                 <div className="space-y-3">
-                  {site.expenses.map((e) => (
+                  {siteExpenses.map((e) => (
                     <div key={e.category} className="flex items-center justify-between">
                       <span className="text-sm">{e.category}</span>
                       <span className="text-sm font-medium">{fmt(e.amount)}</span>
@@ -1081,11 +1085,11 @@ export default function SiteDetailPage() {
 
       {tab === "estimates" && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-          {site.estimates.length === 0 ? (
+          {siteEstimates.length === 0 ? (
             <p className="text-sm text-[var(--muted)] text-center py-8">견적서가 없습니다.</p>
           ) : (
             <div className="space-y-2">
-              {site.estimates.map((e) => (
+              {siteEstimates.map((e) => (
                 <Link
                   key={e.id}
                   href={`/estimates/${e.id}`}
@@ -1106,11 +1110,11 @@ export default function SiteDetailPage() {
 
       {tab === "contracts" && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-          {site.contracts.length === 0 ? (
+          {siteContracts.length === 0 ? (
             <p className="text-sm text-[var(--muted)] text-center py-8">계약이 없습니다.</p>
           ) : (
             <div className="space-y-4">
-              {site.contracts.map((c) => {
+              {siteContracts.map((c) => {
                 const paid = c.payments.filter((p) => p.status === "완납").reduce((s, p) => s + p.amount, 0);
                 const paidPct = c.contractAmount > 0 ? Math.round((paid / c.contractAmount) * 100) : 0;
                 return (
@@ -1141,11 +1145,11 @@ export default function SiteDetailPage() {
 
       {tab === "construction" && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-          {site.phases.length === 0 ? (
+          {sitePhases.length === 0 ? (
             <p className="text-sm text-[var(--muted)] text-center py-8">등록된 공정이 없습니다.</p>
           ) : (
             <div className="space-y-3">
-              {site.phases.map((p) => (
+              {sitePhases.map((p) => (
                 <div key={p.id} className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02]">
                   <div className="w-16 text-sm font-medium">{p.category}</div>
                   <div className="flex-1">
@@ -1204,7 +1208,7 @@ export default function SiteDetailPage() {
               지출 관리 →
             </Link>
           </div>
-          {site.expenses.length === 0 ? (
+          {siteExpenses.length === 0 ? (
             <div className="text-center py-8">
               <Receipt size={28} className="mx-auto text-[var(--muted)] opacity-30 mb-2" />
               <p className="text-sm text-[var(--muted)]">등록된 지출이 없습니다</p>
@@ -1217,29 +1221,29 @@ export default function SiteDetailPage() {
                   <p className="text-[10px] text-[var(--muted)]">총 지출</p>
                 </div>
                 <div className="rounded-xl bg-white/[0.03] p-3 text-center">
-                  <p className="text-lg font-bold">{fmt(site.contracts[0]?.contractAmount ?? 0)}</p>
+                  <p className="text-lg font-bold">{fmt(siteContracts[0]?.contractAmount ?? 0)}</p>
                   <p className="text-[10px] text-[var(--muted)]">계약액</p>
                 </div>
               </div>
-              {site.contracts[0]?.contractAmount && (
+              {siteContracts[0]?.contractAmount && (
                 <div className="mb-4">
                   <div className="flex justify-between text-xs text-[var(--muted)] mb-1">
                     <span>예산 소진률</span>
-                    <span>{Math.round((totalExpense / site.contracts[0].contractAmount) * 100)}%</span>
+                    <span>{Math.round((totalExpense / siteContracts[0].contractAmount) * 100)}%</span>
                   </div>
                   <div className="h-2 bg-[var(--border)] rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{
-                        width: `${Math.min((totalExpense / site.contracts[0].contractAmount) * 100, 100)}%`,
-                        backgroundColor: totalExpense > site.contracts[0].contractAmount ? "var(--red)" : "var(--orange)",
+                        width: `${Math.min((totalExpense / siteContracts[0].contractAmount) * 100, 100)}%`,
+                        backgroundColor: totalExpense > siteContracts[0].contractAmount ? "var(--red)" : "var(--orange)",
                       }}
                     />
                   </div>
                 </div>
               )}
               <div className="space-y-2">
-                {site.expenses.map((e, i) => (
+                {siteExpenses.map((e, i) => (
                   <div key={i} className="flex items-center justify-between py-2 px-3 rounded-xl bg-white/[0.02]">
                     <span className="text-sm">{e.category}</span>
                     <span className="text-sm font-medium">{fmt(e.amount)}</span>
