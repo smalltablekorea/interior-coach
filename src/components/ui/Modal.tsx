@@ -21,6 +21,7 @@ export default function Modal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
   onCloseRef.current = onClose;
 
   useEffect(() => {
@@ -29,7 +30,6 @@ export default function Modal({
     previousFocusRef.current = document.activeElement as HTMLElement;
     document.body.style.overflow = "hidden";
 
-    // 모달 열릴 때 첫 입력 필드에 포커스 (1회만)
     const timer = setTimeout(() => {
       const first = dialogRef.current?.querySelector<HTMLElement>(
         "input, textarea, select",
@@ -45,7 +45,6 @@ export default function Modal({
         return;
       }
 
-      // 포커스 트랩 (Tab 키)
       if (e.key === "Tab" && dialogRef.current) {
         const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
           'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
@@ -72,14 +71,28 @@ export default function Modal({
       document.body.style.overflow = "";
       previousFocusRef.current?.focus();
     };
-  }, [open]); // open만 dependency — onClose 변경 시 재등록 안 함
+  }, [open]);
 
   if (!open) return null;
+
+  // backdrop 클릭으로 닫기 — mousedown과 mouseup이 모두 backdrop에서 발생한 경우만
+  const handleBackdropMouseDown = (e: React.MouseEvent) => {
+    mouseDownTargetRef.current = e.target;
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // mousedown이 모달 내부에서 시작됐으면 (드래그가 밖으로 나간 경우) 닫지 않음
+    if (mouseDownTargetRef.current !== e.target) return;
+    // 모달 내부 클릭이면 닫지 않음
+    if (dialogRef.current?.contains(e.target as Node)) return;
+    onCloseRef.current();
+  };
 
   return (
     <div
       className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm animate-fade-in"
-      onClick={() => onCloseRef.current()}
+      onMouseDown={handleBackdropMouseDown}
+      onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -88,7 +101,6 @@ export default function Modal({
         <div
           ref={dialogRef}
           className={`w-full ${maxWidth} max-h-[85vh] flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-2xl my-auto animate-fade-up`}
-          onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] shrink-0">
             <h2 id="modal-title" className="text-lg font-semibold">{title}</h2>
