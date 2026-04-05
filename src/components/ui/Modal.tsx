@@ -97,10 +97,10 @@ export default function Modal({
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="min-h-full flex items-center justify-center p-4 sm:p-6">
+      <div className="min-h-full flex items-start justify-center p-4 sm:p-6 sm:pt-[8vh]">
         <div
           ref={dialogRef}
-          className={`w-full ${maxWidth} max-h-[85vh] flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-2xl my-auto animate-fade-up`}
+          className={`w-full ${maxWidth} max-h-[88vh] flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-2xl animate-fade-up`}
         >
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] shrink-0">
             <h2 id="modal-title" className="text-lg font-semibold">{title}</h2>
