@@ -385,8 +385,11 @@ export default function DashboardPage() {
     );
   }
 
-  const { kpi, healthScores, projectProfits, actionItems, recentActivity } =
-    dashboard;
+  const kpi = dashboard.kpi;
+  const healthScores = dashboard.healthScores ?? [];
+  const projectProfits = dashboard.projectProfits ?? [];
+  const actionItems = dashboard.actionItems ?? { overduePayments: [], delayedPhases: [], needsOrdering: [] };
+  const recentActivity = dashboard.recentActivity ?? [];
 
   const maxRevenue =
     projectProfits.length > 0
@@ -414,7 +417,7 @@ export default function DashboardPage() {
   const maxBar = Math.max(kpi.monthlyRevenue.amount, kpi.monthlyExpenses.amount, 1);
   const revenueBarPct = (kpi.monthlyRevenue.amount / maxBar) * 100;
   const expenseBarPct = (kpi.monthlyExpenses.amount / maxBar) * 100;
-  const totalOverdue = actionItems.overduePayments.reduce((s, p) => s + p.amount, 0);
+  const totalOverdue = (actionItems.overduePayments ?? []).reduce((s, p) => s + p.amount, 0);
 
   // 다가오는 일정
   const upcomingMilestones = dashboard.upcomingMilestones ?? [];
