@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -67,19 +68,20 @@ export default function Modal({
     onCloseRef.current();
   };
 
-  return (
+  const modal = (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm"
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: "rgba(0,0,0,0.6)", overflowY: "auto" }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="flex min-h-full items-start justify-center px-4 py-8 sm:py-12">
+      <div style={{ display: "flex", minHeight: "100%", alignItems: "flex-start", justifyContent: "center", padding: "2rem 1rem" }}>
         <div
           ref={dialogRef}
-          className={`relative w-full ${maxWidth} bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl animate-fade-up`}
+          className={`w-full ${maxWidth} bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl animate-fade-up`}
+          style={{ position: "relative" }}
         >
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
             <h2 id="modal-title" className="text-lg font-semibold">{title}</h2>
@@ -96,4 +98,6 @@ export default function Modal({
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }
