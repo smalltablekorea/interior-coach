@@ -6,6 +6,7 @@ import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import FeatureGate from "@/components/subscription/FeatureGate";
 import { apiFetch } from "@/lib/api-client";
+import { KoreanInput, KoreanTextarea } from "@/components/ui/KoreanInput";
 import { fmt } from "@/lib/utils";
 import { TRADES } from "@/lib/constants";
 import Link from "next/link";
@@ -193,11 +194,11 @@ export default function WorkersPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">이름 *</label>
-              <input
+              <KoreanInput
                 type="text"
                 required
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(v) => setForm({ ...form, name: v })}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                 placeholder="이름"
               />
@@ -239,9 +240,9 @@ export default function WorkersPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">메모</label>
-            <textarea
+            <KoreanTextarea
               value={form.memo}
-              onChange={(e) => setForm({ ...form, memo: e.target.value })}
+              onChange={(v) => setForm({ ...form, memo: v })}
               className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
             />
           </div>
