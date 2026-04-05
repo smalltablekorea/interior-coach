@@ -6,6 +6,7 @@ import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api-client";
+import { KoreanTextarea } from "@/components/ui/KoreanInput";
 import { fmtDate, cn } from "@/lib/utils";
 import { TRADES, PHASE_STATUSES } from "@/lib/constants";
 
@@ -327,9 +328,9 @@ export default function ConstructionPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">메모</label>
-            <textarea
+            <KoreanTextarea
               value={form.memo}
-              onChange={(e) => setForm({ ...form, memo: e.target.value })}
+              onChange={(v) => setForm({ ...form, memo: v })}
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
             />
           </div>
@@ -414,9 +415,9 @@ export default function ConstructionPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">메모</label>
-            <textarea
+            <KoreanTextarea
               value={editForm.memo}
-              onChange={(e) => setEditForm({ ...editForm, memo: e.target.value })}
+              onChange={(v) => setEditForm({ ...editForm, memo: v })}
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none h-20"
             />
           </div>

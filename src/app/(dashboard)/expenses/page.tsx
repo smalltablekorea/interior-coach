@@ -5,6 +5,7 @@ import { Plus, Search, Receipt, Pencil, Trash2, AlertTriangle } from "lucide-rea
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import { apiFetch } from "@/lib/api-client";
+import { KoreanInput } from "@/components/ui/KoreanInput";
 import { fmt, fmtDate, fmtShort } from "@/lib/utils";
 
 interface Expense {
@@ -538,10 +539,10 @@ export default function ExpensesPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">내역</label>
-            <input
+            <KoreanInput
               type="text"
               value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onChange={(v) => setForm({ ...form, description: v })}
               placeholder="지출 내역을 입력하세요"
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm placeholder:text-[var(--muted)]"
             />
@@ -569,10 +570,10 @@ export default function ExpensesPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">거래처</label>
-            <input
+            <KoreanInput
               type="text"
               value={form.vendor}
-              onChange={(e) => setForm({ ...form, vendor: e.target.value })}
+              onChange={(v) => setForm({ ...form, vendor: v })}
               placeholder="거래처명"
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm placeholder:text-[var(--muted)]"
             />
@@ -640,10 +641,10 @@ export default function ExpensesPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">내역</label>
-            <input
+            <KoreanInput
               type="text"
               value={editForm.description}
-              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+              onChange={(v) => setEditForm({ ...editForm, description: v })}
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
             />
           </div>
@@ -669,10 +670,10 @@ export default function ExpensesPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">거래처</label>
-            <input
+            <KoreanInput
               type="text"
               value={editForm.vendor}
-              onChange={(e) => setEditForm({ ...editForm, vendor: e.target.value })}
+              onChange={(v) => setEditForm({ ...editForm, vendor: v })}
               placeholder="거래처명"
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
             />

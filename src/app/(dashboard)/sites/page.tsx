@@ -8,6 +8,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import UpgradeModal from "@/components/subscription/UpgradeModal";
 import { useSubscription } from "@/hooks/useSubscription";
 import { apiFetch } from "@/lib/api-client";
+import { KoreanInput, KoreanTextarea } from "@/components/ui/KoreanInput";
 import { fmtDate } from "@/lib/utils";
 import { SITE_STATUSES, BUILDING_TYPES } from "@/lib/constants";
 import Link from "next/link";
@@ -236,11 +237,11 @@ export default function SitesPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">현장명 *</label>
-            <input
+            <KoreanInput
               type="text"
               required
               value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              onChange={(v) => setForm({ ...form, name: v })}
               className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
               placeholder="예: 강남 래미안 32평 리모델링"
             />
@@ -279,10 +280,10 @@ export default function SitesPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">주소</label>
-            <input
+            <KoreanInput
               type="text"
               value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              onChange={(v) => setForm({ ...form, address: v })}
               className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
               placeholder="현장 주소"
             />
@@ -319,9 +320,9 @@ export default function SitesPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">메모</label>
-            <textarea
+            <KoreanTextarea
               value={form.memo}
-              onChange={(e) => setForm({ ...form, memo: e.target.value })}
+              onChange={(v) => setForm({ ...form, memo: v })}
               className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors resize-none h-20"
               placeholder="참고사항"
             />

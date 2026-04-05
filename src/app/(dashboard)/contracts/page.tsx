@@ -6,6 +6,7 @@ import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api-client";
+import { KoreanTextarea } from "@/components/ui/KoreanInput";
 import { fmt, fmtDate, fmtShort, cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -352,9 +353,9 @@ export default function ContractsPage() {
           </div>
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">메모</label>
-            <textarea
+            <KoreanTextarea
               value={form.memo}
-              onChange={(e) => setForm({ ...form, memo: e.target.value })}
+              onChange={(v) => setForm({ ...form, memo: v })}
               rows={2}
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none"
               placeholder="메모를 입력하세요..."

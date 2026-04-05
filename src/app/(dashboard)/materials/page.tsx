@@ -7,6 +7,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import FeatureGate from "@/components/subscription/FeatureGate";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { fmt, fmtDate } from "@/lib/utils";
+import { KoreanInput } from "@/components/ui/KoreanInput";
 
 interface Material {
   id: string;
@@ -1012,7 +1013,7 @@ export default function MaterialsPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">자재명 *</label>
-              <input type="text" required value={ordForm.materialName} onChange={(e) => setOrdForm({ ...ordForm, materialName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="자재명" />
+              <KoreanInput type="text" required value={ordForm.materialName} onChange={(v) => setOrdForm({ ...ordForm, materialName: v })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" placeholder="자재명" />
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">현장</label>
@@ -1054,7 +1055,7 @@ export default function MaterialsPage() {
         <form onSubmit={handleEditOrdSubmit} className="space-y-4">
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">자재명 *</label>
-            <input type="text" required value={editOrdForm.materialName} onChange={(e) => setEditOrdForm({ ...editOrdForm, materialName: e.target.value })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" />
+            <KoreanInput type="text" required value={editOrdForm.materialName} onChange={(v) => setEditOrdForm({ ...editOrdForm, materialName: v })} className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

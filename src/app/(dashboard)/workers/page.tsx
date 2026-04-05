@@ -92,11 +92,11 @@ export default function WorkersPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] flex-1">
           <Search size={18} className="text-[var(--muted)]" />
-          <input
+          <KoreanInput
             type="text"
             placeholder="이름, 전화번호로 검색..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={setSearch}
             className="bg-transparent text-sm flex-1 focus:outline-none placeholder:text-[var(--muted)]"
           />
         </div>

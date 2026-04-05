@@ -21,16 +21,18 @@ export default function Modal({
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // ESC 키 지원
+  // ESC 키 지원 (IME 조합 중에는 무시)
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      if (e.isComposing) return;
       if (e.key === "Escape") onClose();
     },
     [onClose],
   );
 
-  // 포커스 트랩
+  // 포커스 트랩 (IME 조합 중에는 무시)
   const trapFocus = useCallback((e: KeyboardEvent) => {
+    if (e.isComposing) return;
     if (e.key !== "Tab" || !dialogRef.current) return;
 
     const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
