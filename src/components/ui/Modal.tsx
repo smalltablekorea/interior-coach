@@ -75,44 +75,44 @@ export default function Modal({
 
   if (!open) return null;
 
-  // backdrop 클릭으로 닫기 — mousedown과 mouseup이 모두 backdrop에서 발생한 경우만
   const handleBackdropMouseDown = (e: React.MouseEvent) => {
     mouseDownTargetRef.current = e.target;
   };
 
   const handleBackdropClick = (e: React.MouseEvent) => {
-    // mousedown이 모달 내부에서 시작됐으면 (드래그가 밖으로 나간 경우) 닫지 않음
     if (mouseDownTargetRef.current !== e.target) return;
-    // 모달 내부 클릭이면 닫지 않음
     if (dialogRef.current?.contains(e.target as Node)) return;
     onCloseRef.current();
   };
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in"
       onMouseDown={handleBackdropMouseDown}
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="min-h-full flex items-start justify-center p-4 sm:p-6 sm:pt-[8vh]">
-        <div
-          ref={dialogRef}
-          className={`w-full ${maxWidth} max-h-[88vh] flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-2xl animate-fade-up`}
-        >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] shrink-0">
-            <h2 id="modal-title" className="text-lg font-semibold">{title}</h2>
-            <button
-              onClick={() => onCloseRef.current()}
-              aria-label="닫기"
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--border)] text-[var(--muted)] transition-colors"
-            >
-              <X size={18} />
-            </button>
+      {/* 스크롤 가능한 래퍼 — 모달이 화면보다 길어도 스크롤로 전체 접근 */}
+      <div className="fixed inset-0 overflow-y-auto">
+        <div className="flex min-h-full items-start justify-center px-4 py-8 sm:py-12">
+          <div
+            ref={dialogRef}
+            className={`w-full ${maxWidth} flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-2xl animate-fade-up`}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] shrink-0">
+              <h2 id="modal-title" className="text-lg font-semibold">{title}</h2>
+              <button
+                onClick={() => onCloseRef.current()}
+                aria-label="닫기"
+                className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--border)] text-[var(--muted)] transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6">{children}</div>
           </div>
-          <div className="p-6 overflow-y-auto flex-1 min-h-0">{children}</div>
         </div>
       </div>
     </div>
