@@ -17,8 +17,11 @@ export default function DashboardError({
     <div className="flex-1 flex items-center justify-center p-6">
       <div className="text-center max-w-md">
         <h2 className="text-xl font-bold mb-2">문제가 발생했습니다</h2>
-        <p className="text-sm text-[var(--muted)] mb-4">
+        <p className="text-sm text-[var(--muted)] mb-2">
           페이지를 불러오는 중 오류가 발생했습니다. 다시 시도해 주세요.
+        </p>
+        <p className="text-xs text-[var(--muted)]/50 mb-4 max-w-sm mx-auto break-all">
+          {error?.message}
         </p>
         <button
           onClick={reset}

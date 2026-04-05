@@ -53,17 +53,19 @@ export default function SitesPage() {
   });
   const [saving, setSaving] = useState(false);
 
-  const fetchData = () => {
-    Promise.all([
-      apiFetch("/api/sites").then((r) => r.json()),
-      apiFetch("/api/customers").then((r) => r.json()),
-    ])
-      .then(([sitesData, customersData]) => {
-        setSites(Array.isArray(sitesData) ? sitesData : sitesData?.items ?? []);
-        setCustomers(Array.isArray(customersData) ? customersData : customersData?.items ?? []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+  const fetchData = async () => {
+    try {
+      const [sitesRes, customersRes] = await Promise.all([
+        apiFetch("/api/sites").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+        apiFetch("/api/customers").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      ]);
+      setSites(Array.isArray(sitesRes) ? sitesRes : sitesRes?.items ?? []);
+      setCustomers(Array.isArray(customersRes) ? customersRes : customersRes?.items ?? []);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
