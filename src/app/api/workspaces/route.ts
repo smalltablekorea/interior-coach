@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { workspaces, workspaceMembers, user } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
-import { ok, serverError } from "@/lib/api/response";
+import { ok, err, serverError } from "@/lib/api/response";
 import { generateInviteCode, generateSlug, setDefaultPermissions } from "@/lib/workspace-auth";
 import { z } from "zod";
 import { validateBody } from "@/lib/api/validate";
@@ -61,6 +61,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const { name, businessType, businessNumber } = validation.data;
+
+    // 같은 이름 워크스페이스 중복 방지
+    const [duplicateName] = await db
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(eq(workspaces.name, name.trim()))
+      .limit(1);
+
+    if (duplicateName) {
+      return err(`"${name}" 이름의 워크스페이스가 이미 존재합니다.`);
+    }
 
     // slug 생성 (중복 시 숫자 suffix)
     let slug = generateSlug(name);

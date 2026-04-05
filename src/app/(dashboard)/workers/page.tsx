@@ -205,10 +205,10 @@ export default function WorkersPage() {
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">전화번호</label>
-              <input
+              <KoreanInput
                 type="tel"
                 value={form.phone}
-                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                onChange={(v) => setForm({ ...form, phone: v })}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                 placeholder="010-0000-0000"
               />
@@ -229,10 +229,10 @@ export default function WorkersPage() {
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">일당</label>
-              <input
+              <KoreanInput
                 type="number"
                 value={form.dailyWage}
-                onChange={(e) => setForm({ ...form, dailyWage: e.target.value })}
+                onChange={(v) => setForm({ ...form, dailyWage: v })}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
                 placeholder="원"
               />
