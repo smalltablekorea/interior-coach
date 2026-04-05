@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -20,75 +20,66 @@ export default function Modal({
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
-
-  // ESC 키 지원 (IME 조합 중에는 무시)
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.isComposing) return;
-      if (e.key === "Escape") onClose();
-    },
-    [onClose],
-  );
-
-  // 포커스 트랩 (IME 조합 중에는 무시)
-  const trapFocus = useCallback((e: KeyboardEvent) => {
-    if (e.isComposing) return;
-    if (e.key !== "Tab" || !dialogRef.current) return;
-
-    const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
-    );
-    if (focusable.length === 0) return;
-
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-
-    if (e.shiftKey) {
-      if (document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      }
-    } else {
-      if (document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  }, []);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
 
-    // 열릴 때 현재 포커스 저장 + 바디 스크롤 잠금
     previousFocusRef.current = document.activeElement as HTMLElement;
     document.body.style.overflow = "hidden";
 
-    // 모달 내부로 포커스 이동
-    requestAnimationFrame(() => {
+    // 모달 열릴 때 첫 입력 필드에 포커스 (1회만)
+    const timer = setTimeout(() => {
       const first = dialogRef.current?.querySelector<HTMLElement>(
-        'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+        "input, textarea, select",
       );
       first?.focus();
-    });
+    }, 50);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.isComposing) return;
+
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+
+      // 포커스 트랩 (Tab 키)
+      if (e.key === "Tab" && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
 
     document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("keydown", trapFocus);
 
     return () => {
+      clearTimeout(timer);
       document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("keydown", trapFocus);
       document.body.style.overflow = "";
-      // 닫힐 때 이전 포커스 복원
       previousFocusRef.current?.focus();
     };
-  }, [open, handleKeyDown, trapFocus]);
+  }, [open]); // open만 dependency — onClose 변경 시 재등록 안 함
 
   if (!open) return null;
 
   return (
     <div
       className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm animate-fade-in"
-      onClick={onClose}
+      onClick={() => onCloseRef.current()}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -102,7 +93,7 @@ export default function Modal({
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] shrink-0">
             <h2 id="modal-title" className="text-lg font-semibold">{title}</h2>
             <button
-              onClick={onClose}
+              onClick={() => onCloseRef.current()}
               aria-label="닫기"
               className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--border)] text-[var(--muted)] transition-colors"
             >
