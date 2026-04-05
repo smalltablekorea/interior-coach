@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { X, GripHorizontal } from "lucide-react";
 
 interface ModalProps {
   open: boolean;
@@ -24,6 +24,49 @@ export default function Modal({
   const onCloseRef = useRef(onClose);
   const mouseDownTargetRef = useRef<EventTarget | null>(null);
   onCloseRef.current = onClose;
+
+  // 드래그 상태
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const draggingRef = useRef(false);
+  const dragStartRef = useRef({ mouseX: 0, mouseY: 0, offsetX: 0, offsetY: 0 });
+
+  // 모달 열릴 때 위치 초기화
+  useEffect(() => {
+    if (open) setOffset({ x: 0, y: 0 });
+  }, [open]);
+
+  // 드래그 핸들러
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    // input/button/select/textarea 위에서는 드래그 시작 안 함
+    const tag = (e.target as HTMLElement).tagName;
+    if (["INPUT", "BUTTON", "SELECT", "TEXTAREA", "A"].includes(tag)) return;
+
+    e.preventDefault();
+    draggingRef.current = true;
+    dragStartRef.current = {
+      mouseX: e.clientX,
+      mouseY: e.clientY,
+      offsetX: offset.x,
+      offsetY: offset.y,
+    };
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!draggingRef.current) return;
+      setOffset({
+        x: dragStartRef.current.offsetX + (ev.clientX - dragStartRef.current.mouseX),
+        y: dragStartRef.current.offsetY + (ev.clientY - dragStartRef.current.mouseY),
+      });
+    };
+
+    const handleMouseUp = () => {
+      draggingRef.current = false;
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, [offset]);
 
   useEffect(() => {
     if (!open) return;
@@ -61,8 +104,8 @@ export default function Modal({
 
   if (!open) return null;
 
-  const handleMouseDown = (e: React.MouseEvent) => { mouseDownTargetRef.current = e.target; };
-  const handleClick = (e: React.MouseEvent) => {
+  const handleBackdropMouseDown = (e: React.MouseEvent) => { mouseDownTargetRef.current = e.target; };
+  const handleBackdropClick = (e: React.MouseEvent) => {
     if (mouseDownTargetRef.current !== e.target) return;
     if (dialogRef.current?.contains(e.target as Node)) return;
     onCloseRef.current();
@@ -71,8 +114,8 @@ export default function Modal({
   const modal = (
     <div
       style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, backgroundColor: "rgba(0,0,0,0.6)", overflowY: "auto" }}
-      onMouseDown={handleMouseDown}
-      onClick={handleClick}
+      onMouseDown={handleBackdropMouseDown}
+      onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -80,11 +123,23 @@ export default function Modal({
       <div style={{ display: "flex", minHeight: "100%", alignItems: "flex-start", justifyContent: "center", padding: "2rem 1rem" }}>
         <div
           ref={dialogRef}
-          className={`w-full ${maxWidth} bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl animate-fade-up`}
-          style={{ position: "relative" }}
+          className={`w-full ${maxWidth} bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-2xl`}
+          style={{
+            position: "relative",
+            transform: `translate(${offset.x}px, ${offset.y}px)`,
+            transition: draggingRef.current ? "none" : undefined,
+          }}
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
-            <h2 id="modal-title" className="text-lg font-semibold">{title}</h2>
+          {/* 드래그 가능한 헤더 */}
+          <div
+            className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] select-none"
+            style={{ cursor: "grab" }}
+            onMouseDown={handleDragStart}
+          >
+            <div className="flex items-center gap-2">
+              <GripHorizontal size={14} className="text-[var(--muted)] opacity-40" />
+              <h2 id="modal-title" className="text-lg font-semibold">{title}</h2>
+            </div>
             <button
               onClick={() => onCloseRef.current()}
               aria-label="닫기"
