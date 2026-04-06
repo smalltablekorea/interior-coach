@@ -7,6 +7,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { apiFetch } from "@/lib/api-client";
 import { KoreanInput } from "@/components/ui/KoreanInput";
 import { fmt, fmtDate, fmtShort } from "@/lib/utils";
+import { TRADES } from "@/lib/constants";
 
 interface Expense {
   id: string;
@@ -70,6 +71,7 @@ export default function ExpensesPage() {
     amount: "",
     date: new Date().toISOString().split("T")[0],
     paymentMethod: "카드" as string,
+    trade: "" as string,
     vendor: "",
   });
 
@@ -83,6 +85,7 @@ export default function ExpensesPage() {
     amount: "",
     date: "",
     paymentMethod: "카드",
+    trade: "",
     vendor: "",
   });
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
@@ -159,6 +162,7 @@ export default function ExpensesPage() {
           amount: "",
           date: new Date().toISOString().split("T")[0],
           paymentMethod: "카드",
+          trade: "",
           vendor: "",
         });
         loadExpenses();
@@ -178,6 +182,7 @@ export default function ExpensesPage() {
       amount: String(expense.amount),
       date: expense.date || "",
       paymentMethod: expense.paymentMethod || "카드",
+      trade: (expense as unknown as { trade?: string }).trade || "",
       vendor: expense.vendor || "",
     });
     setShowEditModal(true);
@@ -568,15 +573,30 @@ export default function ExpensesPage() {
               />
             </div>
           </div>
-          <div>
-            <label className="block text-sm text-[var(--muted)] mb-1">거래처</label>
-            <KoreanInput
-              type="text"
-              value={form.vendor}
-              onChange={(v) => setForm({ ...form, vendor: v })}
-              placeholder="거래처명"
-              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm placeholder:text-[var(--muted)]"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-[var(--muted)] mb-1">공종</label>
+              <select
+                value={form.trade}
+                onChange={(e) => setForm({ ...form, trade: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm"
+              >
+                <option value="">선택 안함</option>
+                {TRADES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-[var(--muted)] mb-1">거래처</label>
+              <KoreanInput
+                type="text"
+                value={form.vendor}
+                onChange={(v) => setForm({ ...form, vendor: v })}
+                placeholder="거래처명"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm placeholder:text-[var(--muted)]"
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button
@@ -668,15 +688,30 @@ export default function ExpensesPage() {
               />
             </div>
           </div>
-          <div>
-            <label className="block text-sm text-[var(--muted)] mb-1">거래처</label>
-            <KoreanInput
-              type="text"
-              value={editForm.vendor}
-              onChange={(v) => setEditForm({ ...editForm, vendor: v })}
-              placeholder="거래처명"
-              className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-[var(--muted)] mb-1">공종</label>
+              <select
+                value={editForm.trade}
+                onChange={(e) => setEditForm({ ...editForm, trade: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
+              >
+                <option value="">선택 안함</option>
+                {TRADES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-[var(--muted)] mb-1">거래처</label>
+              <KoreanInput
+                type="text"
+                value={editForm.vendor}
+                onChange={(v) => setEditForm({ ...editForm, vendor: v })}
+                placeholder="거래처명"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
+              />
+            </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button
