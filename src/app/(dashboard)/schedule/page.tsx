@@ -84,6 +84,7 @@ export default function SchedulePage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
   const [sites, setSites] = useState<SiteEvent[]>([]);
+  const [allSites, setAllSites] = useState<{ id: string; name: string; status: string }[]>([]);
   const [phases, setPhases] = useState<PhaseEvent[]>([]);
   const [orders, setOrders] = useState<OrderEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +100,7 @@ export default function SchedulePage() {
       .then((r) => r.json())
       .then((data) => {
         setSites(data.sites || []);
+        setAllSites(data.allSites || data.sites || []);
         setPhases(data.phases || []);
         setOrders(data.orders || []);
         setLoading(false);
@@ -570,7 +572,7 @@ export default function SchedulePage() {
               className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
             >
               <option value="">현장 선택</option>
-              {sites.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
+              {allSites.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
             </select>
           </div>
           <div>

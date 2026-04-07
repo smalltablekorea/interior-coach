@@ -98,7 +98,13 @@ export async function GET(request: Request) {
         )
       );
 
-    return ok({ sites: siteRows, phases: phaseRows, orders: orderRows, month: target });
+    // 현장 선택 드롭다운용: 모든 활성 현장 (월 필터 없이)
+    const allSiteRows = await db
+      .select({ id: sites.id, name: sites.name, status: sites.status })
+      .from(sites)
+      .where(and(workspaceFilter(sites.workspaceId, sites.userId, wid, uid), isNull(sites.deletedAt)));
+
+    return ok({ sites: siteRows, allSites: allSiteRows, phases: phaseRows, orders: orderRows, month: target });
   } catch (error) {
     return serverError(error);
   }
