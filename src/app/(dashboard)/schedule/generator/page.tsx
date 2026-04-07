@@ -193,6 +193,15 @@ export default function ScheduleGeneratorPage() {
   });
   const [newBlockPhase, setNewBlockPhase] = useState(3);
 
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [editingNameVal, setEditingNameVal] = useState("");
+
+  const handleRenameBlock = (id: string) => {
+    if (!editingNameVal.trim()) { setEditingNameId(null); return; }
+    setBlocks(prev => prev.map(b => b.id === id ? { ...b, name: editingNameVal.trim() } : b));
+    setEditingNameId(null);
+  };
+
   const usedTradeIds = useMemo(() => new Set(blocks.map(b => b.id)), [blocks]);
   const availableTrades = useMemo(() => TRADES.filter(t => !usedTradeIds.has(t.id)), [usedTradeIds]);
 
@@ -892,7 +901,24 @@ export default function ScheduleGeneratorPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
                               <span className="text-sm">{item.icon}</span>
-                              <span className="text-xs font-semibold text-[var(--foreground)] truncate">{item.name}</span>
+                              {editingNameId === item.id ? (
+                                <input
+                                  autoFocus
+                                  value={editingNameVal}
+                                  onChange={e => setEditingNameVal(e.target.value)}
+                                  onBlur={() => handleRenameBlock(item.id)}
+                                  onKeyDown={e => { if (e.key === "Enter") handleRenameBlock(item.id); if (e.key === "Escape") setEditingNameId(null); }}
+                                  className="text-xs font-semibold text-[var(--foreground)] bg-transparent border-b border-[var(--green)] outline-none w-full"
+                                />
+                              ) : (
+                                <span
+                                  className="text-xs font-semibold text-[var(--foreground)] truncate cursor-text hover:text-[var(--green)] transition-colors"
+                                  onClick={() => { setEditingNameId(item.id); setEditingNameVal(item.name); }}
+                                  title="클릭하여 이름 수정"
+                                >
+                                  {item.name}
+                                </span>
+                              )}
                             </div>
                             {(item.costLow > 0 || item.costHigh > 0) && (
                               <span className="text-[10px] text-yellow-400/80 font-medium">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
