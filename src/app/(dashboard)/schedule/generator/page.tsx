@@ -304,6 +304,22 @@ export default function ScheduleGeneratorPage() {
     setNewBlockName("");
   }, [newBlockName, newBlockStartDate, newBlockEndDate, newBlockPhase, dateToDayNum]);
 
+  // Column width resize
+  const [colWidth, setColWidth] = useState(140);
+  const [colResizing, setColResizing] = useState<{ startX: number; origWidth: number } | null>(null);
+
+  useEffect(() => {
+    if (!colResizing) return;
+    const onMove = (e: MouseEvent) => {
+      const newW = Math.max(80, Math.min(300, colResizing.origWidth + (e.clientX - colResizing.startX)));
+      setColWidth(newW);
+    };
+    const onUp = () => setColResizing(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+  }, [colResizing]);
+
   // Drag & Resize — single block overlay approach
   const [interacting, setInteracting] = useState<{
     id: string;
@@ -873,11 +889,16 @@ export default function ScheduleGeneratorPage() {
 
                 {/* Gantt chart with date axis — every day */}
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-x-auto">
-                  <div style={{ minWidth: `${Math.max(700, maxDay * 44 + 160)}px` }}>
+                  <div style={{ minWidth: `${Math.max(700, maxDay * 44 + colWidth + 20)}px` }}>
                     {/* Date axis header */}
                     <div className="flex border-b border-[var(--border)]">
-                      <div className="w-32 shrink-0 px-3 py-2 border-r border-[var(--border)]">
+                      <div className="shrink-0 px-3 py-2 border-r border-[var(--border)] relative" style={{ width: colWidth }}>
                         <span className="text-xs text-[var(--muted)] font-semibold">공종</span>
+                        {/* Column resize handle */}
+                        <div
+                          className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-[var(--green)]/30 transition-colors z-30"
+                          onMouseDown={e => { e.preventDefault(); setColResizing({ startX: e.clientX, origWidth: colWidth }); }}
+                        />
                       </div>
                       <div className="flex-1 flex">
                         {dateTicks.map((tick) => (
@@ -909,7 +930,7 @@ export default function ScheduleGeneratorPage() {
                     {blocks.map((item) => (
                       <div key={item.id} className="flex border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors">
                         {/* Trade name + cost + delete */}
-                        <div className="w-32 shrink-0 px-3 py-1.5 flex items-center gap-1.5 border-r border-[var(--border)]">
+                        <div className="shrink-0 px-3 py-1.5 flex items-center gap-1.5 border-r border-[var(--border)] relative" style={{ width: colWidth }}>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
                               <span className="text-sm">{item.icon}</span>
