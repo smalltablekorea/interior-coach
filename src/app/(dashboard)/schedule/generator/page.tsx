@@ -455,30 +455,13 @@ export default function ScheduleGeneratorPage() {
             <p className="text-xs text-[var(--muted)]">평수·공종 선택만으로 맞춤 공정표 생성</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {step === 4 && (
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors",
-                saveSuccess
-                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                  : "bg-[var(--green)] text-black hover:opacity-90"
-              )}
-            >
-              <Save size={14} />
-              {saving ? "저장 중..." : saveSuccess ? "저장 완료!" : "저장하기"}
-            </button>
-          )}
-          <Link
-            href="/schedule"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-          >
-            <ArrowLeft size={14} />
-            일정 관리
-          </Link>
-        </div>
+        <Link
+          href="/schedule"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+        >
+          <ArrowLeft size={14} />
+          일정 관리
+        </Link>
       </div>
 
       {/* Progress */}
@@ -804,74 +787,41 @@ export default function ScheduleGeneratorPage() {
         {/* STEP 4: Results */}
         {step === 4 && result && (
           <div className="animate-in fade-in slide-in-from-bottom-3 duration-300">
-            {/* Summary */}
-            <div className="text-center mb-5">
-              <p className="text-[10px] font-bold text-[var(--green)] tracking-widest mb-1.5">AI 공정 분석 완료</p>
-              <p className="text-4xl font-black">{maxDay}<span className="text-sm font-normal text-[var(--muted)]">일</span></p>
-              <p className="text-xs text-[var(--muted)] mt-1">{selectedSite ? `${selectedSite.name} · ` : ""}{sizeObj?.label} · {selected.length}개 공종 · {SEASONS[season].label}</p>
-            </div>
-
-            {/* Metrics */}
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 text-center">
-                <p className="text-[9px] text-[var(--muted)] font-semibold">예상 비용 범위</p>
-                <p className="text-base font-extrabold text-yellow-400 mt-0.5">{formatCost(result.totalCostLow)}<span className="text-[10px] text-[var(--muted)]"> ~ </span>{formatCost(result.totalCostHigh)}</p>
-              </div>
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 text-center">
-                <p className="text-[9px] text-[var(--muted)] font-semibold">리스크 · 품질체크</p>
-                <div className="mt-0.5">
-                  <span className="text-base font-extrabold" style={{ color: result.risk > 50 ? "#EF4444" : result.risk > 25 ? "#F59E0B" : "#10B981" }}>{result.risk}점</span>
-                  <span className="text-[11px] text-[var(--muted)] ml-1.5">{result.totalChecks}개 항목</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Budget fit */}
-            {budgetFit && budgetFit !== "invalid" && (
-              <div className={cn(
-                "rounded-xl p-2.5 mb-4 border",
-                budgetFit === "ok" ? "bg-emerald-500/[0.04] border-emerald-500/15" :
-                  budgetFit === "tight" ? "bg-yellow-500/[0.04] border-yellow-500/15" :
-                    "bg-red-500/[0.04] border-red-500/15"
-              )}>
-                <span className={cn("text-xs font-bold", budgetFit === "ok" ? "text-emerald-500" : budgetFit === "tight" ? "text-yellow-500" : "text-red-500")}>
-                  {budgetFit === "ok" ? "✅ 예산 여유" : budgetFit === "tight" ? "⚠️ 빠듯" : "🚨 예산 초과"}
-                </span>
-                <span className="text-[11px] text-[var(--muted)] ml-2">{budget}원 vs {formatCost(result.totalCostLow)}~{formatCost(result.totalCostHigh)}</span>
-              </div>
-            )}
-
-            {/* Tabs + Refresh */}
-            <div className="flex items-end gap-2 mb-4">
-              <div className="flex-1 grid grid-cols-5 border-b border-white/[0.06]">
+            {/* Tabs — top */}
+            <div className="flex items-center border-b border-white/[0.06] mb-3">
+              <div className="flex-1 grid grid-cols-5">
                 {TABS.map(t => (
                   <button
                     key={t.id}
                     onClick={() => setTab(t.id)}
                     className={cn(
-                      "py-2 text-center text-[10px] font-semibold border-b-2 transition-all",
+                      "py-2.5 text-center text-xs font-semibold border-b-2 transition-all",
                       tab === t.id ? "text-[var(--green)] border-[var(--green)]" : "text-[var(--muted)] border-transparent hover:text-[var(--foreground)]"
                     )}
                   >
-                    {t.icon}<br />{t.label}
+                    {t.icon} {t.label}
                     {!unlocked && t.id !== "schedule" && t.id !== "package" && <span className="text-[7px] ml-0.5">🔒</span>}
                   </button>
                 ))}
               </div>
               <button
-                onClick={() => window.location.reload()}
-                className="shrink-0 mb-1 p-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--green)] hover:border-[var(--green)]/30 transition-colors"
-                title="새로고침"
+                onClick={handleSave}
+                disabled={saving}
+                className={cn(
+                  "shrink-0 ml-2 p-2 rounded-lg transition-colors",
+                  saveSuccess ? "text-emerald-400" : "text-[var(--muted)] hover:text-[var(--green)]"
+                )}
+                title={saving ? "저장 중..." : saveSuccess ? "저장 완료!" : "저장하기"}
               >
-                <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+                <Save size={18} />
               </button>
             </div>
 
             {/* TAB: 공정표 */}
             {tab === "schedule" && (
               <div className="space-y-3">
-                {/* Date pickers */}
-                <div className="flex items-center gap-3 mb-1 flex-wrap">
+                {/* Date pickers + Add buttons — single row */}
+                <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2">
                     <Calendar size={14} className="text-[var(--muted)]" />
                     <span className="text-xs text-[var(--muted)]">시작일</span>
@@ -894,7 +844,7 @@ export default function ScheduleGeneratorPage() {
                       const endD = new Date(endDate + "T00:00:00");
                       const startD = new Date(startDate + "T00:00:00");
                       const availDays = Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24));
-                      const diff = availDays - result.totalDays;
+                      const diff = availDays - maxDay;
                       return (
                         <span className={cn(
                           "text-[10px] font-bold px-1.5 py-0.5 rounded",
@@ -905,33 +855,31 @@ export default function ScheduleGeneratorPage() {
                       );
                     })()}
                   </div>
-                </div>
-
-                {/* Add block / trade buttons — above chart for visibility */}
-                <div className="flex items-center gap-2">
-                  {availableTrades.length > 0 && (
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    {availableTrades.length > 0 && (
+                      <button
+                        onClick={() => { setShowAddTrade(true); setShowAddBlock(false); }}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[var(--green)]/40 bg-[var(--green)]/10 text-[11px] font-bold text-[var(--green)] hover:bg-[var(--green)]/20 transition-colors"
+                      >
+                        <Plus size={12} />
+                        공종 추가
+                      </button>
+                    )}
                     <button
-                      onClick={() => { setShowAddTrade(true); setShowAddBlock(false); }}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--green)]/40 bg-[var(--green)]/10 text-xs font-bold text-[var(--green)] hover:bg-[var(--green)]/20 transition-colors"
+                      onClick={() => {
+                        setShowAddBlock(true);
+                        setShowAddTrade(false);
+                        const s = addDays(startDate, maxDay);
+                        const e = addDays(startDate, maxDay + 2);
+                        setNewBlockStartDate(s.toISOString().slice(0, 10));
+                        setNewBlockEndDate(e.toISOString().slice(0, 10));
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-400/40 bg-blue-500/10 text-[11px] font-bold text-blue-400 hover:bg-blue-500/20 transition-colors"
                     >
-                      <Plus size={14} />
-                      공종 추가
+                      <Plus size={12} />
+                      블록 추가
                     </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setShowAddBlock(true);
-                      setShowAddTrade(false);
-                      const s = addDays(startDate, maxDay);
-                      const e = addDays(startDate, maxDay + 2);
-                      setNewBlockStartDate(s.toISOString().slice(0, 10));
-                      setNewBlockEndDate(e.toISOString().slice(0, 10));
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-400/40 bg-blue-500/10 text-xs font-bold text-blue-400 hover:bg-blue-500/20 transition-colors"
-                  >
-                    <Plus size={14} />
-                    블록 추가
-                  </button>
+                  </div>
                 </div>
 
                 {/* Gantt chart with date axis — every day */}
