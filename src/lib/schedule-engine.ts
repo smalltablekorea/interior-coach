@@ -87,7 +87,7 @@ export const TRADES: Trade[] = [
     desc:"기존 마감재 해체, 폐기물 분리·반출",notes:"내력벽 확인 필수, 석면 자재 유무 점검",
     savingTip:"폐기물 직접 분리배출 시 수거비 30~40% 절감. 재사용 가능 도기·수전 미리 분리.",
     qualityCheck:["내력벽/비내력벽 구분 확인","배관·배선 손상 점검","바닥 레벨 상태 사진 촬영","숨은 하자(곰팡이·누수) 기록"],
-    prework:[{task:"관리사무소 공사 신고",leadDays:7,category:"행정"},{task:"엘리베이터·복도 보양",leadDays:1,category:"현장준비"},{task:"소음 안내문 부착",leadDays:3,category:"행정"},{task:"보관이사 완료",leadDays:3,category:"현장준비"},{task:"전기·수도·가스 차단 확인",leadDays:1,category:"현장준비"}],
+    prework:[{task:"관리사무소 공사 신고",leadDays:7,category:"행정"},{task:"엘리베이터·복도 보양",leadDays:1,category:"현장준비"},{task:"소음 안내문 부착",leadDays:3,category:"행정"},{task:"전기·수도·가스 차단 확인",leadDays:1,category:"현장준비"}],
     materials:[{name:"보양재",spec:"PE폼+합판",leadDays:1,costRange:"15~25만",category:"소모품"},{name:"폐기물 수거",spec:"1톤/2.5톤",leadDays:0,costRange:"30~80만",category:"용역"},{name:"마대자루·스티커",spec:"구청 구매",leadDays:1,costRange:"3~5만",category:"소모품"}]},
   { id:"window",name:"창호(샤시)",icon:"🪟",group:"기초",phase:2,baseDays:1,costMin:245000,costMax:451000,unit:"평",deps:["demolition"],parallel:["plumbing","electric"],requires:["demolition"],skipRisk:"medium",
     desc:"이중창·시스템창 교체, 코킹 마감",notes:"외부 비계 필요 시 관리사무소 승인",
