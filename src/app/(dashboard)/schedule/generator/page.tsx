@@ -746,18 +746,9 @@ export default function ScheduleGeneratorPage() {
                 ))}
               </div>
               <button
-                onClick={() => {
-                  if (!sizeObj || !selected.length) return;
-                  setLoading(true);
-                  setTimeout(() => {
-                    const res = buildSchedule(selected, sizeObj, season);
-                    setResult(res);
-                    if (res) setBlocks(res.scheduled.map(t => ({ ...t })));
-                    setLoading(false);
-                  }, 500);
-                }}
+                onClick={() => window.location.reload()}
                 className="shrink-0 mb-1 p-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--green)] hover:border-[var(--green)]/30 transition-colors"
-                title="공정표 새로고침"
+                title="새로고침"
               >
                 <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
               </button>
