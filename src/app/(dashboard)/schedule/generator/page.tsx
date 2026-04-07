@@ -185,8 +185,13 @@ export default function ScheduleGeneratorPage() {
   const [showAddTrade, setShowAddTrade] = useState(false);
   const [showAddBlock, setShowAddBlock] = useState(false);
   const [newBlockName, setNewBlockName] = useState("");
-  const [newBlockStart, setNewBlockStart] = useState(1);
-  const [newBlockEnd, setNewBlockEnd] = useState(3);
+  const [newBlockStartDate, setNewBlockStartDate] = useState(startDate);
+  const [newBlockEndDate, setNewBlockEndDate] = useState(() => {
+    const d = new Date(startDate + "T00:00:00");
+    d.setDate(d.getDate() + 2);
+    return d.toISOString().slice(0, 10);
+  });
+  const [newBlockPhase, setNewBlockPhase] = useState(3);
 
   const usedTradeIds = useMemo(() => new Set(blocks.map(b => b.id)), [blocks]);
   const availableTrades = useMemo(() => TRADES.filter(t => !usedTradeIds.has(t.id)), [usedTradeIds]);
@@ -220,16 +225,37 @@ export default function ScheduleGeneratorPage() {
     setShowAddTrade(false);
   }, [blocks, sizeObj]);
 
+  // Convert date string to day number relative to startDate
+  const dateToDayNum = useCallback((dateStr: string) => {
+    const base = new Date(startDate + "T00:00:00");
+    const target = new Date(dateStr + "T00:00:00");
+    return Math.round((target.getTime() - base.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  }, [startDate]);
+
+  const PHASE_OPTIONS = [
+    { value: 1, label: "기초 (빨강)", color: "#EF4444" },
+    { value: 2, label: "습식 (주황)", color: "#F97316" },
+    { value: 3, label: "마감 (파랑)", color: "#3B82F6" },
+    { value: 4, label: "설치 (보라)", color: "#8B5CF6" },
+    { value: 5, label: "마무리 (초록)", color: "#10B981" },
+    { value: 6, label: "자재 (노랑)", color: "#F59E0B" },
+    { value: 7, label: "특수 (핑크)", color: "#EC4899" },
+    { value: 8, label: "기타 (청록)", color: "#06B6D4" },
+  ];
+
   const handleAddCustomBlock = useCallback(() => {
-    if (!newBlockName.trim() || newBlockEnd < newBlockStart) return;
+    if (!newBlockName.trim() || newBlockEndDate < newBlockStartDate) return;
+    const sd = dateToDayNum(newBlockStartDate);
+    const ed = dateToDayNum(newBlockEndDate);
+    if (sd < 1 || ed < sd) return;
     const id = `custom-${Date.now()}`;
     const newBlock: ScheduledTrade = {
       id,
       name: newBlockName.trim(),
       icon: "📌",
       group: "기타",
-      phase: 3,
-      baseDays: newBlockEnd - newBlockStart + 1,
+      phase: newBlockPhase,
+      baseDays: ed - sd + 1,
       costMin: 0,
       costMax: 0,
       unit: "",
@@ -243,9 +269,9 @@ export default function ScheduleGeneratorPage() {
       qualityCheck: [],
       prework: [],
       materials: [],
-      startDay: newBlockStart,
-      endDay: newBlockEnd,
-      days: newBlockEnd - newBlockStart + 1,
+      startDay: sd,
+      endDay: ed,
+      days: ed - sd + 1,
       costLow: 0,
       costHigh: 0,
       costPct: 0,
@@ -255,7 +281,7 @@ export default function ScheduleGeneratorPage() {
     setBlocks(prev => [...prev, newBlock]);
     setShowAddBlock(false);
     setNewBlockName("");
-  }, [newBlockName, newBlockStart, newBlockEnd]);
+  }, [newBlockName, newBlockStartDate, newBlockEndDate, newBlockPhase, dateToDayNum]);
 
   // Drag & Resize — single block overlay approach
   const [interacting, setInteracting] = useState<{
@@ -812,8 +838,10 @@ export default function ScheduleGeneratorPage() {
                     onClick={() => {
                       setShowAddBlock(true);
                       setShowAddTrade(false);
-                      setNewBlockStart(maxDay + 1);
-                      setNewBlockEnd(maxDay + 3);
+                      const s = addDays(startDate, maxDay);
+                      const e = addDays(startDate, maxDay + 2);
+                      setNewBlockStartDate(s.toISOString().slice(0, 10));
+                      setNewBlockEndDate(e.toISOString().slice(0, 10));
                     }}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-400/40 bg-blue-500/10 text-xs font-bold text-blue-400 hover:bg-blue-500/20 transition-colors"
                   >
@@ -971,24 +999,56 @@ export default function ScheduleGeneratorPage() {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm text-[var(--muted)] mb-1">시작 (일차)</label>
-                        <input type="number" min={1} value={newBlockStart} onChange={e => setNewBlockStart(Number(e.target.value))}
-                          className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors" />
+                        <label className="block text-sm text-[var(--muted)] mb-1">시작일</label>
+                        <input
+                          type="date"
+                          value={newBlockStartDate}
+                          onChange={e => setNewBlockStartDate(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
+                        />
                       </div>
                       <div>
-                        <label className="block text-sm text-[var(--muted)] mb-1">종료 (일차)</label>
-                        <input type="number" min={newBlockStart} value={newBlockEnd} onChange={e => setNewBlockEnd(Number(e.target.value))}
-                          className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors" />
+                        <label className="block text-sm text-[var(--muted)] mb-1">종료일</label>
+                        <input
+                          type="date"
+                          value={newBlockEndDate}
+                          min={newBlockStartDate}
+                          onChange={e => setNewBlockEndDate(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
+                        />
                       </div>
                     </div>
-                    <p className="text-xs text-[var(--muted)]">
-                      {formatDate(addDays(startDate, newBlockStart - 1))} ~ {formatDate(addDays(startDate, newBlockEnd - 1))} ({newBlockEnd - newBlockStart + 1}일간)
-                    </p>
+                    <div>
+                      <label className="block text-sm text-[var(--muted)] mb-2">블록 색상</label>
+                      <div className="flex flex-wrap gap-2">
+                        {PHASE_OPTIONS.map(opt => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setNewBlockPhase(opt.value)}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
+                              newBlockPhase === opt.value
+                                ? "border-white/40 ring-1 ring-white/20"
+                                : "border-[var(--border)] hover:border-white/20"
+                            )}
+                          >
+                            <div className="w-3 h-3 rounded-full shrink-0" style={{ background: opt.color }} />
+                            <span className="text-[var(--foreground)]">{opt.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {newBlockStartDate && newBlockEndDate && newBlockEndDate >= newBlockStartDate && (
+                      <p className="text-xs text-[var(--muted)]">
+                        {(() => { const days = dateToDayNum(newBlockEndDate) - dateToDayNum(newBlockStartDate) + 1; return `${days}일간`; })()}
+                      </p>
+                    )}
                     <div className="flex justify-end gap-3 pt-2">
                       <button onClick={() => setShowAddBlock(false)} className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors">취소</button>
                       <button
                         onClick={handleAddCustomBlock}
-                        disabled={!newBlockName.trim() || newBlockEnd < newBlockStart}
+                        disabled={!newBlockName.trim() || newBlockEndDate < newBlockStartDate}
                         className="px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)] transition-colors disabled:opacity-50"
                       >
                         추가
