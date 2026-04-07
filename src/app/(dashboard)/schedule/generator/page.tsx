@@ -803,6 +803,31 @@ export default function ScheduleGeneratorPage() {
                   </div>
                 </div>
 
+                {/* Add block / trade buttons — above chart for visibility */}
+                <div className="flex items-center gap-2">
+                  {availableTrades.length > 0 && (
+                    <button
+                      onClick={() => { setShowAddTrade(true); setShowAddBlock(false); }}
+                      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--green)]/40 bg-[var(--green)]/10 text-xs font-bold text-[var(--green)] hover:bg-[var(--green)]/20 transition-colors"
+                    >
+                      <Plus size={14} />
+                      공종 추가
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowAddBlock(true);
+                      setShowAddTrade(false);
+                      setNewBlockStart(maxDay + 1);
+                      setNewBlockEnd(maxDay + 3);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-blue-400/40 bg-blue-500/10 text-xs font-bold text-blue-400 hover:bg-blue-500/20 transition-colors"
+                  >
+                    <Plus size={14} />
+                    블록 추가
+                  </button>
+                </div>
+
                 {/* Gantt chart with date axis — every day */}
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-x-auto">
                   <div style={{ minWidth: `${Math.max(600, maxDay * 40 + 150)}px` }}>
@@ -839,21 +864,32 @@ export default function ScheduleGeneratorPage() {
 
                     {/* Chart body rows — flat trade list */}
                     {blocks.map((item) => (
-                      <div key={item.id} className="flex border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors group/row">
-                        {/* Trade name + cost */}
-                        <div className="w-28 shrink-0 px-2 py-1 flex flex-col justify-center border-r border-[var(--border)]">
-                          <div className="flex items-center gap-1">
-                            <span className="text-[11px]">{item.icon}</span>
-                            <span className="text-[10px] font-semibold text-[var(--foreground)] truncate">{item.name}</span>
+                      <div key={item.id} className="flex border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors">
+                        {/* Trade name + cost + delete */}
+                        <div className="w-28 shrink-0 px-2 py-1 flex items-center gap-1 border-r border-[var(--border)]">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span className="text-[11px]">{item.icon}</span>
+                              <span className="text-[10px] font-semibold text-[var(--foreground)] truncate">{item.name}</span>
+                            </div>
+                            {(item.costLow > 0 || item.costHigh > 0) && (
+                              <span className="text-[8px] text-yellow-400/80 font-medium">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
+                            )}
                           </div>
-                          {(item.costLow > 0 || item.costHigh > 0) && (
-                            <span className="text-[8px] text-yellow-400/80 font-medium mt-0.5">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
+                          {blocks.length > 1 && (
+                            <button
+                              onClick={() => handleRemoveBlock(item.id)}
+                              className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-[var(--muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                              title="블록 제거"
+                            >
+                              <X size={12} />
+                            </button>
                           )}
                         </div>
                         {/* Day grid + block overlay */}
                         <div className="flex-1 relative h-8" data-gantt-row>
-                          {/* Background grid */}
-                          <div className="absolute inset-0 flex">
+                          {/* Background grid — pointer-events-none so block receives events */}
+                          <div className="absolute inset-0 flex pointer-events-none">
                             {dateTicks.map((tick) => (
                               <div key={tick.day} className={cn("flex-1 min-w-[32px] border-r border-white/[0.02]", tick.isWeekend && "bg-red-400/[0.02]")} />
                             ))}
@@ -861,74 +897,38 @@ export default function ScheduleGeneratorPage() {
                           {/* Block — single positioned element */}
                           <div
                             className={cn(
-                              "absolute top-0.5 bottom-0.5 rounded-md flex items-center select-none group/block",
+                              "absolute top-0.5 bottom-0.5 rounded-md flex items-center select-none z-10",
                               interacting?.id === item.id
                                 ? interacting.mode === "drag" ? "cursor-grabbing opacity-70" : "opacity-80"
-                                : "cursor-grab"
+                                : "cursor-grab hover:brightness-125"
                             )}
                             style={{
                               left: `${((item.startDay - 1) / dateTicks.length) * 100}%`,
                               width: `${(item.days / dateTicks.length) * 100}%`,
                               background: `${PHASE_COLORS[item.phase]}55`,
-                              minWidth: 12,
+                              minWidth: 16,
                             }}
                             onMouseDown={(e) => startInteraction(item.id, "drag", e)}
                           >
-                            {/* Left resize handle — wide touch target */}
+                            {/* Left resize handle — 16px wide */}
                             <div
-                              className="absolute left-0 top-0 bottom-0 w-3 cursor-col-resize z-20 rounded-l-md"
-                              style={{ background: "linear-gradient(90deg, rgba(255,255,255,0.15) 0%, transparent 100%)" }}
+                              className="absolute left-0 top-0 bottom-0 w-4 cursor-col-resize z-20 rounded-l-md hover:bg-white/20 transition-colors"
                               onMouseDown={(e) => startInteraction(item.id, "resize-start", e)}
                             />
                             {/* Label */}
-                            <span className="text-[8px] font-bold text-white/90 whitespace-nowrap px-3.5 pointer-events-none select-none truncate flex-1 text-center">
+                            <span className="text-[8px] font-bold text-white/90 whitespace-nowrap px-5 pointer-events-none select-none truncate flex-1 text-center">
                               {item.days}일
                             </span>
-                            {/* Right resize handle — wide touch target */}
+                            {/* Right resize handle — 16px wide */}
                             <div
-                              className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize z-20 rounded-r-md"
-                              style={{ background: "linear-gradient(270deg, rgba(255,255,255,0.15) 0%, transparent 100%)" }}
+                              className="absolute right-0 top-0 bottom-0 w-4 cursor-col-resize z-20 rounded-r-md hover:bg-white/20 transition-colors"
                               onMouseDown={(e) => startInteraction(item.id, "resize-end", e)}
                             />
-                            {/* Delete button on block */}
-                            {blocks.length > 1 && (
-                              <button
-                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center z-30 opacity-0 group-hover/block:opacity-100 hover:scale-110 transition-all shadow-sm"
-                                onMouseDown={(e) => { e.stopPropagation(); handleRemoveBlock(item.id); }}
-                              >
-                                <X size={8} />
-                              </button>
-                            )}
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
-
-                {/* Add block / trade buttons */}
-                <div className="flex items-center gap-2 py-1">
-                  {availableTrades.length > 0 && (
-                    <button
-                      onClick={() => { setShowAddTrade(true); setShowAddBlock(false); }}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-[var(--green)]/40 bg-[var(--green)]/10 text-xs font-bold text-[var(--green)] hover:bg-[var(--green)]/20 transition-colors"
-                    >
-                      <Plus size={14} />
-                      공종 추가
-                    </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setShowAddBlock(true);
-                      setShowAddTrade(false);
-                      setNewBlockStart(maxDay + 1);
-                      setNewBlockEnd(maxDay + 3);
-                    }}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-blue-400/40 bg-blue-500/10 text-xs font-bold text-blue-400 hover:bg-blue-500/20 transition-colors"
-                  >
-                    <Plus size={14} />
-                    블록 추가
-                  </button>
                 </div>
 
                 {/* Add Trade Modal */}
