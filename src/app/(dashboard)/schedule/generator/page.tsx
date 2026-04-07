@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
-import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, MapPin, Search, Plus, X, Trash2, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
+import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, MapPin, Search, Plus, X, Trash2, RefreshCw, ChevronUp, ChevronDown, Save } from "lucide-react";
 import Link from "next/link";
 import Modal from "@/components/ui/Modal";
 import { cn, fmtDate } from "@/lib/utils";
@@ -405,6 +405,36 @@ export default function ScheduleGeneratorPage() {
       : budgetNum >= result.totalCostLow ? (budgetNum >= result.totalCostHigh ? "ok" : "tight") : "over"
     : null;
 
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const handleSave = async () => {
+    if (!result || !size || !selected.length) return;
+    setSaving(true);
+    setSaveSuccess(false);
+    try {
+      const siteName = selectedSite?.name || "공정표";
+      const res = await fetch("/api/schedule-planner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          siteName,
+          siteAddress: selectedSite?.address || "",
+          startDate,
+          sizeId: size,
+          selectedTrades: blocks.map(b => b.id),
+          season,
+          memo: budget ? `예산: ${budget}원` : "",
+        }),
+      });
+      if (res.ok) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      }
+    } catch { /* ignore */ }
+    finally { setSaving(false); }
+  };
+
   const resetAll = () => {
     setStep(0); setResult(null); setSelected([]); setSize(null);
     setSelectedPkg(null); setBudget("");
@@ -425,13 +455,30 @@ export default function ScheduleGeneratorPage() {
             <p className="text-xs text-[var(--muted)]">평수·공종 선택만으로 맞춤 공정표 생성</p>
           </div>
         </div>
-        <Link
-          href="/schedule"
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-        >
-          <ArrowLeft size={14} />
-          일정 관리
-        </Link>
+        <div className="flex items-center gap-2">
+          {step === 4 && (
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors",
+                saveSuccess
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : "bg-[var(--green)] text-black hover:opacity-90"
+              )}
+            >
+              <Save size={14} />
+              {saving ? "저장 중..." : saveSuccess ? "저장 완료!" : "저장하기"}
+            </button>
+          )}
+          <Link
+            href="/schedule"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+          >
+            <ArrowLeft size={14} />
+            일정 관리
+          </Link>
+        </div>
       </div>
 
       {/* Progress */}
