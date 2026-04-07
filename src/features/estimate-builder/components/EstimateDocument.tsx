@@ -101,7 +101,7 @@ export const EstimateDocument = forwardRef<HTMLDivElement, Props>(
         fontSize: 11,
       },
       th: {
-        background: "#f0f4ff",
+        background: "#e6f9f0",
         border: "1px solid #e5e7eb",
         padding: "7px 8px",
         fontWeight: 600,
@@ -114,7 +114,7 @@ export const EstimateDocument = forwardRef<HTMLDivElement, Props>(
         textAlign: "right" as const,
       },
       totalRow: {
-        background: "#e0ecff",
+        background: "#ccf2e0",
         fontWeight: 700,
       } as React.CSSProperties,
       grandRow: {
@@ -153,7 +153,7 @@ export const EstimateDocument = forwardRef<HTMLDivElement, Props>(
             style={{
               width: 60,
               height: 3,
-              background: "#2563eb",
+              background: "#00C471",
               margin: "12px auto 0",
             }}
           />
@@ -162,7 +162,7 @@ export const EstimateDocument = forwardRef<HTMLDivElement, Props>(
         {/* Grand total box */}
         <div
           style={{
-            background: "#f0f4ff",
+            background: "#e6f9f0",
             border: "2px solid #1a1a2e",
             borderRadius: 8,
             padding: "16px 24px",
@@ -214,7 +214,7 @@ export const EstimateDocument = forwardRef<HTMLDivElement, Props>(
               style={{
                 fontSize: 11,
                 fontWeight: 700,
-                borderLeft: "3px solid #2563eb",
+                borderLeft: "3px solid #00C471",
                 paddingLeft: 8,
                 marginBottom: 8,
               }}
@@ -397,7 +397,7 @@ export const EstimateDocument = forwardRef<HTMLDivElement, Props>(
                 const customs = customSubs[cat.id] || [];
                 return (
                   <React.Fragment key={cat.id}>
-                    <tr style={{ background: "#f0f4ff" }}>
+                    <tr style={{ background: "#e6f9f0" }}>
                       <td
                         style={{
                           ...S.td,

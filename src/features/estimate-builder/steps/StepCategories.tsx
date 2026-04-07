@@ -31,13 +31,13 @@ export function StepCategories({ area, grade, enabled, onToggle }: Props) {
               className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-all cursor-pointer ${
                 isOn
                   ? "border-[var(--border)] bg-[var(--card)]"
-                  : "border-white/[0.04] bg-white/[0.01] opacity-50"
-              } hover:border-[var(--primary)]/20`}
+                  : "border-white/[0.04] bg-[var(--card)] opacity-50"
+              } hover:border-[var(--green)]/20`}
             >
               <div
                 className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors ${
                   isOn
-                    ? "border-[var(--primary)] bg-[var(--primary)]"
+                    ? "border-[var(--green)] bg-[var(--green)]"
                     : "border-[var(--border)] bg-transparent"
                 }`}
               >

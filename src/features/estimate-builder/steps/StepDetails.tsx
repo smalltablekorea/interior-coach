@@ -186,7 +186,7 @@ export function StepDetails({
                   </div>
                   <button
                     onClick={() => onHiddenCatsChange((p) => { const n = { ...p }; delete n[cat.id]; return n; })}
-                    className="flex items-center gap-1 text-[10px] text-[var(--primary)] hover:text-[var(--primary)]/80"
+                    className="flex items-center gap-1 text-[10px] text-[var(--green)] hover:text-[var(--green)]/80"
                   >
                     <RotateCcw size={11} /> 복원
                   </button>
@@ -204,7 +204,7 @@ export function StepDetails({
               <div className="flex items-center">
                 <button
                   onClick={() => setExpanded(isExpanded ? null : cat.id)}
-                  className="flex-1 flex items-center gap-3 p-3 hover:bg-white/[0.02] transition-colors"
+                  className="flex-1 flex items-center gap-3 p-3 hover:bg-[var(--card)] transition-colors"
                 >
                   <div
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm"
@@ -261,7 +261,7 @@ export function StepDetails({
                           className={`text-[10px] px-2 py-1 rounded-md border transition-colors ${
                             cg === g.key
                               ? "font-bold"
-                              : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--primary)]/30"
+                              : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/30"
                           }`}
                           style={
                             cg === g.key
@@ -298,8 +298,8 @@ export function StepDetails({
                         disabled={aiGenerating !== null}
                         className={`flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full transition-colors ${
                           aiGenerating === cat.id
-                            ? "bg-[var(--primary)]/20 text-[var(--primary)] animate-pulse"
-                            : "bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20"
+                            ? "bg-[var(--green)]/20 text-[var(--green)] animate-pulse"
+                            : "bg-[var(--green)]/10 text-[var(--green)] hover:bg-[var(--green)]/20"
                         }`}
                       >
                         <Sparkles size={10} />
@@ -326,7 +326,7 @@ export function StepDetails({
                               <span className="line-through text-[var(--muted)] truncate flex-1">{ov.name ?? sub.name}</span>
                               <button
                                 onClick={() => onDeletedSubsChange((prev) => { const n = { ...prev }; delete n[ovKey]; return n; })}
-                                className="p-0.5 text-[var(--muted)] hover:text-[var(--primary)]"
+                                className="p-0.5 text-[var(--muted)] hover:text-[var(--green)]"
                               >
                                 <RotateCcw size={12} />
                               </button>
@@ -340,27 +340,27 @@ export function StepDetails({
                             key={i}
                             className={`grid grid-cols-[1fr_48px_36px_72px_20px] gap-1 text-[11px] py-1 px-1.5 rounded-md items-center ${
                               isOverridden
-                                ? "bg-[var(--primary)]/5 ring-1 ring-[var(--primary)]/20"
-                                : "bg-white/[0.02]"
+                                ? "bg-[var(--green)]/5 ring-1 ring-[var(--green)]/20"
+                                : "bg-[var(--card)]"
                             }`}
                           >
                             <input
                               type="text"
                               value={ov.name ?? sub.name}
                               onChange={(e) => onSubOverrideChange(ovKey, { ...ov, name: e.target.value })}
-                              className="bg-transparent border border-transparent hover:border-[var(--border)] focus:border-[var(--primary)]/50 rounded px-1 py-0.5 outline-none min-w-0 text-[11px]"
+                              className="bg-transparent border border-transparent hover:border-[var(--border)] focus:border-[var(--green)]/50 rounded px-1 py-0.5 outline-none min-w-0 text-[11px]"
                             />
                             <input
                               type="number"
                               value={ov.qty ?? 1}
                               onChange={(e) => onSubOverrideChange(ovKey, { ...ov, qty: Number(e.target.value) || 1 })}
-                              className="bg-transparent border border-transparent hover:border-[var(--border)] focus:border-[var(--primary)]/50 rounded px-0.5 py-0.5 text-center outline-none text-[11px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="bg-transparent border border-transparent hover:border-[var(--border)] focus:border-[var(--green)]/50 rounded px-0.5 py-0.5 text-center outline-none text-[11px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <input
                               type="text"
                               value={ov.unit ?? "식"}
                               onChange={(e) => onSubOverrideChange(ovKey, { ...ov, unit: e.target.value })}
-                              className="bg-transparent border border-transparent hover:border-[var(--border)] focus:border-[var(--primary)]/50 rounded px-0.5 py-0.5 text-center outline-none text-[11px]"
+                              className="bg-transparent border border-transparent hover:border-[var(--border)] focus:border-[var(--green)]/50 rounded px-0.5 py-0.5 text-center outline-none text-[11px]"
                             />
                             <input
                               type="number"
@@ -373,7 +373,7 @@ export function StepDetails({
                                   onSubOverrideChange(ovKey, n);
                                 } else onSubOverrideChange(ovKey, { ...ov, amount: Number(v) * 10000 });
                               }}
-                              className="bg-transparent border border-transparent hover:border-[var(--border)] focus:border-[var(--primary)]/50 rounded px-1 py-0.5 text-right font-medium outline-none text-[11px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="bg-transparent border border-transparent hover:border-[var(--border)] focus:border-[var(--green)]/50 rounded px-1 py-0.5 text-right font-medium outline-none text-[11px] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <button
                               onClick={() => onDeletedSubsChange((prev) => ({ ...prev, [ovKey]: true }))}
@@ -389,7 +389,7 @@ export function StepDetails({
                       {(customSubs[cat.id] || []).map((cs, ci) => (
                         <div
                           key={`c-${ci}`}
-                          className="grid grid-cols-[1fr_48px_36px_72px_20px] gap-1 text-[11px] py-1 px-1.5 rounded-md items-center bg-[var(--primary)]/5 ring-1 ring-[var(--primary)]/20"
+                          className="grid grid-cols-[1fr_48px_36px_72px_20px] gap-1 text-[11px] py-1 px-1.5 rounded-md items-center bg-[var(--green)]/5 ring-1 ring-[var(--green)]/20"
                         >
                           <input
                             type="text"
@@ -399,7 +399,7 @@ export function StepDetails({
                               a[ci] = { ...a[ci], name: e.target.value };
                               onCustomSubsChange(cat.id, a);
                             }}
-                            className="bg-transparent border border-transparent hover:border-[var(--border)] focus:border-[var(--primary)]/50 rounded px-1 py-0.5 outline-none min-w-0 text-[11px]"
+                            className="bg-transparent border border-transparent hover:border-[var(--border)] focus:border-[var(--green)]/50 rounded px-1 py-0.5 outline-none min-w-0 text-[11px]"
                           />
                           <input
                             type="number"
@@ -447,7 +447,7 @@ export function StepDetails({
                           const a = [...(customSubs[cat.id] || []), { name: "새 항목", qty: 1, unit: "식", amount: 0 }];
                           onCustomSubsChange(cat.id, a);
                         }}
-                        className="w-full text-[10px] py-1.5 rounded-md border border-dashed border-[var(--border)] text-[var(--muted)] hover:border-[var(--primary)]/50 hover:text-[var(--primary)] transition-colors"
+                        className="w-full text-[10px] py-1.5 rounded-md border border-dashed border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/50 hover:text-[var(--green)] transition-colors"
                       >
                         + 항목 추가
                       </button>
@@ -467,8 +467,8 @@ export function StepDetails({
                             key={m.grade}
                             className={`px-2 py-1.5 rounded text-xs ${
                               m.grade === cg
-                                ? "bg-[var(--primary)]/10 border border-[var(--primary)]/20"
-                                : "bg-white/[0.02]"
+                                ? "bg-[var(--green)]/10 border border-[var(--green)]/20"
+                                : "bg-[var(--card)]"
                             }`}
                           >
                             <span className="text-[var(--muted)]">
@@ -503,28 +503,28 @@ export function StepDetails({
                               arr[mi] = { ...arr[mi], name: e.target.value };
                               onMatOverridesChange(cat.id, arr);
                             }}
-                            className="flex-1 min-w-0 px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs focus:outline-none focus:border-[var(--primary)]" />
+                            className="flex-1 min-w-0 px-2 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs focus:outline-none focus:border-[var(--green)]" />
                           <input type="number" value={mo.qty} placeholder="수량"
                             onChange={(e) => {
                               const arr = [...(matOverrides[cat.id] || [])];
                               arr[mi] = { ...arr[mi], qty: Number(e.target.value) || 0 };
                               onMatOverridesChange(cat.id, arr);
                             }}
-                            className="w-14 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-right tabular-nums focus:outline-none focus:border-[var(--primary)]" />
+                            className="w-14 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-right tabular-nums focus:outline-none focus:border-[var(--green)]" />
                           <input type="text" value={mo.unit} placeholder="단위"
                             onChange={(e) => {
                               const arr = [...(matOverrides[cat.id] || [])];
                               arr[mi] = { ...arr[mi], unit: e.target.value };
                               onMatOverridesChange(cat.id, arr);
                             }}
-                            className="w-12 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-center focus:outline-none focus:border-[var(--primary)]" />
+                            className="w-12 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-center focus:outline-none focus:border-[var(--green)]" />
                           <input type="number" value={mo.unitPrice} placeholder="단가"
                             onChange={(e) => {
                               const arr = [...(matOverrides[cat.id] || [])];
                               arr[mi] = { ...arr[mi], unitPrice: Number(e.target.value) || 0 };
                               onMatOverridesChange(cat.id, arr);
                             }}
-                            className="w-20 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-right tabular-nums focus:outline-none focus:border-[var(--primary)]" />
+                            className="w-20 px-1.5 py-1 rounded bg-[var(--card)] border border-[var(--border)] text-xs text-right tabular-nums focus:outline-none focus:border-[var(--green)]" />
                           <span className="text-[10px] text-[var(--muted)] w-16 text-right tabular-nums shrink-0">
                             {fmtShort(Math.round(mo.qty * mo.unitPrice / 100) * 100)}
                           </span>
@@ -543,14 +543,14 @@ export function StepDetails({
                       {(matOverrides[cat.id]?.length ?? 0) > 0 && (
                         <div className="flex justify-end text-xs font-medium pt-1 border-t border-[var(--border)]">
                           <span className="text-[var(--muted)] mr-2">자재 소계:</span>
-                          <span className="text-[var(--primary)] tabular-nums">
+                          <span className="text-[var(--green)] tabular-nums">
                             {fmtShort((matOverrides[cat.id] || []).reduce((s, mo) => s + Math.round(mo.qty * mo.unitPrice / 100) * 100, 0))}
                           </span>
                         </div>
                       )}
                       <button
                         onClick={() => onMatOverridesChange(cat.id, [...(matOverrides[cat.id] || []), { name: "", qty: 1, unit: "개", unitPrice: 0 }])}
-                        className="flex items-center gap-1 text-[10px] text-[var(--primary)] hover:text-[var(--primary)]/80 mt-1"
+                        className="flex items-center gap-1 text-[10px] text-[var(--green)] hover:text-[var(--green)]/80 mt-1"
                       >
                         <PlusCircle size={12} /> 자재 추가
                       </button>

@@ -287,7 +287,7 @@ export function EstimateBuilder() {
     <div className="min-h-screen">
       {/* Draft banner */}
       {showDraftBanner && hasDraft && (
-        <div className="bg-[var(--primary)]/10 border-b border-[var(--primary)]/20 print:hidden">
+        <div className="bg-[var(--green)]/10 border-b border-[var(--green)]/20 print:hidden">
           <div className="mx-auto max-w-5xl px-4 py-2.5 flex items-center justify-between">
             <span className="text-xs text-[var(--muted)]">
               저장된 견적서가 있습니다
@@ -295,7 +295,7 @@ export function EstimateBuilder() {
             <div className="flex gap-2">
               <button
                 onClick={loadDraft}
-                className="text-xs px-3 py-1 rounded-md bg-[var(--primary)] text-white font-medium hover:bg-[#1d4ed8] transition-colors"
+                className="text-xs px-3 py-1 rounded-md bg-[var(--green)] text-black font-medium hover:bg-[var(--green-hover)] transition-colors"
               >
                 이어서 작성
               </button>
@@ -330,10 +330,10 @@ export function EstimateBuilder() {
                     <div
                       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
                         done
-                          ? "bg-[var(--primary)] text-white"
+                          ? "bg-[var(--green)] text-black"
                           : current
-                            ? "bg-[var(--primary)]/20 text-[var(--primary)] ring-2 ring-[var(--primary)]/40"
-                            : "bg-white/[0.06] text-[var(--muted)]/40"
+                            ? "bg-[var(--green)]/20 text-[var(--green)] ring-2 ring-[var(--green)]/40"
+                            : "bg-[var(--border)] text-[var(--muted)]/40"
                       }`}
                     >
                       {done ? (
@@ -350,7 +350,7 @@ export function EstimateBuilder() {
                   </button>
                   {i < STEPS.length - 1 && (
                     <div
-                      className={`flex-1 h-px mx-2 ${i < step ? "bg-[var(--primary)]/50" : "bg-white/[0.06]"}`}
+                      className={`flex-1 h-px mx-2 ${i < step ? "bg-[var(--green)]/50" : "bg-[var(--border)]"}`}
                     />
                   )}
                 </div>
@@ -364,7 +364,7 @@ export function EstimateBuilder() {
                 <button
                   key={i}
                   onClick={() => i <= step && goTo(i)}
-                  className={`rounded-full transition-all ${i === step ? "w-6 h-2 bg-[var(--primary)]" : i < step ? "w-2 h-2 bg-[var(--primary)]/50" : "w-2 h-2 bg-white/[0.08]"}`}
+                  className={`rounded-full transition-all ${i === step ? "w-6 h-2 bg-[var(--green)]" : i < step ? "w-2 h-2 bg-[var(--green)]/50" : "w-2 h-2 bg-[var(--border)]"}`}
                 />
               ))}
             </div>
@@ -372,7 +372,7 @@ export function EstimateBuilder() {
               <span className="text-[var(--muted)]">
                 {STEPS[step].label}
               </span>
-              <span className="font-bold text-[var(--primary)]">
+              <span className="font-bold text-[var(--green)]">
                 {fmtShort(grandTotal)}
               </span>
             </div>
@@ -385,7 +385,7 @@ export function EstimateBuilder() {
               {gradeMap[grade]?.label}
             </span>
             <span>·</span>
-            <span className="font-semibold text-[var(--primary)]">
+            <span className="font-semibold text-[var(--green)]">
               {fmtShort(grandTotal)}
             </span>
             {autoSaveTime && (
@@ -544,7 +544,7 @@ export function EstimateBuilder() {
                       <span className="text-xs font-semibold">
                         합계
                       </span>
-                      <span className="text-base font-bold text-[var(--primary)]">
+                      <span className="text-base font-bold text-[var(--green)]">
                         {fmtShort(grandTotal)}
                       </span>
                     </div>
@@ -575,7 +575,7 @@ export function EstimateBuilder() {
                 견적 요약
               </span>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-[var(--primary)]">
+                <span className="font-bold text-[var(--green)]">
                   {fmtShort(grandTotal)}
                 </span>
                 {showMobileSummary ? (
@@ -620,7 +620,7 @@ export function EstimateBuilder() {
                   )}
                   <div className="flex justify-between text-sm font-bold border-t border-[var(--border)] pt-2">
                     <span>합계</span>
-                    <span className="text-[var(--primary)]">
+                    <span className="text-[var(--green)]">
                       {fmtShort(grandTotal)}
                     </span>
                   </div>
@@ -645,14 +645,14 @@ export function EstimateBuilder() {
             <div className="text-[10px] text-[var(--muted)]">
               {step + 1} / {STEPS.length}
             </div>
-            <div className="text-sm font-bold text-[var(--primary)]">
+            <div className="text-sm font-bold text-[var(--green)]">
               {fmtShort(grandTotal)}
             </div>
           </div>
           {step < 5 ? (
             <button
               onClick={handleNext}
-              className={`flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--primary)] text-white hover:bg-[#1d4ed8] transition-colors ${shakeNext ? "animate-shake" : ""}`}
+              className={`flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-medium bg-[var(--green)] text-black hover:bg-[var(--green-hover)] transition-colors ${shakeNext ? "animate-shake" : ""}`}
             >
               다음 <ArrowRight size={16} />
             </button>

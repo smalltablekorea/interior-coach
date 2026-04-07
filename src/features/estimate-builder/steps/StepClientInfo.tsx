@@ -73,7 +73,7 @@ export function StepClientInfo({ info, onChange }: Props) {
                 className={`w-full px-4 py-3 rounded-xl bg-[var(--card)] border text-sm placeholder:text-[var(--muted)] focus:outline-none transition-colors ${
                   error
                     ? "border-red-500/60 ring-1 ring-red-500/30"
-                    : "border-[var(--border)] focus:border-[var(--primary)]"
+                    : "border-[var(--border)] focus:border-[var(--green)]"
                 }`}
               />
               {error && (

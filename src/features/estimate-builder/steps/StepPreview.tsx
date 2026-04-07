@@ -226,7 +226,7 @@ export function StepPreview(props: Props) {
                 ? "bg-green-600 text-white"
                 : saveResult === "error"
                   ? "bg-red-500 text-white"
-                  : "bg-[var(--primary)] text-white hover:bg-[#1d4ed8]"
+                  : "bg-[var(--green)] text-white hover:bg-[var(--green-hover)]"
             } disabled:opacity-50`}
           >
             {saveResult === "success" ? (
@@ -247,7 +247,7 @@ export function StepPreview(props: Props) {
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
           >
             {copied ? (
-              <Check size={16} className="text-[var(--primary)]" />
+              <Check size={16} className="text-[var(--green)]" />
             ) : (
               <Link2 size={16} />
             )}

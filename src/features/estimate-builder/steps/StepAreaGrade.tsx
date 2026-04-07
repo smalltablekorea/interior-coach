@@ -38,8 +38,8 @@ export function StepAreaGrade({
               onClick={() => onAreaChange(v)}
               className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
                 area === v
-                  ? "border-[var(--primary)] bg-[var(--primary)]/15 text-[var(--primary)] font-bold"
-                  : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--primary)]/30"
+                  ? "border-[var(--green)] bg-[var(--green)]/15 text-[var(--green)] font-bold"
+                  : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/30"
               }`}
             >
               {v}평
@@ -53,7 +53,7 @@ export function StepAreaGrade({
             max={100}
             value={area}
             onChange={(e) => onAreaChange(Number(e.target.value))}
-            className="flex-1 accent-[var(--primary)] h-2"
+            className="flex-1 accent-[var(--green)] h-2"
           />
           <div className="min-w-[80px] text-center rounded-lg border border-[var(--border)] bg-[var(--card)] px-1 py-1.5">
             <input
@@ -66,7 +66,7 @@ export function StepAreaGrade({
                   Math.max(10, Math.min(100, Number(e.target.value) || 10))
                 )
               }
-              className="w-12 text-center text-2xl font-bold text-[var(--primary)] bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              className="w-12 text-center text-2xl font-bold text-[var(--green)] bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <span className="text-xs text-[var(--muted)]">평</span>
           </div>
@@ -96,7 +96,7 @@ export function StepAreaGrade({
                 className={`relative rounded-xl border p-3 text-left transition-all ${
                   isSelected
                     ? "shadow-md"
-                    : "border-[var(--border)] bg-white/[0.02] hover:border-[var(--primary)]/20 hover:bg-[var(--border)]"
+                    : "border-[var(--border)] bg-[var(--card)] hover:border-[var(--green)]/20 hover:bg-[var(--border)]"
                 }`}
                 style={
                   isSelected

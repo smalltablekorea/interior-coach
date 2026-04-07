@@ -111,7 +111,7 @@ export function StepDocSettings({
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-xl font-bold">시공사 정보</h2>
           {loaded && (
-            <span className="text-[10px] text-[var(--primary)] bg-[var(--primary)]/10 px-2 py-0.5 rounded-full">
+            <span className="text-[10px] text-[var(--green)] bg-[var(--green)]/10 px-2 py-0.5 rounded-full">
               이전 정보 불러옴
             </span>
           )}
@@ -134,7 +134,7 @@ export function StepDocSettings({
                     [f.key]: e.target.value,
                   })
                 }
-                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:outline-none"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none"
               />
             </div>
           ))}
@@ -161,9 +161,9 @@ export function StepDocSettings({
                 onChange={(e) =>
                   onProfitRateChange(Number(e.target.value))
                 }
-                className="flex-1 accent-[var(--primary)] h-1.5"
+                className="flex-1 accent-[var(--green)] h-1.5"
               />
-              <span className="text-sm font-bold text-[var(--primary)] min-w-[40px] text-right">
+              <span className="text-sm font-bold text-[var(--green)] min-w-[40px] text-right">
                 {profitRate}%
               </span>
             </div>
@@ -181,9 +181,9 @@ export function StepDocSettings({
                 onChange={(e) =>
                   onOverheadRateChange(Number(e.target.value))
                 }
-                className="flex-1 accent-[#C8A97E] h-1.5"
+                className="flex-1 accent-[var(--green)] h-1.5"
               />
-              <span className="text-sm font-bold text-[#C8A97E] min-w-[40px] text-right">
+              <span className="text-sm font-bold text-[var(--green)] min-w-[40px] text-right">
                 {overheadRate}%
               </span>
             </div>
@@ -196,8 +196,8 @@ export function StepDocSettings({
               onClick={onVatToggle}
               className={`w-full rounded-xl border p-2.5 text-sm font-medium transition-colors ${
                 vatOn
-                  ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
-                  : "border-[var(--border)] bg-white/[0.02] text-[var(--muted)]"
+                  ? "border-[var(--green)] bg-[var(--green)]/10 text-[var(--green)]"
+                  : "border-[var(--border)] bg-[var(--card)] text-[var(--muted)]"
               }`}
             >
               {vatOn ? "VAT 포함" : "VAT 미포함"}
@@ -216,7 +216,7 @@ export function StepDocSettings({
           value={notes}
           onChange={(e) => onNotesChange(e.target.value)}
           rows={3}
-          className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--primary)] focus:outline-none resize-none"
+          className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none resize-none"
         />
       </div>
     </div>
