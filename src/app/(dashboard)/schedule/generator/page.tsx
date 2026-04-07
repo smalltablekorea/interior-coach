@@ -1248,8 +1248,9 @@ export default function ScheduleGeneratorPage() {
                     <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden mb-4">
                       {result.pre.map((p, i) => (
                         <div key={i} className="px-3.5 py-2.5 border-b border-white/[0.03] last:border-0 flex items-start gap-2.5">
-                          <div className="min-w-[45px] text-center">
+                          <div className="min-w-[55px] text-center">
                             <p className={cn("text-[11px] font-extrabold", p.orderDay < 1 ? "text-red-500" : "text-yellow-500")}>D{p.orderDay}</p>
+                            <p className="text-[9px] text-[var(--muted)]">{formatDate(addDays(startDate, p.orderDay - 1))}</p>
                             <p className="text-[8px] text-[var(--muted)]">까지</p>
                           </div>
                           <div className="flex-1">
@@ -1267,14 +1268,15 @@ export default function ScheduleGeneratorPage() {
                     <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
                       {result.during.slice(0, 20).map((p, i) => (
                         <div key={i} className="px-3.5 py-2.5 border-b border-white/[0.03] last:border-0 flex items-start gap-2.5">
-                          <div className="min-w-[45px] text-center">
+                          <div className="min-w-[55px] text-center">
                             <p className="text-[11px] font-extrabold text-blue-400">D{p.orderDay}</p>
+                            <p className="text-[9px] text-[var(--muted)]">{formatDate(addDays(startDate, p.orderDay - 1))}</p>
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-1 mb-0.5 flex-wrap">
                               <span className="text-[11px]">{p.icon}</span>
                               <span className="text-[11px] font-bold">{p.type === "material" ? p.name : p.task}</span>
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/[0.08] text-blue-400">D{p.dueByDay}</span>
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/[0.08] text-blue-400">D{p.dueByDay} ({formatDate(addDays(startDate, p.dueByDay - 1))})</span>
                             </div>
                             <p className="text-[10px] text-[var(--muted)]">{p.trade} · {p.type === "material" ? p.costRange : p.category}</p>
                           </div>
