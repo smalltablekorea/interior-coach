@@ -5,7 +5,6 @@ const PLAN_STYLES: Record<PlanId, string> = {
   free: "bg-white/[0.06] text-[var(--muted)]",
   starter: "bg-blue-500/10 text-blue-400",
   pro: "bg-[var(--green)]/10 text-[var(--green)]",
-  enterprise: "bg-yellow-500/10 text-yellow-400",
 };
 
 interface PlanBadgeProps {

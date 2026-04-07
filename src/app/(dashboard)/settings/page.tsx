@@ -66,7 +66,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Upgrade CTA */}
-            {plan !== "enterprise" && (
+            {plan !== "pro" && (
               <Link
                 href="/pricing"
                 className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[var(--green)]/10 text-[var(--green)] text-sm font-medium hover:bg-[var(--green)]/20 transition-colors"

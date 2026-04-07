@@ -40,7 +40,7 @@ export interface Company {
   businessNumber: string | null;
   phone: string | null;
   address: string | null;
-  plan: "free" | "starter" | "pro" | "enterprise";
+  plan: "free" | "starter" | "pro";
   planExpiresAt: string | null;
   createdAt: string;
 }

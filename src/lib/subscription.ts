@@ -23,7 +23,7 @@ export interface UserSubscription {
 }
 
 export async function getUserSubscription(userId: string): Promise<UserSubscription> {
-  // 관리자/테스트 계정은 enterprise 플랜으로 처리
+  // 관리자/테스트 계정은 pro 플랜으로 처리 (전체 기능 해제)
   const userRows = await db
     .select({ email: userTable.email })
     .from(userTable)
@@ -32,7 +32,7 @@ export async function getUserSubscription(userId: string): Promise<UserSubscript
 
   if (userRows.length > 0 && isUnlimitedAccount(userRows[0].email)) {
     return {
-      plan: "enterprise",
+      plan: "pro",
       status: "active",
       billingCycle: "monthly",
       trialEndsAt: null,

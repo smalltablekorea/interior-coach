@@ -1,6 +1,6 @@
 // ─── 요금제 설정 ───
 
-export type PlanId = "free" | "starter" | "pro" | "enterprise";
+export type PlanId = "free" | "starter" | "pro";
 
 export interface FeatureLimits {
   maxSites: number; // -1 = unlimited
@@ -135,40 +135,6 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       "사용자 5명",
     ],
   },
-  enterprise: {
-    id: "enterprise",
-    name: "Enterprise",
-    nameKo: "엔터프라이즈",
-    monthlyPrice: 599000,
-    yearlyMonthlyPrice: 479000,
-    description: "대형 업체 & 프랜차이즈 통합 운영",
-    limits: {
-      maxSites: -1,
-      maxPhotosPerSite: -1,
-      maxCustomers: -1,
-      maxUsers: -1,
-      maxEstimateTemplates: -1,
-      maxAiTaxAdvisorPerMonth: -1,
-      hasMarketingAutomation: true,
-      hasTaxBasic: true,
-      hasTaxFull: true,
-      hasElectronicContracts: true,
-      hasWorkersManagement: true,
-      hasMaterialsManagement: true,
-      hasExcelExport: true,
-      hasCustomerPortal: true,
-      hasOcrReceiptScan: true,
-    },
-    highlights: [
-      "Pro 전체 기능",
-      "마케팅 무제한",
-      "사용자 무제한",
-      "다지점 관리",
-      "API 제공",
-      "전담 매니저",
-      "우선 기술 지원",
-    ],
-  },
 };
 
 export type FeatureKey =
@@ -205,7 +171,7 @@ export const FEATURE_REQUIRED_PLAN: Record<FeatureKey, PlanId> = {
   ocrReceiptScan: "pro",
 };
 
-const PLAN_ORDER: PlanId[] = ["free", "starter", "pro", "enterprise"];
+const PLAN_ORDER: PlanId[] = ["free", "starter", "pro"];
 
 export function getPlanLevel(plan: PlanId): number {
   return PLAN_ORDER.indexOf(plan);

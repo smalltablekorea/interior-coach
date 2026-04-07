@@ -22,7 +22,7 @@ export const companies = pgTable("companies", {
   businessNumber: text("business_number").unique(),
   phone: text("phone"),
   address: text("address"),
-  plan: text("plan").notNull().default("free"), // free | starter | pro | enterprise
+  plan: text("plan").notNull().default("free"), // free | starter | pro
   planExpiresAt: timestamp("plan_expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
@@ -39,7 +39,7 @@ export const workspaces = pgTable("workspaces", {
   ownerId: text("owner_id").notNull(),
   inviteCode: text("invite_code").unique(),
   inviteExpiresAt: timestamp("invite_expires_at"),
-  plan: text("plan").notNull().default("free"), // free, starter, pro, enterprise
+  plan: text("plan").notNull().default("free"), // free, starter, pro
   maxMembers: integer("max_members").notNull().default(5),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

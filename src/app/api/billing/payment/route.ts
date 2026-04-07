@@ -11,7 +11,7 @@ import { type PlanId, PLANS } from "@/lib/plans";
 /**
  * POST /api/billing/payment
  * 플랜 변경 + 즉시 결제 실행
- * body: { plan: "starter" | "pro" | "enterprise", billingCycle?: "monthly" | "yearly" }
+ * body: { plan: "starter" | "pro", billingCycle?: "monthly" | "yearly" }
  */
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("settings", "write");
@@ -23,8 +23,8 @@ export async function POST(request: NextRequest) {
     const { plan: newPlan, billingCycle = "monthly" } = await request.json();
 
     // 플랜 유효성 검사
-    if (!["starter", "pro", "enterprise"].includes(newPlan)) {
-      return err("유효하지 않은 플랜입니다 (starter, pro, enterprise)");
+    if (!["starter", "pro"].includes(newPlan)) {
+      return err("유효하지 않은 플랜입니다 (starter, pro)");
     }
     if (!["monthly", "yearly"].includes(billingCycle)) {
       return err("유효하지 않은 결제 주기입니다");

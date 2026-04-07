@@ -117,36 +117,6 @@ const PLANS: Plan[] = [
       { text: "고객 포털", included: true },
     ],
   },
-  {
-    id: "enterprise",
-    name: "엔터프라이즈",
-    description: "대형 업체 & 프랜차이즈",
-    monthlyPrice: 599000,
-    yearlyMonthlyPrice: 479000,
-    badge: "PREMIUM",
-    highlighted: false,
-    darkTheme: true,
-    ctaText: "도입 문의하기",
-    ctaHref: "/auth/login",
-    color: "amber",
-    subPriceText: "10인 초과 시 인당 월 ₩39,000 추가",
-    features: [
-      { text: "Pro 전체 포함", included: true },
-      { text: "모든 기능 무제한", included: true, section: "핵심 추가" },
-      { text: "사용자 무제한", included: true },
-      { text: "마케팅 발행 무제한", included: true },
-      { text: "다지점 관리 (본사↔지점)", included: true, section: "대형 업체" },
-      { text: "지점별 성과 비교", included: true },
-      { text: "API 연동 (REST)", included: true },
-      { text: "SSO 지원", included: true },
-      { text: "복식부기/법인세 관리", included: true, section: "프리미엄 세무" },
-      { text: "4대보험 자동", included: true },
-      { text: "세무대리인 공유", included: true },
-      { text: "전담 고객 매니저", included: true, section: "프리미엄 지원" },
-      { text: "온보딩 교육 (1회)", included: true },
-      { text: "우선 기술 지원 (4시간)", included: true },
-    ],
-  },
 ];
 
 // ─── Calculator Data ───
@@ -172,75 +142,70 @@ const CALC_ITEMS: CalcItem[] = [
 
 interface ComparisonCategory {
   name: string;
-  rows: { label: string; free: string | boolean; starter: string | boolean; pro: string | boolean; enterprise: string | boolean }[];
+  rows: { label: string; free: string | boolean; starter: string | boolean; pro: string | boolean }[];
 }
 
 const COMPARISON_DATA: ComparisonCategory[] = [
   {
     name: "현장관리",
     rows: [
-      { label: "현장 등록", free: "3개", starter: "15개", pro: "무제한", enterprise: "무제한" },
-      { label: "사진 업로드 (현장당)", free: "20장", starter: "200장", pro: "무제한", enterprise: "무제한" },
-      { label: "공정 관리", free: "6공종", starter: "12+커스텀", pro: "12+커스텀", enterprise: "12+커스텀" },
-      { label: "현장 건강점수", free: false, starter: "기본", pro: "상세", enterprise: "상세+예측" },
-      { label: "협력 관리", free: false, starter: false, pro: true, enterprise: true },
+      { label: "현장 등록", free: "3개", starter: "15개", pro: "무제한" },
+      { label: "사진 업로드 (현장당)", free: "20장", starter: "200장", pro: "무제한" },
+      { label: "공정 관리", free: "6공종", starter: "12+커스텀", pro: "12+커스텀" },
+      { label: "현장 건강점수", free: false, starter: "기본", pro: "상세" },
+      { label: "협력 관리", free: false, starter: false, pro: true },
     ],
   },
   {
     name: "정산관리",
     rows: [
-      { label: "공종별 정산", free: false, starter: true, pro: true, enterprise: true },
-      { label: "실시간 수익률", free: false, starter: true, pro: true, enterprise: true },
-      { label: "미수금 관리", free: false, starter: true, pro: true, enterprise: true },
-      { label: "OCR 영수증 스캔", free: false, starter: false, pro: true, enterprise: true },
+      { label: "공종별 정산", free: false, starter: true, pro: true },
+      { label: "실시간 수익률", free: false, starter: true, pro: true },
+      { label: "미수금 관리", free: false, starter: true, pro: true },
+      { label: "OCR 영수증 스캔", free: false, starter: false, pro: true },
     ],
   },
   {
     name: "마케팅 자동화",
     rows: [
-      { label: "스레드 자동화", free: false, starter: false, pro: "30건/월", enterprise: "무제한" },
-      { label: "인스타그램 자동화", free: false, starter: false, pro: "20건/월", enterprise: "무제한" },
-      { label: "네이버 블로그 자동화", free: false, starter: false, pro: "8건/월", enterprise: "무제한" },
-      { label: "유튜브 자동화", free: false, starter: false, pro: "4건/월", enterprise: "무제한" },
-      { label: "메타 광고 대시보드", free: false, starter: false, pro: true, enterprise: true },
+      { label: "스레드 자동화", free: false, starter: false, pro: "30건/월" },
+      { label: "인스타그램 자동화", free: false, starter: false, pro: "20건/월" },
+      { label: "네이버 블로그 자동화", free: false, starter: false, pro: "8건/월" },
+      { label: "유튜브 자동화", free: false, starter: false, pro: "4건/월" },
+      { label: "메타 광고 대시보드", free: false, starter: false, pro: true },
     ],
   },
   {
     name: "세무/회계",
     rows: [
-      { label: "세무 캘린더 + 장부", free: false, starter: true, pro: true, enterprise: true },
-      { label: "OCR 영수증 자동 등록", free: false, starter: false, pro: true, enterprise: true },
-      { label: "부가세 자동 산출", free: false, starter: false, pro: true, enterprise: true },
-      { label: "현장별 수익 분석", free: false, starter: false, pro: true, enterprise: true },
-      { label: "AI 세무 상담", free: false, starter: "10회/월", pro: "무제한", enterprise: "무제한" },
-      { label: "복식부기/법인세", free: false, starter: false, pro: false, enterprise: true },
-      { label: "4대보험 자동", free: false, starter: false, pro: false, enterprise: true },
+      { label: "세무 캘린더 + 장부", free: false, starter: true, pro: true },
+      { label: "OCR 영수증 자동 등록", free: false, starter: false, pro: true },
+      { label: "부가세 자동 산출", free: false, starter: false, pro: true },
+      { label: "현장별 수익 분석", free: false, starter: false, pro: true },
+      { label: "AI 세무 상담", free: false, starter: "10회/월", pro: "무제한" },
     ],
   },
   {
     name: "고객/견적/계약",
     rows: [
-      { label: "고객 등록", free: "20명", starter: "100명", pro: "무제한", enterprise: "무제한" },
-      { label: "고객 포털", free: false, starter: false, pro: true, enterprise: true },
-      { label: "전자 계약", free: false, starter: false, pro: true, enterprise: true },
-      { label: "견적코치 리드 연결", free: false, starter: false, pro: "유료", enterprise: "유료" },
+      { label: "고객 등록", free: "20명", starter: "100명", pro: "무제한" },
+      { label: "고객 포털", free: false, starter: false, pro: true },
+      { label: "전자 계약", free: false, starter: false, pro: true },
+      { label: "견적코치 리드 연결", free: false, starter: false, pro: "유료" },
     ],
   },
   {
     name: "인력/자재/AI",
     rows: [
-      { label: "인력 관리", free: false, starter: false, pro: true, enterprise: true },
-      { label: "자재 관리", free: false, starter: false, pro: true, enterprise: true },
+      { label: "인력 관리", free: false, starter: false, pro: true },
+      { label: "자재 관리", free: false, starter: false, pro: true },
     ],
   },
   {
     name: "관리/보안",
     rows: [
-      { label: "사용자 수", free: "1명", starter: "1명", pro: "5명", enterprise: "무제한" },
-      { label: "다지점 관리", free: false, starter: false, pro: false, enterprise: true },
-      { label: "API 제공", free: false, starter: false, pro: false, enterprise: true },
-      { label: "전담 매니저", free: false, starter: false, pro: false, enterprise: true },
-      { label: "Excel 내보내기", free: false, starter: true, pro: true, enterprise: true },
+      { label: "사용자 수", free: "1명", starter: "1명", pro: "5명" },
+      { label: "Excel 내보내기", free: false, starter: true, pro: true },
     ],
   },
 ];
@@ -270,11 +235,11 @@ const FAQ_DATA = [
   },
   {
     q: "데이터가 안전한가요?",
-    a: "모든 데이터는 AWS 기반 클라우드에 암호화 저장됩니다. 업체별 데이터 격리(Row Level Security)가 적용되어 다른 업체의 데이터에 접근할 수 없습니다. Enterprise는 일일 자동 백업 + 3년 데이터 보관 정책이 적용됩니다.",
+    a: "모든 데이터는 AWS 기반 클라우드에 암호화 저장됩니다. 업체별 데이터 격리(Row Level Security)가 적용되어 다른 업체의 데이터에 접근할 수 없습니다. 일일 자동 백업과 데이터 보관 정책이 적용됩니다.",
   },
   {
     q: "직원들도 같이 쓸 수 있나요?",
-    a: "Pro 플랜은 최대 5명, Enterprise는 무제한 사용자를 지원합니다. 역할별 권한 설정이 가능하여 대표/실장/디자이너/현장소장 등 각자 필요한 기능만 볼 수 있도록 설정할 수 있습니다.",
+    a: "Pro 플랜은 최대 5명의 사용자를 지원합니다. 역할별 권한 설정이 가능하여 대표/실장/디자이너/현장소장 등 각자 필요한 기능만 볼 수 있도록 설정할 수 있습니다.",
   },
   {
     q: "환불 정책은 어떻게 되나요?",
@@ -601,14 +566,14 @@ function CostCalculator() {
 
 function ComparisonTable() {
   const [openCategories, setOpenCategories] = useState<Record<number, boolean>>({ 0: true });
-  const [mobilePlan, setMobilePlan] = useState<"free" | "starter" | "pro" | "enterprise">("pro");
+  const [mobilePlan, setMobilePlan] = useState<"free" | "starter" | "pro">("pro");
 
   const toggleCategory = useCallback((idx: number) => {
     setOpenCategories((prev) => ({ ...prev, [idx]: !prev[idx] }));
   }, []);
 
-  const planIds = ["free", "starter", "pro", "enterprise"] as const;
-  const planNames = { free: "무료", starter: "스타터", pro: "프로", enterprise: "엔터프라이즈" };
+  const planIds = ["free", "starter", "pro"] as const;
+  const planNames = { free: "무료", starter: "스타터", pro: "프로" };
 
   return (
     <section id="compare" className="py-20">

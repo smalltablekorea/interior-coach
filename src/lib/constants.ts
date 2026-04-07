@@ -114,7 +114,7 @@ export const TAX_PAYMENT_METHODS = ["카드", "계좌이체", "현금", "어음"
 
 // ─── 구독/요금제 ───
 
-export const PLAN_IDS = ["free", "starter", "pro", "enterprise"] as const;
+export const PLAN_IDS = ["free", "starter", "pro"] as const;
 
 export const SUBSCRIPTION_STATUSES = ["active", "trialing", "canceled", "expired"] as const;
 
@@ -241,5 +241,4 @@ export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   free: { bg: "bg-white/[0.06]", text: "text-[var(--muted)]" },
   starter: { bg: "bg-blue-500/10", text: "text-blue-400" },
   pro: { bg: "bg-[var(--green)]/10", text: "text-[var(--green)]" },
-  enterprise: { bg: "bg-yellow-500/10", text: "text-yellow-400" },
 };

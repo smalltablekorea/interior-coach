@@ -23,7 +23,7 @@ export async function GET() {
 
     const subscription = subRows[0] || null;
     const unlimited = isUnlimitedAccount(auth.session.user.email);
-    const plan = (unlimited ? "enterprise" : (subscription?.plan || "free")) as PlanId;
+    const plan = (unlimited ? "pro" : (subscription?.plan || "free")) as PlanId;
     const planConfig = PLANS[plan];
 
     const period = new Date().toISOString().slice(0, 7);
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
     const uid = auth.userId;
     const { plan: newPlan } = await req.json();
 
-    if (!["free", "starter", "pro", "enterprise"].includes(newPlan)) {
+    if (!["free", "starter", "pro"].includes(newPlan)) {
       return err("유효하지 않은 플랜입니다");
     }
 
