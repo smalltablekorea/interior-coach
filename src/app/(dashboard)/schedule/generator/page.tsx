@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
-import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, GripVertical, MapPin, Search, Plus, X, ChevronDown } from "lucide-react";
+import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, MapPin, Search, Plus, X, Trash2, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import Modal from "@/components/ui/Modal";
 import { cn, fmtDate } from "@/lib/utils";
 import {
   TRADES, DEP_WARNINGS, SIZES, SEASONS, TRADE_GROUPS,
@@ -73,19 +74,31 @@ function pyeongToSize(py: number | null): string | null {
 
 // ─── Main ───
 
+const SESSION_KEY = "schedule-generator-state";
+
+function loadSession() {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return null;
+}
+
 export default function ScheduleGeneratorPage() {
-  const [step, setStep] = useState(0);
-  const [size, setSize] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [budget, setBudget] = useState("");
-  const [result, setResult] = useState<ScheduleResult | null>(null);
+  const saved = useRef(loadSession());
+  const [step, setStep] = useState<number>(saved.current?.step ?? 0);
+  const [size, setSize] = useState<string | null>(saved.current?.size ?? null);
+  const [selected, setSelected] = useState<string[]>(saved.current?.selected ?? []);
+  const [budget, setBudget] = useState(saved.current?.budget ?? "");
+  const [result, setResult] = useState<ScheduleResult | null>(saved.current?.result ?? null);
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<TabId>("schedule");
-  const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
+  const [tab, setTab] = useState<TabId>(saved.current?.tab ?? "schedule");
+  const [selectedPkg, setSelectedPkg] = useState<string | null>(saved.current?.selectedPkg ?? null);
   const [season] = useState(getSeason());
   const [showModal, setShowModal] = useState(false);
-  const [unlocked, setUnlocked] = useState(false);
+  const [unlocked, setUnlocked] = useState(saved.current?.unlocked ?? false);
   const [startDate, setStartDate] = useState(() => {
+    if (saved.current?.startDate) return saved.current.startDate;
     const d = new Date();
     d.setDate(d.getDate() + 7);
     return d.toISOString().slice(0, 10);
@@ -95,7 +108,7 @@ export default function ScheduleGeneratorPage() {
   // Site selection
   const [sites, setSites] = useState<Site[]>([]);
   const [sitesLoading, setSitesLoading] = useState(true);
-  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(saved.current?.selectedSite ?? null);
   const [siteSearch, setSiteSearch] = useState("");
 
   useEffect(() => {
@@ -148,9 +161,9 @@ export default function ScheduleGeneratorPage() {
     setShowModal(false);
     setLoading(true);
     setTimeout(() => {
-      setResult(buildSchedule(selected, sizeObj, season));
-      setLiveSelected([...selected]);
-      setDragOffsets({});
+      const res = buildSchedule(selected, sizeObj, season);
+      setResult(res);
+      if (res) setBlocks(res.scheduled.map(t => ({ ...t })));
       setStep(4);
       setTab("schedule");
       setLoading(false);
@@ -159,52 +172,105 @@ export default function ScheduleGeneratorPage() {
   };
 
   // End date
-  const [endDate, setEndDate] = useState("");
+  const [endDate, setEndDate] = useState(saved.current?.endDate ?? "");
 
-  // Live trade management (add/remove after generation)
-  const [liveSelected, setLiveSelected] = useState<string[]>([]);
+  // Editable blocks — initialized from generated schedule, then freely editable
+  const [blocks, setBlocks] = useState<ScheduledTrade[]>(saved.current?.blocks ?? []);
+
+  // Persist state to sessionStorage
+  useEffect(() => {
+    const state = { step, size, selected, budget, result, tab, selectedPkg, unlocked, startDate, endDate, selectedSite, blocks };
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+  }, [step, size, selected, budget, result, tab, selectedPkg, unlocked, startDate, endDate, selectedSite, blocks]);
   const [showAddTrade, setShowAddTrade] = useState(false);
+  const [showAddBlock, setShowAddBlock] = useState(false);
+  const [newBlockName, setNewBlockName] = useState("");
+  const [newBlockStart, setNewBlockStart] = useState(1);
+  const [newBlockEnd, setNewBlockEnd] = useState(3);
 
-  const availableTrades = useMemo(() => {
-    return TRADES.filter(t => !liveSelected.includes(t.id));
-  }, [liveSelected]);
+  const usedTradeIds = useMemo(() => new Set(blocks.map(b => b.id)), [blocks]);
+  const availableTrades = useMemo(() => TRADES.filter(t => !usedTradeIds.has(t.id)), [usedTradeIds]);
 
-  const handleRemoveTrade = useCallback((tradeId: string) => {
-    if (!sizeObj) return;
-    const next = liveSelected.filter(id => id !== tradeId);
-    setLiveSelected(next);
-    setDragOffsets({});
-    const newResult = buildSchedule(next, sizeObj, season);
-    setResult(newResult);
-  }, [liveSelected, sizeObj, season]);
+  const handleRemoveBlock = useCallback((blockId: string) => {
+    setBlocks(prev => prev.filter(b => b.id !== blockId));
+  }, []);
 
   const handleAddTrade = useCallback((tradeId: string) => {
     if (!sizeObj) return;
-    const next = [...liveSelected, tradeId];
-    setLiveSelected(next);
+    const trade = TRADES.find(t => t.id === tradeId);
+    if (!trade) return;
+    const currentMax = blocks.length > 0 ? Math.max(...blocks.map(b => b.endDay)) : 0;
+    const days = Math.round(trade.baseDays * sizeObj.mult);
+    const startDay = currentMax + 1;
+    const endDay = startDay + days - 1;
+    const costLow = Math.round(trade.costMin * sizeObj.pyung);
+    const costHigh = Math.round(trade.costMax * sizeObj.pyung);
+    const newBlock: ScheduledTrade = {
+      ...trade,
+      startDay,
+      endDay,
+      days,
+      costLow,
+      costHigh,
+      costPct: 0,
+      isParallel: false,
+      parallelWith: [],
+    };
+    setBlocks(prev => [...prev, newBlock]);
     setShowAddTrade(false);
-    setDragOffsets({});
-    const newResult = buildSchedule(next, sizeObj, season);
-    setResult(newResult);
-  }, [liveSelected, sizeObj, season]);
+  }, [blocks, sizeObj]);
 
-  // Flat schedule with drag adjustments
-  const [dragOffsets, setDragOffsets] = useState<Record<string, number>>({});
-  const [dragging, setDragging] = useState<{ id: string; startX: number; origDay: number } | null>(null);
-  const chartRef = useRef<HTMLDivElement>(null);
+  const handleAddCustomBlock = useCallback(() => {
+    if (!newBlockName.trim() || newBlockEnd < newBlockStart) return;
+    const id = `custom-${Date.now()}`;
+    const newBlock: ScheduledTrade = {
+      id,
+      name: newBlockName.trim(),
+      icon: "📌",
+      group: "기타",
+      phase: 3,
+      baseDays: newBlockEnd - newBlockStart + 1,
+      costMin: 0,
+      costMax: 0,
+      unit: "",
+      deps: [],
+      parallel: [],
+      requires: [],
+      skipRisk: "low",
+      desc: "사용자 추가 블록",
+      notes: "",
+      savingTip: "",
+      qualityCheck: [],
+      prework: [],
+      materials: [],
+      startDay: newBlockStart,
+      endDay: newBlockEnd,
+      days: newBlockEnd - newBlockStart + 1,
+      costLow: 0,
+      costHigh: 0,
+      costPct: 0,
+      isParallel: false,
+      parallelWith: [],
+    };
+    setBlocks(prev => [...prev, newBlock]);
+    setShowAddBlock(false);
+    setNewBlockName("");
+  }, [newBlockName, newBlockStart, newBlockEnd]);
 
-  const adjustedSchedule = useMemo(() => {
-    if (!result) return [];
-    return result.scheduled.map(t => {
-      const offset = dragOffsets[t.id] || 0;
-      return { ...t, startDay: t.startDay + offset, endDay: t.endDay + offset };
-    });
-  }, [result, dragOffsets]);
+  // Drag & Resize — single block overlay approach
+  const [interacting, setInteracting] = useState<{
+    id: string;
+    mode: "drag" | "resize-start" | "resize-end";
+    startX: number;
+    origStart: number;
+    origEnd: number;
+    cellWidth: number;
+  } | null>(null);
 
   const maxDay = useMemo(() => {
-    if (!adjustedSchedule.length) return 1;
-    return Math.max(...adjustedSchedule.map(s => s.endDay));
-  }, [adjustedSchedule]);
+    if (!blocks.length) return 1;
+    return Math.max(...blocks.map(s => s.endDay));
+  }, [blocks]);
 
   // Date helpers
   const addDays = (dateStr: string, days: number) => {
@@ -222,43 +288,51 @@ export default function ScheduleGeneratorPage() {
     for (let d = 1; d <= maxDay; d++) {
       const date = addDays(startDate, d - 1);
       const dow = getDayOfWeek(date);
-      ticks.push({
-        day: d,
-        label: formatDate(date),
-        dow,
-        isWeekend: date.getDay() === 0 || date.getDay() === 6,
-      });
+      ticks.push({ day: d, label: formatDate(date), dow, isWeekend: date.getDay() === 0 || date.getDay() === 6 });
     }
     return ticks;
   }, [maxDay, startDate]);
 
-  // Drag handlers
-  const cellWidth = 32;
-  const handleDragStart = (id: string, startDay: number, e: React.MouseEvent) => {
+  const startInteraction = (id: string, mode: "drag" | "resize-start" | "resize-end", e: React.MouseEvent) => {
     e.preventDefault();
-    setDragging({ id, startX: e.clientX, origDay: startDay });
+    e.stopPropagation();
+    const block = blocks.find(b => b.id === id);
+    if (!block) return;
+    // Measure cell width from the row container
+    const rowEl = (e.currentTarget as HTMLElement).closest("[data-gantt-row]") as HTMLElement;
+    const cw = rowEl ? rowEl.clientWidth / dateTicks.length : 40;
+    setInteracting({ id, mode, startX: e.clientX, origStart: block.startDay, origEnd: block.endDay, cellWidth: cw });
   };
 
   useEffect(() => {
-    if (!dragging) return;
+    if (!interacting) return;
+    const { id, mode, startX, origStart, origEnd, cellWidth } = interacting;
+
     const handleMove = (e: MouseEvent) => {
-      const dx = e.clientX - dragging.startX;
+      const dx = e.clientX - startX;
       const dayDelta = Math.round(dx / cellWidth);
-      const currentOffset = dragOffsets[dragging.id] || 0;
-      const baseStartDay = dragging.origDay - currentOffset;
-      const newStart = baseStartDay + dayDelta;
-      if (newStart >= 1) {
-        setDragOffsets(prev => ({ ...prev, [dragging.id]: dayDelta }));
-      }
+
+      setBlocks(prev => prev.map(b => {
+        if (b.id !== id) return b;
+        let s = origStart, en = origEnd;
+        if (mode === "drag") {
+          s = origStart + dayDelta;
+          en = origEnd + dayDelta;
+          if (s < 1) { en += (1 - s); s = 1; }
+        } else if (mode === "resize-start") {
+          s = Math.max(1, origStart + dayDelta);
+          if (s > en) s = en;
+        } else {
+          en = Math.max(origStart, origEnd + dayDelta);
+        }
+        return { ...b, startDay: s, endDay: en, days: en - s + 1 };
+      }));
     };
-    const handleUp = () => setDragging(null);
+    const handleUp = () => setInteracting(null);
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup", handleUp);
-    };
-  }, [dragging, dragOffsets]);
+    return () => { window.removeEventListener("mousemove", handleMove); window.removeEventListener("mouseup", handleUp); };
+  }, [interacting]);
   const budgetNum = parseInt(budget.replace(/,/g, "")) || 0;
   const budgetFit = budgetNum > 0 && result
     ? budgetNum < result.totalCostLow * 0.1 ? "invalid"
@@ -269,8 +343,9 @@ export default function ScheduleGeneratorPage() {
     setStep(0); setResult(null); setSelected([]); setSize(null);
     setSelectedPkg(null); setBudget("");
     setTab("schedule"); setUnlocked(false); setSelectedSite(null);
-    setDragOffsets({}); setLiveSelected([]); setShowAddTrade(false);
+    setBlocks([]); setShowAddTrade(false); setShowAddBlock(false);
     setEndDate("");
+    try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
   };
 
   return (
@@ -619,7 +694,7 @@ export default function ScheduleGeneratorPage() {
             {/* Summary */}
             <div className="text-center mb-5">
               <p className="text-[10px] font-bold text-[var(--green)] tracking-widest mb-1.5">AI 공정 분석 완료</p>
-              <p className="text-4xl font-black">{result.totalDays}<span className="text-sm font-normal text-[var(--muted)]">일</span></p>
+              <p className="text-4xl font-black">{maxDay}<span className="text-sm font-normal text-[var(--muted)]">일</span></p>
               <p className="text-xs text-[var(--muted)] mt-1">{selectedSite ? `${selectedSite.name} · ` : ""}{sizeObj?.label} · {selected.length}개 공종 · {SEASONS[season].label}</p>
             </div>
 
@@ -653,21 +728,39 @@ export default function ScheduleGeneratorPage() {
               </div>
             )}
 
-            {/* Tabs */}
-            <div className="grid grid-cols-5 mb-4 border-b border-white/[0.06]">
-              {TABS.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={cn(
-                    "py-2 text-center text-[10px] font-semibold border-b-2 transition-all",
-                    tab === t.id ? "text-[var(--green)] border-[var(--green)]" : "text-[var(--muted)] border-transparent hover:text-[var(--foreground)]"
-                  )}
-                >
-                  {t.icon}<br />{t.label}
-                  {!unlocked && t.id !== "schedule" && t.id !== "package" && <span className="text-[7px] ml-0.5">🔒</span>}
-                </button>
-              ))}
+            {/* Tabs + Refresh */}
+            <div className="flex items-end gap-2 mb-4">
+              <div className="flex-1 grid grid-cols-5 border-b border-white/[0.06]">
+                {TABS.map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setTab(t.id)}
+                    className={cn(
+                      "py-2 text-center text-[10px] font-semibold border-b-2 transition-all",
+                      tab === t.id ? "text-[var(--green)] border-[var(--green)]" : "text-[var(--muted)] border-transparent hover:text-[var(--foreground)]"
+                    )}
+                  >
+                    {t.icon}<br />{t.label}
+                    {!unlocked && t.id !== "schedule" && t.id !== "package" && <span className="text-[7px] ml-0.5">🔒</span>}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => {
+                  if (!sizeObj || !selected.length) return;
+                  setLoading(true);
+                  setTimeout(() => {
+                    const res = buildSchedule(selected, sizeObj, season);
+                    setResult(res);
+                    if (res) setBlocks(res.scheduled.map(t => ({ ...t })));
+                    setLoading(false);
+                  }, 500);
+                }}
+                className="shrink-0 mb-1 p-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--green)] hover:border-[var(--green)]/30 transition-colors"
+                title="공정표 새로고침"
+              >
+                <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+              </button>
             </div>
 
             {/* TAB: 공정표 */}
@@ -745,133 +838,199 @@ export default function ScheduleGeneratorPage() {
                     </div>
 
                     {/* Chart body rows — flat trade list */}
-                    {adjustedSchedule.map((item) => (
-                      <div key={item.id} className="flex border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors group">
-                        {/* Trade name + cost + remove */}
-                        <div className="w-28 shrink-0 px-2 py-1 flex flex-col justify-center border-r border-[var(--border)] relative">
+                    {blocks.map((item) => (
+                      <div key={item.id} className="flex border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors group/row">
+                        {/* Trade name + cost */}
+                        <div className="w-28 shrink-0 px-2 py-1 flex flex-col justify-center border-r border-[var(--border)]">
                           <div className="flex items-center gap-1">
                             <span className="text-[11px]">{item.icon}</span>
                             <span className="text-[10px] font-semibold text-[var(--foreground)] truncate">{item.name}</span>
                           </div>
-                          <span className="text-[8px] text-yellow-400/80 font-medium mt-0.5">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
-                          {liveSelected.length > 1 && (
-                            <button
-                              onClick={() => handleRemoveTrade(item.id)}
-                              className="absolute -right-0.5 -top-0.5 w-4 h-4 rounded-full bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 z-10"
-                              title="공종 제거"
-                            >
-                              <X size={10} />
-                            </button>
+                          {(item.costLow > 0 || item.costHigh > 0) && (
+                            <span className="text-[8px] text-yellow-400/80 font-medium mt-0.5">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
                           )}
                         </div>
-                        {/* Day cells with draggable blocks */}
-                        <div className="flex-1 flex relative" ref={chartRef}>
-                          {dateTicks.map((tick) => {
-                            const isActive = tick.day >= item.startDay && tick.day <= item.endDay;
-                            const isStart = tick.day === item.startDay;
-                            const isEnd = tick.day === item.endDay;
-                            return (
-                              <div
-                                key={tick.day}
-                                className={cn(
-                                  "flex-1 min-w-[32px] h-8 border-r border-white/[0.02]",
-                                  tick.isWeekend && !isActive && "bg-red-400/[0.02]",
-                                  isActive && "relative"
-                                )}
+                        {/* Day grid + block overlay */}
+                        <div className="flex-1 relative h-8" data-gantt-row>
+                          {/* Background grid */}
+                          <div className="absolute inset-0 flex">
+                            {dateTicks.map((tick) => (
+                              <div key={tick.day} className={cn("flex-1 min-w-[32px] border-r border-white/[0.02]", tick.isWeekend && "bg-red-400/[0.02]")} />
+                            ))}
+                          </div>
+                          {/* Block — single positioned element */}
+                          <div
+                            className={cn(
+                              "absolute top-0.5 bottom-0.5 rounded-md flex items-center select-none group/block",
+                              interacting?.id === item.id
+                                ? interacting.mode === "drag" ? "cursor-grabbing opacity-70" : "opacity-80"
+                                : "cursor-grab"
+                            )}
+                            style={{
+                              left: `${((item.startDay - 1) / dateTicks.length) * 100}%`,
+                              width: `${(item.days / dateTicks.length) * 100}%`,
+                              background: `${PHASE_COLORS[item.phase]}55`,
+                              minWidth: 12,
+                            }}
+                            onMouseDown={(e) => startInteraction(item.id, "drag", e)}
+                          >
+                            {/* Left resize handle — wide touch target */}
+                            <div
+                              className="absolute left-0 top-0 bottom-0 w-3 cursor-col-resize z-20 rounded-l-md"
+                              style={{ background: "linear-gradient(90deg, rgba(255,255,255,0.15) 0%, transparent 100%)" }}
+                              onMouseDown={(e) => startInteraction(item.id, "resize-start", e)}
+                            />
+                            {/* Label */}
+                            <span className="text-[8px] font-bold text-white/90 whitespace-nowrap px-3.5 pointer-events-none select-none truncate flex-1 text-center">
+                              {item.days}일
+                            </span>
+                            {/* Right resize handle — wide touch target */}
+                            <div
+                              className="absolute right-0 top-0 bottom-0 w-3 cursor-col-resize z-20 rounded-r-md"
+                              style={{ background: "linear-gradient(270deg, rgba(255,255,255,0.15) 0%, transparent 100%)" }}
+                              onMouseDown={(e) => startInteraction(item.id, "resize-end", e)}
+                            />
+                            {/* Delete button on block */}
+                            {blocks.length > 1 && (
+                              <button
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white flex items-center justify-center z-30 opacity-0 group-hover/block:opacity-100 hover:scale-110 transition-all shadow-sm"
+                                onMouseDown={(e) => { e.stopPropagation(); handleRemoveBlock(item.id); }}
                               >
-                                {isActive && (
-                                  <div
-                                    className={cn(
-                                      "absolute inset-y-0.5 flex items-center justify-center",
-                                      isStart ? "left-0.5" : "left-0",
-                                      isEnd ? "right-0.5" : "right-0",
-                                      isStart && "rounded-l-md",
-                                      isEnd && "rounded-r-md",
-                                      dragging?.id === item.id ? "cursor-grabbing opacity-70" : "cursor-grab"
-                                    )}
-                                    style={{ background: `${PHASE_COLORS[item.phase]}55` }}
-                                    onMouseDown={(e) => handleDragStart(item.id, item.startDay, e)}
-                                  >
-                                    {isStart && (
-                                      <span className="text-[8px] font-bold text-white/90 whitespace-nowrap pl-1 flex items-center gap-0.5">
-                                        <GripVertical size={8} className="opacity-0 group-hover:opacity-60 transition-opacity" />
-                                        {item.days}일
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                                <X size={8} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}
-                    {/* Add trade row */}
-                    {availableTrades.length > 0 && (
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowAddTrade(!showAddTrade)}
-                          className="w-full flex items-center gap-1.5 px-3 py-2 text-[11px] font-bold text-[var(--green)] hover:bg-[var(--green)]/[0.04] transition-colors"
-                        >
-                          <Plus size={12} />
-                          공종 추가
-                          <ChevronDown size={10} className={cn("transition-transform", showAddTrade && "rotate-180")} />
-                        </button>
-                        {showAddTrade && (
-                          <div className="border-t border-[var(--border)] bg-[var(--card)] max-h-[200px] overflow-y-auto">
-                            {TRADE_GROUPS.map(g => {
-                              const trades = availableTrades.filter(t => t.group === g);
-                              if (!trades.length) return null;
-                              return (
-                                <div key={g}>
-                                  <p className="text-[9px] font-bold text-[var(--muted)] px-3 pt-2 pb-1 uppercase tracking-wider">{g}</p>
-                                  {trades.map(t => (
-                                    <button
-                                      key={t.id}
-                                      onClick={() => handleAddTrade(t.id)}
-                                      className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--green)]/[0.06] transition-colors text-left"
-                                    >
-                                      <span className="text-[11px]">{t.icon}</span>
-                                      <span className="text-[11px] font-medium text-[var(--foreground)]">{t.name}</span>
-                                      <span className="text-[9px] text-[var(--muted)] ml-auto">{t.baseDays}일</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                {/* Trade detail list */}
+                {/* Add block / trade buttons */}
+                <div className="flex items-center gap-2 py-1">
+                  {availableTrades.length > 0 && (
+                    <button
+                      onClick={() => { setShowAddTrade(true); setShowAddBlock(false); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-[var(--green)]/40 bg-[var(--green)]/10 text-xs font-bold text-[var(--green)] hover:bg-[var(--green)]/20 transition-colors"
+                    >
+                      <Plus size={14} />
+                      공종 추가
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setShowAddBlock(true);
+                      setShowAddTrade(false);
+                      setNewBlockStart(maxDay + 1);
+                      setNewBlockEnd(maxDay + 3);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-blue-400/40 bg-blue-500/10 text-xs font-bold text-blue-400 hover:bg-blue-500/20 transition-colors"
+                  >
+                    <Plus size={14} />
+                    블록 추가
+                  </button>
+                </div>
+
+                {/* Add Trade Modal */}
+                <Modal open={showAddTrade} onClose={() => setShowAddTrade(false)} title="공종 추가">
+                  <div className="max-h-[400px] overflow-y-auto -mx-2">
+                    {TRADE_GROUPS.map(g => {
+                      const trades = availableTrades.filter(t => t.group === g);
+                      if (!trades.length) return null;
+                      return (
+                        <div key={g}>
+                          <p className="text-[10px] font-bold text-[var(--muted)] px-3 pt-3 pb-1 uppercase tracking-wider">{g}</p>
+                          {trades.map(t => (
+                            <button
+                              key={t.id}
+                              onClick={() => handleAddTrade(t.id)}
+                              className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-[var(--green)]/[0.06] transition-colors text-left rounded-lg"
+                            >
+                              <span className="text-base">{t.icon}</span>
+                              <div className="flex-1">
+                                <span className="text-sm font-medium text-[var(--foreground)]">{t.name}</span>
+                                <p className="text-[10px] text-[var(--muted)]">{t.desc.slice(0, 40)}</p>
+                              </div>
+                              <span className="text-xs text-[var(--muted)] shrink-0">{t.baseDays}일</span>
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                    {availableTrades.length === 0 && (
+                      <p className="text-center text-sm text-[var(--muted)] py-8">모든 공종이 추가되었습니다</p>
+                    )}
+                  </div>
+                </Modal>
+
+                {/* Add Custom Block Modal */}
+                <Modal open={showAddBlock} onClose={() => setShowAddBlock(false)} title="블록 추가">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm text-[var(--muted)] mb-1">블록 이름 *</label>
+                      <input
+                        value={newBlockName}
+                        onChange={e => setNewBlockName(e.target.value)}
+                        placeholder="예: 현장 청소, 추가 작업"
+                        className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm text-[var(--muted)] mb-1">시작 (일차)</label>
+                        <input type="number" min={1} value={newBlockStart} onChange={e => setNewBlockStart(Number(e.target.value))}
+                          className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors" />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-[var(--muted)] mb-1">종료 (일차)</label>
+                        <input type="number" min={newBlockStart} value={newBlockEnd} onChange={e => setNewBlockEnd(Number(e.target.value))}
+                          className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors" />
+                      </div>
+                    </div>
+                    <p className="text-xs text-[var(--muted)]">
+                      {formatDate(addDays(startDate, newBlockStart - 1))} ~ {formatDate(addDays(startDate, newBlockEnd - 1))} ({newBlockEnd - newBlockStart + 1}일간)
+                    </p>
+                    <div className="flex justify-end gap-3 pt-2">
+                      <button onClick={() => setShowAddBlock(false)} className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors">취소</button>
+                      <button
+                        onClick={handleAddCustomBlock}
+                        disabled={!newBlockName.trim() || newBlockEnd < newBlockStart}
+                        className="px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)] transition-colors disabled:opacity-50"
+                      >
+                        추가
+                      </button>
+                    </div>
+                  </div>
+                </Modal>
+
+                {/* Block detail list */}
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
-                  {adjustedSchedule.map(item => (
+                  {blocks.map(item => (
                     <div key={item.id} className="px-3.5 py-2.5 border-b border-white/[0.03] last:border-0 group/detail">
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span>{item.icon}</span>
                           <span className="text-xs font-bold">{item.name}</span>
-                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--green)]/[0.08] text-[var(--green)]">{formatDate(addDays(startDate, item.startDay - 1))}~{formatDate(addDays(startDate, item.endDay - 1))}</span>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-[var(--green)]/[0.08] text-[var(--green)]">{formatDate(addDays(startDate, item.startDay - 1))}~{formatDate(addDays(startDate, item.endDay - 1))} ({item.days}일)</span>
                           {item.isParallel && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/[0.08] text-purple-400">∥병렬</span>}
                           <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{ background: `${PHASE_COLORS[item.phase]}15`, color: PHASE_COLORS[item.phase] }}>{PHASE_LABELS[item.phase]}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-bold text-yellow-400 whitespace-nowrap">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
-                          {liveSelected.length > 1 && (
+                          {(item.costLow > 0 || item.costHigh > 0) && (
+                            <span className="text-[11px] font-bold text-yellow-400 whitespace-nowrap">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
+                          )}
+                          {blocks.length > 1 && (
                             <button
-                              onClick={() => handleRemoveTrade(item.id)}
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-red-400 opacity-0 group-hover/detail:opacity-100 hover:bg-red-500/10 transition-all"
-                              title="공종 제거"
+                              onClick={() => handleRemoveBlock(item.id)}
+                              className="w-5 h-5 rounded-full flex items-center justify-center text-red-400 hover:bg-red-500/10 transition-all shrink-0"
+                              title="블록 제거"
                             >
-                              <X size={12} />
+                              <Trash2 size={11} />
                             </button>
                           )}
                         </div>
                       </div>
-                      <p className="text-[10px] text-[var(--muted)] pl-6">{item.desc}</p>
+                      {item.desc && <p className="text-[10px] text-[var(--muted)] pl-6">{item.desc}</p>}
                       {item.notes && <p className="text-[10px] text-yellow-500 mt-0.5 pl-6">⚠ {item.notes}</p>}
                     </div>
                   ))}
@@ -883,7 +1042,7 @@ export default function ScheduleGeneratorPage() {
                     <span className="text-sm font-extrabold">합계</span>
                     <div className="text-right">
                       <p className="text-base font-extrabold text-yellow-400">{formatCost(result.totalCostLow)} ~ {formatCost(result.totalCostHigh)}</p>
-                      <p className="text-[10px] text-[var(--muted)]">{result.totalDays}일 · {result.scheduled.length}공종</p>
+                      <p className="text-[10px] text-[var(--muted)]">{maxDay}일 · {blocks.length}블록</p>
                     </div>
                   </div>
                 </div>

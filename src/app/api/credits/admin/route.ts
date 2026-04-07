@@ -4,6 +4,7 @@ import { analysisCredits } from "@/lib/db/schema";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, forbidden, serverError } from "@/lib/api/response";
+import { isUnlimitedAccount } from "@/lib/subscription";
 
 /** POST: 관리자용 크레딧 설정/추가 */
 export async function POST(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
   const uid = auth.userId;
 
   // 관리자 이메일 체크
-  if (auth.session.user.email !== "smalltablekorea@gmail.com") {
+  if (!isUnlimitedAccount(auth.session.user.email)) {
     return forbidden("관리자만 사용 가능");
   }
 

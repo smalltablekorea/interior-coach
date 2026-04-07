@@ -76,6 +76,54 @@ const TYPE_LABELS: Record<string, string> = {
   delivery: "입고",
 };
 
+const PHASE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  "철거": { bg: "bg-red-500/15", border: "border-red-500/40", text: "text-red-400" },
+  "설비": { bg: "bg-orange-500/15", border: "border-orange-500/40", text: "text-orange-400" },
+  "배관": { bg: "bg-orange-500/15", border: "border-orange-500/40", text: "text-orange-400" },
+  "전기": { bg: "bg-yellow-500/15", border: "border-yellow-500/40", text: "text-yellow-400" },
+  "조명": { bg: "bg-yellow-500/15", border: "border-yellow-500/40", text: "text-yellow-400" },
+  "방수": { bg: "bg-cyan-500/15", border: "border-cyan-500/40", text: "text-cyan-400" },
+  "타일": { bg: "bg-blue-500/15", border: "border-blue-500/40", text: "text-blue-400" },
+  "목공": { bg: "bg-amber-600/15", border: "border-amber-600/40", text: "text-amber-500" },
+  "도배": { bg: "bg-emerald-500/15", border: "border-emerald-500/40", text: "text-emerald-400" },
+  "바닥": { bg: "bg-teal-500/15", border: "border-teal-500/40", text: "text-teal-400" },
+  "마루": { bg: "bg-teal-500/15", border: "border-teal-500/40", text: "text-teal-400" },
+  "도장": { bg: "bg-violet-500/15", border: "border-violet-500/40", text: "text-violet-400" },
+  "페인트": { bg: "bg-violet-500/15", border: "border-violet-500/40", text: "text-violet-400" },
+  "싱크대": { bg: "bg-indigo-500/15", border: "border-indigo-500/40", text: "text-indigo-400" },
+  "주방": { bg: "bg-indigo-500/15", border: "border-indigo-500/40", text: "text-indigo-400" },
+  "가구": { bg: "bg-pink-500/15", border: "border-pink-500/40", text: "text-pink-400" },
+  "붙박이장": { bg: "bg-pink-500/15", border: "border-pink-500/40", text: "text-pink-400" },
+  "창호": { bg: "bg-sky-500/15", border: "border-sky-500/40", text: "text-sky-400" },
+  "샷시": { bg: "bg-sky-500/15", border: "border-sky-500/40", text: "text-sky-400" },
+  "욕실": { bg: "bg-lime-500/15", border: "border-lime-500/40", text: "text-lime-400" },
+  "준비": { bg: "bg-slate-500/15", border: "border-slate-500/40", text: "text-slate-400" },
+  "입주청소": { bg: "bg-rose-500/15", border: "border-rose-500/40", text: "text-rose-400" },
+  "청소": { bg: "bg-rose-500/15", border: "border-rose-500/40", text: "text-rose-400" },
+};
+
+const FALLBACK_PHASE_COLORS = [
+  { bg: "bg-fuchsia-500/15", border: "border-fuchsia-500/40", text: "text-fuchsia-400" },
+  { bg: "bg-emerald-500/15", border: "border-emerald-500/40", text: "text-emerald-400" },
+  { bg: "bg-amber-500/15", border: "border-amber-500/40", text: "text-amber-400" },
+  { bg: "bg-cyan-500/15", border: "border-cyan-500/40", text: "text-cyan-400" },
+  { bg: "bg-red-500/15", border: "border-red-500/40", text: "text-red-400" },
+  { bg: "bg-violet-500/15", border: "border-violet-500/40", text: "text-violet-400" },
+];
+
+function getPhaseColor(category: string) {
+  // Exact match
+  if (PHASE_COLORS[category]) return PHASE_COLORS[category];
+  // Partial match
+  for (const [key, color] of Object.entries(PHASE_COLORS)) {
+    if (category.includes(key) || key.includes(category)) return color;
+  }
+  // Deterministic fallback based on string hash
+  let hash = 0;
+  for (let i = 0; i < category.length; i++) hash = ((hash << 5) - hash + category.charCodeAt(i)) | 0;
+  return FALLBACK_PHASE_COLORS[Math.abs(hash) % FALLBACK_PHASE_COLORS.length];
+}
+
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 export default function SchedulePage() {
@@ -497,23 +545,30 @@ export default function SchedulePage() {
                             <td key={site.id} className="border-r last:border-r-0 border-[var(--border)] px-2 py-1.5 align-top">
                               {items.length > 0 && (
                                 <div className="space-y-0.5">
-                                  {items.map((item, i) => (
-                                    <div key={i} className="flex items-start gap-1.5 group/item">
+                                  {items.map((item, i) => {
+                                    const phaseColor = item.kind === "phase" ? getPhaseColor(item.text) : null;
+                                    return (
+                                    <div key={i} className={`flex items-center gap-1.5 group/item rounded-md px-1.5 py-0.5 border transition-colors ${
+                                      item.kind === "phase" && phaseColor
+                                        ? `${phaseColor.bg} ${item.done ? "border-transparent opacity-50" : phaseColor.border}`
+                                        : "border-transparent"
+                                    }`}>
                                       <button
                                         type="button"
                                         onClick={() => item.phaseId && handleTogglePhase(item.phaseId, item.done)}
-                                        className={`mt-[2px] w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${
-                                          item.done ? "bg-[var(--green)]/20 border-[var(--green)]/50" : "border-[var(--border)] bg-transparent hover:border-[var(--green)]/30"
+                                        className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${
+                                          item.done ? "bg-[var(--green)]/20 border-[var(--green)]/50" : "border-white/20 bg-transparent hover:border-[var(--green)]/30"
                                         } ${item.phaseId ? "cursor-pointer" : "cursor-default"}`}
                                       >
                                         {item.done && <Check size={8} className="text-[var(--green)]" />}
                                       </button>
                                       <span
                                         onClick={() => item.phaseId && openEditPhase(item.phaseId)}
-                                        className={`text-[11px] leading-snug flex-1 ${item.phaseId ? "cursor-pointer hover:underline" : ""} ${
+                                        className={`text-[11px] leading-snug flex-1 font-medium ${item.phaseId ? "cursor-pointer hover:underline" : ""} ${
                                           item.done ? "text-[var(--muted)] line-through" :
                                           item.kind === "order" ? "text-purple-400" :
                                           item.kind === "delivery" ? "text-amber-400" :
+                                          phaseColor ? phaseColor.text :
                                           "text-[var(--foreground)]"
                                         }`}
                                       >
@@ -522,13 +577,14 @@ export default function SchedulePage() {
                                       {item.phaseId && (
                                         <button
                                           onClick={() => handleDeletePhase(item.phaseId!)}
-                                          className="opacity-0 group-hover/item:opacity-100 mt-[1px] w-3.5 h-3.5 flex items-center justify-center rounded text-[var(--muted)] hover:text-[var(--red)] transition-all shrink-0"
+                                          className="opacity-0 group-hover/item:opacity-100 w-3.5 h-3.5 flex items-center justify-center rounded text-[var(--muted)] hover:text-[var(--red)] transition-all shrink-0"
                                         >
                                           <Trash2 size={9} />
                                         </button>
                                       )}
                                     </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               )}
                             </td>

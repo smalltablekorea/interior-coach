@@ -6,6 +6,7 @@ import { type PlanId, PLANS } from "@/lib/plans";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
+import { isUnlimitedAccount } from "@/lib/subscription";
 
 export async function GET() {
   const auth = await requireWorkspaceAuth("settings", "read");
@@ -21,7 +22,8 @@ export async function GET() {
       .limit(1);
 
     const subscription = subRows[0] || null;
-    const plan = (subscription?.plan || "free") as PlanId;
+    const unlimited = isUnlimitedAccount(auth.session.user.email);
+    const plan = (unlimited ? "enterprise" : (subscription?.plan || "free")) as PlanId;
     const planConfig = PLANS[plan];
 
     const period = new Date().toISOString().slice(0, 7);

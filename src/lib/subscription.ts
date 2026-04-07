@@ -1,7 +1,18 @@
 import { db } from "@/lib/db";
-import { subscriptions, usageRecords } from "@/lib/db/schema";
+import { subscriptions, usageRecords, user as userTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { type PlanId, PLANS, isPlanAtLeast, FEATURE_REQUIRED_PLAN, type FeatureKey } from "@/lib/plans";
+
+/** 관리자 / 테스트 계정 — 모든 패키지 무제한 이용 */
+const UNLIMITED_EMAILS = [
+  "smalltablekorea@gmail.com",
+  "test@interior-coach.com",
+];
+
+export function isUnlimitedAccount(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return UNLIMITED_EMAILS.includes(email.toLowerCase());
+}
 
 export interface UserSubscription {
   plan: PlanId;
@@ -12,6 +23,23 @@ export interface UserSubscription {
 }
 
 export async function getUserSubscription(userId: string): Promise<UserSubscription> {
+  // 관리자/테스트 계정은 enterprise 플랜으로 처리
+  const userRows = await db
+    .select({ email: userTable.email })
+    .from(userTable)
+    .where(eq(userTable.id, userId))
+    .limit(1);
+
+  if (userRows.length > 0 && isUnlimitedAccount(userRows[0].email)) {
+    return {
+      plan: "enterprise",
+      status: "active",
+      billingCycle: "monthly",
+      trialEndsAt: null,
+      currentPeriodEnd: null,
+    };
+  }
+
   const rows = await db
     .select()
     .from(subscriptions)
