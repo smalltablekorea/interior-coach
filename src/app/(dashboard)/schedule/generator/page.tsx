@@ -298,9 +298,12 @@ export default function ScheduleGeneratorPage() {
     e.stopPropagation();
     const block = blocks.find(b => b.id === id);
     if (!block) return;
-    // Measure cell width from the row container
-    const rowEl = (e.currentTarget as HTMLElement).closest("[data-gantt-row]") as HTMLElement;
-    const cw = rowEl ? rowEl.clientWidth / dateTicks.length : 40;
+    // Measure cell width from the nearest gantt row
+    const el = e.currentTarget as HTMLElement;
+    const rowEl = el.closest("[data-gantt-row]") || el.parentElement?.closest("[data-gantt-row]");
+    // Fallback: use any gantt row on the page
+    const anyRow = rowEl || document.querySelector("[data-gantt-row]");
+    const cw = anyRow ? (anyRow as HTMLElement).clientWidth / dateTicks.length : 44;
     setInteracting({ id, mode, startX: e.clientX, origStart: block.startDay, origEnd: block.endDay, cellWidth: cw });
   };
 
@@ -821,29 +824,29 @@ export default function ScheduleGeneratorPage() {
 
                 {/* Gantt chart with date axis — every day */}
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-x-auto">
-                  <div style={{ minWidth: `${Math.max(600, maxDay * 40 + 150)}px` }}>
+                  <div style={{ minWidth: `${Math.max(700, maxDay * 44 + 160)}px` }}>
                     {/* Date axis header */}
                     <div className="flex border-b border-[var(--border)]">
-                      <div className="w-20 shrink-0 px-2 py-1.5 border-r border-[var(--border)]">
-                        <span className="text-[9px] text-[var(--muted)] font-semibold">공종</span>
+                      <div className="w-32 shrink-0 px-3 py-2 border-r border-[var(--border)]">
+                        <span className="text-xs text-[var(--muted)] font-semibold">공종</span>
                       </div>
                       <div className="flex-1 flex">
                         {dateTicks.map((tick) => (
                           <div
                             key={tick.day}
                             className={cn(
-                              "flex-1 min-w-[32px] flex flex-col items-center py-1 border-r border-white/[0.03]",
+                              "flex-1 min-w-[36px] flex flex-col items-center py-1.5 border-r border-white/[0.03]",
                               tick.isWeekend && "bg-red-400/[0.04]"
                             )}
                           >
                             <span className={cn(
-                              "text-[9px] font-bold leading-tight",
+                              "text-[11px] font-bold leading-tight",
                               tick.isWeekend ? "text-red-400/80" : "text-[var(--foreground)]"
                             )}>
                               {tick.label}
                             </span>
                             <span className={cn(
-                              "text-[8px] leading-tight",
+                              "text-[10px] leading-tight",
                               tick.isWeekend ? "text-red-400/50" : "text-[var(--muted)]"
                             )}>
                               {tick.dow}
@@ -857,32 +860,32 @@ export default function ScheduleGeneratorPage() {
                     {blocks.map((item) => (
                       <div key={item.id} className="flex border-b border-white/[0.02] hover:bg-white/[0.01] transition-colors">
                         {/* Trade name + cost + delete */}
-                        <div className="w-28 shrink-0 px-2 py-1 flex items-center gap-1 border-r border-[var(--border)]">
+                        <div className="w-32 shrink-0 px-3 py-1.5 flex items-center gap-1.5 border-r border-[var(--border)]">
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1">
-                              <span className="text-[11px]">{item.icon}</span>
-                              <span className="text-[10px] font-semibold text-[var(--foreground)] truncate">{item.name}</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm">{item.icon}</span>
+                              <span className="text-xs font-semibold text-[var(--foreground)] truncate">{item.name}</span>
                             </div>
                             {(item.costLow > 0 || item.costHigh > 0) && (
-                              <span className="text-[8px] text-yellow-400/80 font-medium">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
+                              <span className="text-[10px] text-yellow-400/80 font-medium">{formatCost(item.costLow)}~{formatCost(item.costHigh)}</span>
                             )}
                           </div>
                           {blocks.length > 1 && (
                             <button
                               onClick={() => handleRemoveBlock(item.id)}
-                              className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-[var(--muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                              className="shrink-0 w-6 h-6 rounded flex items-center justify-center text-[var(--muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
                               title="블록 제거"
                             >
-                              <X size={12} />
+                              <X size={14} />
                             </button>
                           )}
                         </div>
                         {/* Day grid + block overlay */}
-                        <div className="flex-1 relative h-8" data-gantt-row>
+                        <div className="flex-1 relative h-10" data-gantt-row>
                           {/* Background grid — pointer-events-none so block receives events */}
                           <div className="absolute inset-0 flex pointer-events-none">
                             {dateTicks.map((tick) => (
-                              <div key={tick.day} className={cn("flex-1 min-w-[32px] border-r border-white/[0.02]", tick.isWeekend && "bg-red-400/[0.02]")} />
+                              <div key={tick.day} className={cn("flex-1 min-w-[36px] border-r border-white/[0.02]", tick.isWeekend && "bg-red-400/[0.02]")} />
                             ))}
                           </div>
                           {/* Block — single positioned element */}
@@ -901,18 +904,18 @@ export default function ScheduleGeneratorPage() {
                             }}
                             onMouseDown={(e) => startInteraction(item.id, "drag", e)}
                           >
-                            {/* Left resize handle — 16px wide */}
+                            {/* Left resize handle — 20px wide */}
                             <div
-                              className="absolute left-0 top-0 bottom-0 w-4 cursor-col-resize z-20 rounded-l-md hover:bg-white/20 transition-colors"
+                              className="absolute left-0 top-0 bottom-0 w-5 cursor-col-resize z-20 rounded-l-md hover:bg-white/20 transition-colors"
                               onMouseDown={(e) => startInteraction(item.id, "resize-start", e)}
                             />
                             {/* Label */}
-                            <span className="text-[8px] font-bold text-white/90 whitespace-nowrap px-5 pointer-events-none select-none truncate flex-1 text-center">
+                            <span className="text-[11px] font-bold text-white/90 whitespace-nowrap px-6 pointer-events-none select-none truncate flex-1 text-center">
                               {item.days}일
                             </span>
-                            {/* Right resize handle — 16px wide */}
+                            {/* Right resize handle — 20px wide */}
                             <div
-                              className="absolute right-0 top-0 bottom-0 w-4 cursor-col-resize z-20 rounded-r-md hover:bg-white/20 transition-colors"
+                              className="absolute right-0 top-0 bottom-0 w-5 cursor-col-resize z-20 rounded-r-md hover:bg-white/20 transition-colors"
                               onMouseDown={(e) => startInteraction(item.id, "resize-end", e)}
                             />
                           </div>
