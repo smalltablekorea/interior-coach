@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
-import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, MapPin, Search, Plus, X, Trash2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, MapPin, Search, Plus, X, Trash2, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
 import Link from "next/link";
 import Modal from "@/components/ui/Modal";
 import { cn, fmtDate } from "@/lib/utils";
@@ -200,6 +200,18 @@ export default function ScheduleGeneratorPage() {
     if (!editingNameVal.trim()) { setEditingNameId(null); return; }
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, name: editingNameVal.trim() } : b));
     setEditingNameId(null);
+  };
+
+  const handleMoveBlock = (id: string, dir: "up" | "down") => {
+    setBlocks(prev => {
+      const idx = prev.findIndex(b => b.id === id);
+      if (idx < 0) return prev;
+      const target = dir === "up" ? idx - 1 : idx + 1;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return next;
+    });
   };
 
   const usedTradeIds = useMemo(() => new Set(blocks.map(b => b.id)), [blocks]);
@@ -925,12 +937,32 @@ export default function ScheduleGeneratorPage() {
                             )}
                           </div>
                           {blocks.length > 1 && (
+                            <div className="shrink-0 flex flex-col gap-0.5">
+                              <button
+                                onClick={() => handleMoveBlock(item.id, "up")}
+                                className="w-5 h-4 rounded flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.06] transition-colors disabled:opacity-20"
+                                disabled={blocks.indexOf(item) === 0}
+                                title="위로"
+                              >
+                                <ChevronUp size={12} />
+                              </button>
+                              <button
+                                onClick={() => handleMoveBlock(item.id, "down")}
+                                className="w-5 h-4 rounded flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.06] transition-colors disabled:opacity-20"
+                                disabled={blocks.indexOf(item) === blocks.length - 1}
+                                title="아래로"
+                              >
+                                <ChevronDown size={12} />
+                              </button>
+                            </div>
+                          )}
+                          {blocks.length > 1 && (
                             <button
                               onClick={() => handleRemoveBlock(item.id)}
-                              className="shrink-0 w-6 h-6 rounded flex items-center justify-center text-[var(--muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                              className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-[var(--muted)] hover:text-red-400 hover:bg-red-500/10 transition-colors"
                               title="블록 제거"
                             >
-                              <X size={14} />
+                              <X size={12} />
                             </button>
                           )}
                         </div>
