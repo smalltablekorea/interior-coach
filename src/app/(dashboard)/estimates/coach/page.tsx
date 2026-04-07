@@ -1704,67 +1704,6 @@ export default function EstimateCoachPage() {
         )}
       </div>
 
-      {/* ─── 절약 팁 카드 ─── */}
-      <div className="p-5 rounded-2xl bg-[var(--card)] border border-[var(--border)]">
-        <h2 className="text-sm font-medium mb-4 flex items-center gap-2">
-          <Lightbulb size={16} className="text-yellow-400" />
-          비용 절감 팁
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <TipCard
-            title="자재 등급 혼합 전략"
-            desc="거실·주방은 프리미엄, 알파룸·발코니는 스탠다드로 선택적 등급 적용 시 전체 비용의 15~20% 절감 가능"
-            saving="15~20%"
-          />
-          <TipCard
-            title="비수기 시공 활용"
-            desc="1~2월, 7~8월 비수기에 시공 시작하면 인건비 협상 여지가 크고, 자재 납품도 빠름"
-            saving="5~10%"
-          />
-          <TipCard
-            title="창호 교체 vs 유지"
-            desc="10년 미만 샷시는 유리만 교체(로이유리)해도 단열 성능 70% 확보 가능. 전체 교체 대비 비용 절감"
-            saving="최대 800만"
-          />
-          <TipCard
-            title="직접 시공 항목 확인"
-            desc="입주청소, 폐기물 처리, 보양 등은 직접 수배 시 30~40% 저렴. 단, 품질 관리 필요"
-            saving="30~40%"
-          />
-          <TipCard
-            title="도배·마루 동시 시공"
-            desc="도배와 마루를 한 업체에 묶으면 할인 가능. 개별 발주보다 세트 계약이 유리"
-            saving="5~10%"
-          />
-          <TipCard
-            title="타일 대형화 트렌드"
-            desc="600×1200 대형타일은 줄눈 줄어 유지관리 쉽고, 시공 면적 대비 단가 절감 효과"
-            saving="시공비 절감"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TipCard({
-  title,
-  desc,
-  saving,
-}: {
-  title: string;
-  desc: string;
-  saving: string;
-}) {
-  return (
-    <div className="p-3.5 rounded-xl bg-white/[0.02] border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors">
-      <div className="flex items-center justify-between mb-1.5">
-        <p className="text-sm font-medium">{title}</p>
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--green)]/10 text-[var(--green)] shrink-0">
-          {saving} 절감
-        </span>
-      </div>
-      <p className="text-xs text-[var(--muted)] leading-relaxed">{desc}</p>
     </div>
   );
 }
