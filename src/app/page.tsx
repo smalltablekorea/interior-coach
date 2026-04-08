@@ -605,7 +605,7 @@ export default function LandingPage() {
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[var(--green)] text-black text-xs font-semibold">
                 인기
               </div>
-              <p className="text-sm text-[var(--muted)] mb-2">3건 패키지</p>
+              <p className="text-sm text-[var(--muted)] mb-2">3회권</p>
               <p className="text-3xl font-bold">99,900<span className="text-base font-normal text-[var(--muted)]">원</span></p>
               <p className="text-xs text-[var(--green)] mt-1">1건당 33,300원 · 17% 할인</p>
               <ul className="mt-4 space-y-2 text-left">

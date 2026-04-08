@@ -52,6 +52,9 @@ export function checkPermission(
   category: Category,
   action: Action = "read"
 ): boolean {
+  // admin, owner는 모든 카테고리·액션 무조건 허용
+  if (role === "admin" || role === "owner") return true;
+
   const matrix = PERMISSION_MATRIX[category];
   if (!matrix) return false;
   const requiredRole = matrix[action];
