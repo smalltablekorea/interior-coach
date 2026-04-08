@@ -50,7 +50,19 @@ interface CalendarEvent {
   title: string;
   sub: string;
   status: string;
+  siteId?: string;
 }
+
+const SITE_COLORS = [
+  { bg: "bg-blue-500/15", text: "text-blue-400", dot: "bg-blue-400" },
+  { bg: "bg-emerald-500/15", text: "text-emerald-400", dot: "bg-emerald-400" },
+  { bg: "bg-amber-500/15", text: "text-amber-400", dot: "bg-amber-400" },
+  { bg: "bg-purple-500/15", text: "text-purple-400", dot: "bg-purple-400" },
+  { bg: "bg-rose-500/15", text: "text-rose-400", dot: "bg-rose-400" },
+  { bg: "bg-cyan-500/15", text: "text-cyan-400", dot: "bg-cyan-400" },
+  { bg: "bg-orange-500/15", text: "text-orange-400", dot: "bg-orange-400" },
+  { bg: "bg-indigo-500/15", text: "text-indigo-400", dot: "bg-indigo-400" },
+];
 
 /* ===== Table view item ===== */
 interface TableItem {
@@ -267,16 +279,16 @@ export default function SchedulePage() {
   const events = useMemo(() => {
     const list: CalendarEvent[] = [];
     sites.forEach((s) => {
-      if (s.startDate) list.push({ id: `site-s-${s.id}`, date: s.startDate, type: "site-start", title: s.name, sub: s.customerName || "", status: s.status });
-      if (s.endDate) list.push({ id: `site-e-${s.id}`, date: s.endDate, type: "site-end", title: s.name, sub: s.customerName || "", status: s.status });
+      if (s.startDate) list.push({ id: `site-s-${s.id}`, date: s.startDate, type: "site-start", title: s.name, sub: s.customerName || "", status: s.status, siteId: s.id });
+      if (s.endDate) list.push({ id: `site-e-${s.id}`, date: s.endDate, type: "site-end", title: s.name, sub: s.customerName || "", status: s.status, siteId: s.id });
     });
     phases.forEach((p) => {
       const start = p.actualStart || p.plannedStart;
-      if (start) list.push({ id: `phase-${p.id}`, date: start, type: "phase", title: p.category, sub: p.siteName || "", status: p.status });
+      if (start) list.push({ id: `phase-${p.id}`, date: start, type: "phase", title: p.category, sub: p.siteName || "", status: p.status, siteId: p.siteId });
     });
     orders.forEach((o) => {
-      if (o.orderedDate) list.push({ id: `ord-${o.id}`, date: o.orderedDate, type: "order", title: o.materialName, sub: o.siteName || "현장 미지정", status: o.status });
-      if (o.deliveryDate) list.push({ id: `del-${o.id}`, date: o.deliveryDate, type: "delivery", title: o.materialName, sub: o.siteName || "현장 미지정", status: o.status });
+      if (o.orderedDate) list.push({ id: `ord-${o.id}`, date: o.orderedDate, type: "order", title: o.materialName, sub: o.siteName || "현장 미지정", status: o.status, siteId: o.siteId || undefined });
+      if (o.deliveryDate) list.push({ id: `del-${o.id}`, date: o.deliveryDate, type: "delivery", title: o.materialName, sub: o.siteName || "현장 미지정", status: o.status, siteId: o.siteId || undefined });
     });
     return list.sort((a, b) => a.date.localeCompare(b.date));
   }, [sites, phases, orders]);
@@ -298,6 +310,13 @@ export default function SchedulePage() {
     while (days.length % 7 !== 0) days.push(null);
     return days;
   }, [yr, mo, daysInMonth]);
+
+  // Site color mapping for calendar
+  const siteColorMap = useMemo(() => {
+    const map = new Map<string, typeof SITE_COLORS[0]>();
+    sites.forEach((s, i) => { map.set(s.id, SITE_COLORS[i % SITE_COLORS.length]); });
+    return map;
+  }, [sites]);
 
   /* ===== TABLE VIEW DATA ===== */
   const monthDays = useMemo(() => {
@@ -418,8 +437,18 @@ export default function SchedulePage() {
         <div className="h-96 rounded-2xl animate-shimmer" />
       ) : view === "calendar" ? (
         <>
-          {/* Legend */}
+          {/* Legend — site colors */}
           <div className="flex flex-wrap items-center gap-3 px-1">
+            {sites.map((s) => {
+              const sc = siteColorMap.get(s.id);
+              return (
+                <div key={s.id} className="flex items-center gap-1.5">
+                  <span className={`w-2.5 h-2.5 rounded-sm ${sc?.dot || "bg-[var(--muted)]"}`} />
+                  <span className="text-xs text-[var(--foreground)] font-medium">{s.name}</span>
+                </div>
+              );
+            })}
+            <span className="text-[var(--border)]">|</span>
             {Object.entries(TYPE_LABELS).map(([type, label]) => (
               <div key={type} className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${TYPE_COLORS[type].dot}`} />
@@ -453,14 +482,18 @@ export default function SchedulePage() {
                         </div>
                         <div className="space-y-0.5">
                           {dayEvents.slice(0, 3).map((ev) => {
-                            const colors = TYPE_COLORS[ev.type];
+                            // 현장별 색상: phase 이벤트는 siteId로 색상 결정
+                            const siteColor = ev.siteId ? siteColorMap.get(ev.siteId) : null;
+                            const colors = (ev.type === "phase" || ev.type === "site-start" || ev.type === "site-end") && siteColor
+                              ? siteColor
+                              : TYPE_COLORS[ev.type];
                             const phaseId = ev.type === "phase" ? ev.id.replace("phase-", "") : null;
                             return (
                               <div
                                 key={ev.id}
                                 onClick={() => phaseId && openEditPhase(phaseId)}
                                 className={`px-1.5 py-0.5 rounded text-[10px] truncate ${colors.bg} ${colors.text} ${phaseId ? "cursor-pointer hover:ring-1 hover:ring-current" : ""}`}
-                                title={`${TYPE_LABELS[ev.type]}: ${ev.title} (${ev.sub})`}
+                                title={`${ev.sub ? ev.sub + " · " : ""}${TYPE_LABELS[ev.type]}: ${ev.title}`}
                               >
                                 {ev.title}
                               </div>
