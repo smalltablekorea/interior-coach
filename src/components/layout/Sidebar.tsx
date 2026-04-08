@@ -165,8 +165,8 @@ export default function Sidebar() {
           collapsed ? "w-16" : "w-60",
         )}
       >
-        {/* Logo */}
-        <div className="h-16 flex items-center px-4 border-b border-[var(--border)] gap-2">
+        {/* Logo — click to go home */}
+        <a href="/" className="h-16 flex items-center px-4 border-b border-[var(--border)] gap-2 hover:bg-white/[0.03] transition-colors cursor-pointer">
           {!collapsed ? (
             <>
               <span className="text-lg font-bold text-[var(--green)] truncate">
@@ -179,7 +179,7 @@ export default function Sidebar() {
               {workspace?.name?.charAt(0) || "IC"}
             </span>
           )}
-        </div>
+        </a>
 
         {/* Grouped Nav */}
         <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-1">
