@@ -53,6 +53,6 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // 제외: auth 라우트, 정적 파일, 포탈 (공개), favicon, 랜딩/가격 페이지
-    "/((?!_next/static|_next/image|favicon.ico|auth|portal|pricing|qna|api/auth|api/portal|api/qna|api/v1).*)",
+    "/((?!_next/static|_next/image|favicon.ico|auth|portal|pricing|qna|terms|refund-policy|api/auth|api/portal|api/qna|api/v1).*)",
   ],
 };
