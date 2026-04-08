@@ -207,7 +207,7 @@ export default function RefundPolicyPage() {
                   <span className="shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs">1</span>
                   <div>
                     <p className="font-medium text-[var(--foreground)]">프로 분석권 (1회권 / 3회권)</p>
-                    <p className="text-[var(--muted)] text-xs mt-0.5">구매일로부터 <strong className="text-[var(--foreground)]">1년간</strong> 유효합니다. 1년 내 미사용 분석권은 소멸되며, 소멸 전 환불 요청 가능합니다.</p>
+                    <p className="text-[var(--muted)] text-xs mt-0.5">결제일로부터 <strong className="text-[var(--foreground)]">180일(6개월)</strong> 이내 사용 가능합니다. 분석 완료 후 결과 리포트는 결제일로부터 180일간 열람 가능하며, 해당 기간 경과 시 미사용 분석권은 자동 소멸됩니다. 소멸 전 환불 요청 가능합니다.</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
