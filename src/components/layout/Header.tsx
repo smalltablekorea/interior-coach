@@ -50,44 +50,7 @@ const NOTIF_COLORS = {
   customer: "var(--green)",
 };
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    type: "payment",
-    title: "수금 예정 알림",
-    description: "강남 아파트 리모델링 중도금 500만원 수금일이 다가옵니다.",
-    time: "방금 전",
-    read: false,
-    href: "/contracts",
-  },
-  {
-    id: "2",
-    type: "construction",
-    title: "시공 일정 알림",
-    description: "마포 오피스텔 목공 공정이 내일 시작 예정입니다.",
-    time: "1시간 전",
-    read: false,
-    href: "/construction",
-  },
-  {
-    id: "3",
-    type: "estimate",
-    title: "견적서 승인",
-    description: "서초 빌라 견적서가 고객에 의해 승인되었습니다.",
-    time: "3시간 전",
-    read: true,
-    href: "/estimates",
-  },
-  {
-    id: "4",
-    type: "customer",
-    title: "신규 상담 문의",
-    description: "송파구 김민수 고객이 인테리어 상담을 요청했습니다.",
-    time: "어제",
-    read: true,
-    href: "/customers",
-  },
-];
+// 목업 데이터 제거 — 실제 알림만 표시
 
 export default function Header() {
   const { user, signOut } = useAuth();
@@ -98,7 +61,7 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [notiOpen, setNotiOpen] = useState(false);
   const [wsOpen, setWsOpen] = useState(false);
-  const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
   const notiRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<HTMLDivElement>(null);
