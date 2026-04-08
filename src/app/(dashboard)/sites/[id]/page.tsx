@@ -217,16 +217,31 @@ export default function SiteDetailPage() {
     };
     setSite(updated);
     setIsEditing(false);
-    setSaving(false);
     try {
-      await fetch(`/api/sites/${id}`, {
+      const body: Record<string, unknown> = {
+        name: editForm.name,
+        status: editForm.status || "상담중",
+      };
+      if (editForm.address) body.address = editForm.address;
+      if (editForm.buildingType) body.buildingType = editForm.buildingType;
+      if (editForm.areaPyeong) body.areaPyeong = parseFloat(editForm.areaPyeong);
+      if (editForm.startDate) body.startDate = editForm.startDate;
+      if (editForm.endDate) body.endDate = editForm.endDate;
+      if (editForm.memo) body.memo = editForm.memo;
+
+      const res = await fetch(`/api/sites/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(body),
       });
-    } catch {
-      // ignore errors in demo mode
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("저장 실패:", err);
+      }
+    } catch (e) {
+      console.error("저장 에러:", e);
     }
+    setSaving(false);
   };
 
   const handleDelete = async () => {
