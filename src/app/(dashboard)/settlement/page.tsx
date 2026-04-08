@@ -26,54 +26,7 @@ interface ProjectSettlement {
   }[];
 }
 
-const DEMO_SETTLEMENTS: ProjectSettlement[] = [
-  {
-    siteId: "s1",
-    siteName: "강남 래미안 32평 리모델링",
-    contractAmount: 45000000,
-    totalExpense: 32195000,
-    profit: 12805000,
-    profitRate: 28.5,
-    categories: [
-      { name: "철거", budget: 4300000, actual: 3750000, diff: 550000 },
-      { name: "설비", budget: 6000000, actual: 5580000, diff: 420000 },
-      { name: "전기", budget: 4400000, actual: 4020000, diff: 380000 },
-      { name: "목공", budget: 7300000, actual: 7300000, diff: 0 },
-      { name: "타일", budget: 5900000, actual: 5920000, diff: -20000 },
-      { name: "도배", budget: 2475000, actual: 2475000, diff: 0 },
-      { name: "바닥", budget: 2100000, actual: 2100000, diff: 0 },
-      { name: "기타", budget: 1050000, actual: 1050000, diff: 0 },
-    ],
-    payments: [
-      { type: "계약금", amount: 13500000, status: "완납", date: "2026-03-05" },
-      { type: "중도금", amount: 18000000, status: "미수", date: null },
-      { type: "잔금", amount: 13500000, status: "미수", date: null },
-    ],
-  },
-  {
-    siteId: "s4",
-    siteName: "잠실 엘스 42평 전체시공",
-    contractAmount: 62000000,
-    totalExpense: 44240000,
-    profit: 17760000,
-    profitRate: 28.6,
-    categories: [
-      { name: "철거", budget: 5000000, actual: 4800000, diff: 200000 },
-      { name: "설비", budget: 6500000, actual: 6200000, diff: 300000 },
-      { name: "전기", budget: 5200000, actual: 5200000, diff: 0 },
-      { name: "목공", budget: 8500000, actual: 9100000, diff: -600000 },
-      { name: "타일", budget: 7200000, actual: 6900000, diff: 300000 },
-      { name: "도배", budget: 4800000, actual: 4800000, diff: 0 },
-      { name: "바닥", budget: 3040000, actual: 3040000, diff: 0 },
-      { name: "기타", budget: 4200000, actual: 4200000, diff: 0 },
-    ],
-    payments: [
-      { type: "계약금", amount: 18600000, status: "완납", date: "2026-03-01" },
-      { type: "중도금", amount: 24800000, status: "미수", date: null },
-      { type: "잔금", amount: 18600000, status: "미수", date: null },
-    ],
-  },
-];
+// 더미 데이터 제거 — API에서 실제 데이터 로드
 
 export default function SettlementPage() {
   const [settlements, setSettlements] = useState<ProjectSettlement[]>([]);
@@ -81,11 +34,28 @@ export default function SettlementPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate loading demo data
-    setTimeout(() => {
-      setSettlements(DEMO_SETTLEMENTS);
-      setLoading(false);
-    }, 300);
+    fetch("/api/reports/settlement")
+      .then((r) => r.json())
+      .then((data) => {
+        // API 응답: { summary, sites: [{ siteId, siteName, status, contractAmount }] }
+        const siteList = data?.sites || [];
+        const mapped: ProjectSettlement[] = siteList.map((s: { siteId: string; siteName: string; contractAmount: number }) => ({
+          siteId: s.siteId,
+          siteName: s.siteName,
+          contractAmount: s.contractAmount || 0,
+          totalExpense: 0,
+          profit: s.contractAmount || 0,
+          profitRate: 0,
+          categories: [],
+          payments: [],
+        }));
+        setSettlements(mapped);
+        setLoading(false);
+      })
+      .catch(() => {
+        setSettlements([]);
+        setLoading(false);
+      });
   }, []);
 
   if (loading) {
