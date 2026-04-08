@@ -73,7 +73,7 @@ const TYPE_LABELS: Record<string, string> = {
   "site-end": "준공",
   phase: "공정",
   order: "발주",
-  delivery: "입고",
+  delivery: "입주",
 };
 
 const PHASE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
