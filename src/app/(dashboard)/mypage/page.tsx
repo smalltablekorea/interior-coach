@@ -90,7 +90,7 @@ export default function MyPage() {
     fetchData();
   }, [fetchData]);
 
-  // 크레딧으로 프로분석 잠금해제
+  // 분석권으로 프로분석 잠금해제
   const handleUnlockPro = async (analysis: AnalysisResult) => {
     if (unlocking) return;
     setUnlocking(analysis.id);
@@ -123,7 +123,7 @@ export default function MyPage() {
         setExpandedId(analysis.id);
       } else {
         const err = await res.json();
-        setUnlockError(err.error || "크레딧 사용에 실패했습니다.");
+        setUnlockError(err.error || "분석권 사용에 실패했습니다.");
       }
     } catch {
       setUnlockError("네트워크 오류가 발생했습니다.");
@@ -147,10 +147,10 @@ export default function MyPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">내 분석 내역</h1>
-          <p className="text-xs text-[var(--muted)] mt-1">분석 이력 및 크레딧 관리</p>
+          <p className="text-xs text-[var(--muted)] mt-1">분석 이력 및 분석권 관리</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-[var(--muted)]">잔여 크레딧</span>
+          <span className="text-xs text-[var(--muted)]">보유 분석권</span>
           <span className="px-3 py-1.5 rounded-full bg-[var(--green)]/10 text-[var(--green)] font-bold text-sm">
             {credit.remaining}회
           </span>
@@ -158,18 +158,18 @@ export default function MyPage() {
             href="/pricing"
             className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
           >
-            충전
+            구매
           </Link>
         </div>
       </div>
 
-      {/* 크레딧 현황 */}
+      {/* 분석권 현황 */}
       <div className="p-5 rounded-2xl bg-gradient-to-r from-[var(--green)]/5 to-[var(--green)]/[0.02] border border-[var(--green)]/20">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Package size={16} className="text-[var(--green)]" />
-              <span className="text-sm font-medium">분석 크레딧</span>
+              <span className="text-sm font-medium">보유 분석권</span>
             </div>
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-bold">{credit.remaining}</span>
@@ -222,7 +222,7 @@ export default function MyPage() {
                 <Zap size={24} className="text-[var(--green)]" />
               </div>
               <p className="text-sm font-medium mb-1">견적코치에서 시뮬레이션 후 프로분석을 시작하세요</p>
-              <p className="text-xs text-[var(--muted)] mb-3">1크레딧으로 상세 분석 리포트를 받을 수 있습니다</p>
+              <p className="text-xs text-[var(--muted)] mb-3">분석권 1회로 상세 분석 리포트를 받을 수 있습니다</p>
               <Link
                 href="/estimates/coach"
                 className="px-5 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
@@ -260,7 +260,7 @@ export default function MyPage() {
             <Sparkles size={32} className="mx-auto mb-3 text-[var(--muted)]/30" />
             <p className="text-sm text-[var(--muted)]">아직 분석 이력이 없습니다</p>
             <p className="text-xs text-[var(--muted)]/60 mt-1">
-              견적코치에서 프로분석 버튼을 눌러 1크레딧으로 분석을 저장하세요
+              견적코치에서 프로분석 버튼을 눌러 분석권 1회로 분석을 저장하세요
             </p>
             <Link
               href="/estimates/coach"
@@ -332,7 +332,7 @@ export default function MyPage() {
                           ) : (
                             <>
                               <Unlock size={16} />
-                              1 크레딧 사용하여 프로 분석 보기
+                              분석권 1회 사용하여 프로 분석 보기
                             </>
                           )}
                         </button>
@@ -341,7 +341,7 @@ export default function MyPage() {
                           href="/pricing"
                           className="mt-3 w-full py-3 rounded-xl bg-[var(--green)] text-black font-medium text-sm flex items-center justify-center gap-2"
                         >
-                          크레딧 충전하기
+                          분석권 구매하기
                         </Link>
                       )}
                     </div>
@@ -406,7 +406,7 @@ export default function MyPage() {
                         </div>
                       )}
 
-                      {/* 프로분석 블러 미리보기 — 1크레딧 잠금해제 */}
+                      {/* 프로분석 블러 미리보기 — 분석권 1회 잠금해제 */}
                       <div className="p-4 rounded-xl bg-white/[0.02] border border-[var(--border)] relative overflow-hidden">
                         <div className="flex items-center gap-2 mb-3">
                           <Shield size={14} className="text-[var(--green)]" />
@@ -461,18 +461,18 @@ export default function MyPage() {
                                   ) : (
                                     <>
                                       <Unlock size={16} />
-                                      1 크레딧 사용하여 프로 분석 보기
+                                      분석권 1회 사용하여 프로 분석 보기
                                     </>
                                   )}
                                 </button>
                               ) : (
                                 <div className="space-y-2">
-                                  <p className="text-xs text-red-400">크레딧이 부족합니다</p>
+                                  <p className="text-xs text-red-400">분석권이 부족합니다</p>
                                   <Link
                                     href="/pricing"
                                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
                                   >
-                                    크레딧 충전하기
+                                    분석권 구매하기
                                   </Link>
                                 </div>
                               )}

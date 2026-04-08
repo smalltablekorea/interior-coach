@@ -74,6 +74,17 @@ export default function TermsPage() {
           </section>
 
           <section>
+            <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20">
+              <h2 className="text-lg font-semibold text-[var(--foreground)] mb-3">제4조의2 (서비스 제공 기간)</h2>
+              <ul className="list-disc list-inside space-y-1.5">
+                <li><strong className="text-[var(--foreground)]">프로 분석권 (1회권 / 3회권)</strong>: 구매일로부터 1년간 유효합니다. 1년 내 미사용 분석권은 소멸되며, 소멸 전 환불 요청이 가능합니다.</li>
+                <li><strong className="text-[var(--foreground)]">월간 구독 (스타터 / 프로 플랜)</strong>: 결제일로부터 1개월간 제공됩니다. 갱신일 전 해지하면 다음 달부터 과금되지 않습니다.</li>
+                <li><strong className="text-[var(--foreground)]">무료 분석권</strong>: 회원가입 시 제공되는 무료 분석권은 가입일로부터 1년간 유효합니다.</li>
+              </ul>
+            </div>
+          </section>
+
+          <section>
             <h2 className="text-lg font-semibold text-[var(--foreground)] mb-3">제5조 (개인정보 보호)</h2>
             <ul className="list-disc list-inside space-y-1.5">
               <li>회사는 이용자의 개인정보를 관련 법령에 따라 보호합니다.</li>

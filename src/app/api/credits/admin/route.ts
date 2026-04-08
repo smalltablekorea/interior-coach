@@ -6,7 +6,7 @@ import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, forbidden, serverError } from "@/lib/api/response";
 import { isUnlimitedAccount } from "@/lib/subscription";
 
-/** POST: 관리자용 크레딧 설정/추가 */
+/** POST: 관리자용 분석권 설정/추가 */
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("settings", "write");
   if (!auth.ok) return auth.response;

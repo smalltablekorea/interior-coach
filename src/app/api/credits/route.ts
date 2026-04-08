@@ -4,7 +4,7 @@ import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 
-/** GET: 크레딧 잔여량 조회 */
+/** GET: 분석권 잔여 횟수 조회 */
 export async function GET() {
   const auth = await requireWorkspaceAuth("settings", "read");
   if (!auth.ok) return auth.response;

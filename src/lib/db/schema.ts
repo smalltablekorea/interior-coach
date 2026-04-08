@@ -623,7 +623,7 @@ export const billingRecords = pgTable("billing_records", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// ─── 분석 크레딧 ───
+// ─── 분석권 ───
 
 export const analysisCredits = pgTable("analysis_credits", {
   id: uuid("id").defaultRandom().primaryKey(),

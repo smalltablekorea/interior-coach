@@ -158,14 +158,14 @@ export default function EstimateCoachPage() {
 
 
 
-  // ─── 크레딧 & 프로 분석 상태 ───
+  // ─── 분석권 & 프로 분석 상태 ───
   const [credits, setCredits] = useState<{ total: number; used: number; remaining: number } | null>(null);
   const [proUnlocked, setProUnlocked] = useState(false);
   const [proLoading, setProLoading] = useState(false);
   const [proError, setProError] = useState<string | null>(null);
   const [proAnalysis, setProAnalysis] = useState<Record<string, unknown> | null>(null);
 
-  // 크레딧 조회
+  // 분석권 조회
   const fetchCredits = useCallback(async () => {
     try {
       const res = await fetch("/api/credits");
@@ -233,7 +233,7 @@ export default function EstimateCoachPage() {
         );
       } else {
         const err = await res.json();
-        setProError(err.error || "크레딧 사용에 실패했습니다.");
+        setProError(err.error || "분석권 사용에 실패했습니다.");
       }
     } catch {
       setProError("네트워크 오류가 발생했습니다.");
@@ -711,7 +711,7 @@ export default function EstimateCoachPage() {
               <p className="text-xs text-[var(--muted)] mt-0.5">
                 {proUnlocked
                   ? "현재 시뮬레이션 결과가 저장되었습니다"
-                  : "1크레딧으로 상세 분석 리포트를 잠금해제하세요"}
+                  : "분석권 1회로 상세 분석 리포트를 잠금해제하세요"}
               </p>
             </div>
           </div>
@@ -719,7 +719,7 @@ export default function EstimateCoachPage() {
             {credits !== null && (
               <span className="text-xs text-[var(--muted)]">
                 <Shield size={12} className="inline mr-1" />
-                잔여 {credits.remaining}크레딧
+                보유 {credits.remaining}회
               </span>
             )}
             {!proUnlocked && (
@@ -733,7 +733,7 @@ export default function EstimateCoachPage() {
                 ) : (
                   <Zap size={16} />
                 )}
-                {proLoading ? "분석 저장 중..." : "프로분석 (1크레딧)"}
+                {proLoading ? "분석 저장 중..." : "프로분석 (분석권 1회)"}
               </button>
             )}
           </div>
@@ -1473,7 +1473,7 @@ export default function EstimateCoachPage() {
               <h2 className="text-sm font-medium">프로 분석 리포트</h2>
               {credits !== null && (
                 <span className="ml-auto text-xs px-2.5 py-1 rounded-full bg-[var(--green)]/10 text-[var(--green)]">
-                  잔여 크레딧: {credits.remaining}회
+                  보유 분석권: {credits.remaining}회
                 </span>
               )}
             </div>
@@ -1533,24 +1533,24 @@ export default function EstimateCoachPage() {
                       ) : (
                         <>
                           <Unlock size={16} />
-                          1 크레딧 사용하여 프로 분석 보기
+                          분석권 1회 사용하여 프로 분석 보기
                         </>
                       )}
                     </button>
                   ) : credits !== null && credits.remaining <= 0 ? (
                     <div className="space-y-2">
-                      <p className="text-xs text-[var(--red)]">크레딧이 부족합니다</p>
+                      <p className="text-xs text-[var(--red)]">분석권이 부족합니다</p>
                       <Link
                         href="/pricing"
                         className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
                       >
-                        크레딧 충전하기
+                        분석권 구매하기
                       </Link>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
                       <Loader2 size={14} className="animate-spin" />
-                      크레딧 확인 중...
+                      분석권 확인 중...
                     </div>
                   )}
                 </div>

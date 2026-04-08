@@ -128,14 +128,14 @@ export default function RefundPolicyPage() {
             </div>
           </section>
 
-          {/* ━━━ 견적 분석 크레딧 ━━━ */}
+          {/* ━━━ 견적 분석권 ━━━ */}
           <section>
             <h2 className="text-xl font-bold text-[var(--foreground)] mb-5 flex items-center gap-2">
               <span className="w-1.5 h-6 rounded-full bg-[var(--orange)]" />
-              견적 분석 크레딧 환불
+              프로 분석권 환불
             </h2>
             <p className="mb-4">
-              AI 견적코치 분석 크레딧(1건/3건 패키지)에 대한 환불 정책입니다.
+              AI 프로 분석권(1회권 / 3회권)에 대한 환불 정책입니다.
             </p>
 
             <div className="space-y-4">
@@ -190,8 +190,34 @@ export default function RefundPolicyPage() {
 
             <div className="mt-4 p-4 rounded-xl bg-[var(--orange)]/5 border border-[var(--orange)]/20">
               <p className="text-[var(--foreground)] text-xs font-medium">
-                3건 패키지 구매 시, 미사용 건에 대해서는 사용 시점과 관계없이 환불 가능합니다.
+                3회권 구매 시, 미사용 분석권에 대해서는 사용 시점과 관계없이 환불 가능합니다.
               </p>
+            </div>
+          </section>
+
+          {/* ━━━ 서비스 제공 기간 ━━━ */}
+          <section>
+            <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20">
+              <h2 className="text-lg font-bold text-[var(--foreground)] mb-3 flex items-center gap-2">
+                <span className="w-1.5 h-6 rounded-full bg-blue-500" />
+                서비스 제공 기간
+              </h2>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-start gap-3">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs">1</span>
+                  <div>
+                    <p className="font-medium text-[var(--foreground)]">프로 분석권 (1회권 / 3회권)</p>
+                    <p className="text-[var(--muted)] text-xs mt-0.5">구매일로부터 <strong className="text-[var(--foreground)]">1년간</strong> 유효합니다. 1년 내 미사용 분석권은 소멸되며, 소멸 전 환불 요청 가능합니다.</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs">2</span>
+                  <div>
+                    <p className="font-medium text-[var(--foreground)]">월간 구독 (스타터 / 프로 플랜)</p>
+                    <p className="text-[var(--muted)] text-xs mt-0.5">결제일로부터 <strong className="text-[var(--foreground)]">1개월간</strong> 제공됩니다. 갱신일 전 해지하면 다음 달부터 과금되지 않습니다.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 
