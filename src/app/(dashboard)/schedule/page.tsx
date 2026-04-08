@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Building2, Hammer, Package,
-  LayoutGrid, TableProperties, Check, Plus, Trash2, Sparkles,
+  LayoutGrid, TableProperties, Check, Plus, Trash2, Sparkles, GripVertical,
 } from "lucide-react";
 import Link from "next/link";
 import Modal from "@/components/ui/Modal";
@@ -141,6 +141,55 @@ export default function SchedulePage() {
   const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
   const [phaseForm, setPhaseForm] = useState({ siteId: "", category: "", plannedStart: "", plannedEnd: "", status: "예정", progress: 0, memo: "" });
   const [saving, setSaving] = useState(false);
+
+  // ─── Excel-like inline editing ───
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null);
+  const [inlineEditVal, setInlineEditVal] = useState("");
+  const [draggingPhase, setDraggingPhase] = useState<{ phaseId: string; siteId: string; origDate: string } | null>(null);
+  const [dragOverCell, setDragOverCell] = useState<string | null>(null);
+
+  const handleInlineEdit = async (phaseId: string) => {
+    if (!inlineEditVal.trim()) { setInlineEditId(null); return; }
+    setInlineEditId(null);
+    // optimistic update
+    setPhases(prev => prev.map(p => p.id === phaseId ? { ...p, category: inlineEditVal.trim() } : p));
+    await fetch("/api/schedule", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: phaseId, category: inlineEditVal.trim() }) });
+  };
+
+  const handleQuickAdd = async (siteId: string, dateStr: string) => {
+    const category = prompt("공정명을 입력하세요");
+    if (!category?.trim()) return;
+    await fetch("/api/schedule", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ siteId, category: category.trim(), plannedStart: dateStr, plannedEnd: dateStr, status: "진행중", progress: 0 }),
+    });
+    fetchData(currentMonth);
+  };
+
+  const handleDrop = async (phaseId: string, newDate: string) => {
+    setDraggingPhase(null);
+    setDragOverCell(null);
+    // 해당 phase 찾기
+    const phase = phases.find(p => p.id === phaseId);
+    if (!phase) return;
+    const oldStart = phase.actualStart || phase.plannedStart;
+    const oldEnd = phase.actualEnd || phase.plannedEnd;
+    // 날짜 차이 계산
+    if (!oldStart) return;
+    const diffMs = new Date(newDate).getTime() - new Date(oldStart).getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    const newStart = newDate;
+    let newEnd = newDate;
+    if (oldEnd) {
+      const endD = new Date(oldEnd);
+      endD.setDate(endD.getDate() + diffDays);
+      newEnd = endD.toISOString().slice(0, 10);
+    }
+    // optimistic
+    setPhases(prev => prev.map(p => p.id === phaseId ? { ...p, plannedStart: newStart, plannedEnd: newEnd, actualStart: null, actualEnd: null } : p));
+    await fetch("/api/schedule", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: phaseId, plannedStart: newStart, plannedEnd: newEnd }) });
+  };
 
   const fetchData = (month: string) => {
     setLoading(true);
@@ -537,46 +586,98 @@ export default function SchedulePage() {
                           </div>
                         </td>
 
-                        {/* Site columns */}
+                        {/* Site columns — Excel-like */}
                         {sites.map((site) => {
                           const items = siteTableData.get(`${site.id}|${dateStr}`) || [];
+                          const cellKey = `${site.id}|${dateStr}`;
+                          const isDragOver = dragOverCell === cellKey;
 
                           return (
-                            <td key={site.id} className="border-r last:border-r-0 border-[var(--border)] px-2 py-1.5 align-top">
-                              {items.length > 0 && (
+                            <td
+                              key={site.id}
+                              className={`border-r last:border-r-0 border-[var(--border)] px-1.5 py-1 align-top min-h-[32px] transition-colors ${
+                                isDragOver ? "bg-[var(--green)]/10 ring-1 ring-inset ring-[var(--green)]/30" : ""
+                              }`}
+                              onDoubleClick={() => items.length === 0 && handleQuickAdd(site.id, dateStr)}
+                              onDragOver={(e) => { e.preventDefault(); setDragOverCell(cellKey); }}
+                              onDragLeave={() => setDragOverCell(null)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                const phaseId = e.dataTransfer.getData("phaseId");
+                                if (phaseId) handleDrop(phaseId, dateStr);
+                              }}
+                            >
+                              {items.length > 0 ? (
                                 <div className="space-y-0.5">
                                   {items.map((item, i) => {
                                     const phaseColor = item.kind === "phase" ? getPhaseColor(item.text) : null;
+                                    const isEditing = inlineEditId === item.phaseId;
                                     return (
-                                    <div key={i} className={`flex items-center gap-1.5 group/item rounded-md px-1.5 py-0.5 border transition-colors ${
-                                      item.kind === "phase" && phaseColor
-                                        ? `${phaseColor.bg} ${item.done ? "border-transparent opacity-50" : phaseColor.border}`
-                                        : "border-transparent"
-                                    }`}>
+                                    <div
+                                      key={i}
+                                      draggable={!!item.phaseId}
+                                      onDragStart={(e) => {
+                                        if (!item.phaseId) return;
+                                        e.dataTransfer.setData("phaseId", item.phaseId);
+                                        setDraggingPhase({ phaseId: item.phaseId, siteId: site.id, origDate: dateStr });
+                                      }}
+                                      onDragEnd={() => { setDraggingPhase(null); setDragOverCell(null); }}
+                                      className={`flex items-center gap-1 group/item rounded-md px-1.5 py-0.5 border transition-colors ${
+                                        item.kind === "phase" && phaseColor
+                                          ? `${phaseColor.bg} ${item.done ? "border-transparent opacity-50" : phaseColor.border}`
+                                          : "border-transparent"
+                                      } ${item.phaseId ? "cursor-grab active:cursor-grabbing" : ""}`}
+                                    >
+                                      {/* Drag handle */}
+                                      {item.phaseId && (
+                                        <GripVertical size={10} className="shrink-0 text-[var(--muted)] opacity-0 group-hover/item:opacity-40" />
+                                      )}
+                                      {/* Checkbox */}
                                       <button
                                         type="button"
-                                        onClick={() => item.phaseId && handleTogglePhase(item.phaseId, item.done)}
+                                        onClick={(e) => { e.stopPropagation(); item.phaseId && handleTogglePhase(item.phaseId, item.done); }}
                                         className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${
                                           item.done ? "bg-[var(--green)]/20 border-[var(--green)]/50" : "border-white/20 bg-transparent hover:border-[var(--green)]/30"
                                         } ${item.phaseId ? "cursor-pointer" : "cursor-default"}`}
                                       >
                                         {item.done && <Check size={8} className="text-[var(--green)]" />}
                                       </button>
-                                      <span
-                                        onClick={() => item.phaseId && openEditPhase(item.phaseId)}
-                                        className={`text-[11px] leading-snug flex-1 font-medium ${item.phaseId ? "cursor-pointer hover:underline" : ""} ${
-                                          item.done ? "text-[var(--muted)] line-through" :
-                                          item.kind === "order" ? "text-purple-400" :
-                                          item.kind === "delivery" ? "text-amber-400" :
-                                          phaseColor ? phaseColor.text :
-                                          "text-[var(--foreground)]"
-                                        }`}
-                                      >
-                                        {item.text}
-                                      </span>
-                                      {item.phaseId && (
+                                      {/* Text — inline editable */}
+                                      {isEditing ? (
+                                        <input
+                                          autoFocus
+                                          value={inlineEditVal}
+                                          onChange={(e) => setInlineEditVal(e.target.value)}
+                                          onBlur={() => handleInlineEdit(item.phaseId!)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") handleInlineEdit(item.phaseId!);
+                                            if (e.key === "Escape") setInlineEditId(null);
+                                          }}
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="text-[11px] font-medium bg-transparent border-b border-[var(--green)] outline-none flex-1 min-w-0 text-[var(--foreground)]"
+                                        />
+                                      ) : (
+                                        <span
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (item.phaseId) { setInlineEditId(item.phaseId); setInlineEditVal(item.text); }
+                                          }}
+                                          className={`text-[11px] leading-snug flex-1 font-medium min-w-0 truncate ${item.phaseId ? "cursor-text" : ""} ${
+                                            item.done ? "text-[var(--muted)] line-through" :
+                                            item.kind === "order" ? "text-purple-400" :
+                                            item.kind === "delivery" ? "text-amber-400" :
+                                            phaseColor ? phaseColor.text :
+                                            "text-[var(--foreground)]"
+                                          }`}
+                                          title="클릭하여 수정"
+                                        >
+                                          {item.text}
+                                        </span>
+                                      )}
+                                      {/* Delete */}
+                                      {item.phaseId && !isEditing && (
                                         <button
-                                          onClick={() => handleDeletePhase(item.phaseId!)}
+                                          onClick={(e) => { e.stopPropagation(); handleDeletePhase(item.phaseId!); }}
                                           className="opacity-0 group-hover/item:opacity-100 w-3.5 h-3.5 flex items-center justify-center rounded text-[var(--muted)] hover:text-[var(--red)] transition-all shrink-0"
                                         >
                                           <Trash2 size={9} />
@@ -585,6 +686,14 @@ export default function SchedulePage() {
                                     </div>
                                     );
                                   })}
+                                </div>
+                              ) : (
+                                /* Empty cell — show + on hover */
+                                <div
+                                  className="h-full min-h-[24px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                                  onClick={() => handleQuickAdd(site.id, dateStr)}
+                                >
+                                  <Plus size={12} className="text-[var(--muted)]" />
                                 </div>
                               )}
                             </td>
