@@ -25,7 +25,7 @@ export default function ChatComposer({ onSend, disabled, placeholder = "메시�
   }, [text, files, onSend]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
@@ -144,7 +144,7 @@ export default function ChatComposer({ onSend, disabled, placeholder = "메시�
           <Send size={16} />
         </button>
       </div>
-      <p className="text-[9px] text-[var(--muted)] text-center pb-2">Ctrl+Enter로 전송</p>
+      <p className="text-[9px] text-[var(--muted)] text-center pb-2">Enter 전송 · Shift+Enter 줄바꿈</p>
     </div>
   );
 }
