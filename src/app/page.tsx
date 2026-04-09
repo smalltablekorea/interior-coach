@@ -85,35 +85,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Founder Story ─── */}
-      <section className="py-16 md:py-24">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center gap-10">
-            {/* PHOTO_PENDING — 촬영 후 교체 */}
-            <div className="shrink-0 w-32 h-32 md:w-40 md:h-40 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center">
-              <svg viewBox="0 0 80 80" className="w-20 h-20 text-[var(--muted)]">
-                <circle cx="40" cy="28" r="14" fill="currentColor" opacity="0.3" />
-                <path d="M15 70c0-14 11-25 25-25s25 11 25 25" fill="currentColor" opacity="0.2" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[var(--green)] mb-2">만드는 사람</p>
-              <h2 className="text-xl md:text-2xl font-bold mb-4">
-                7년차 현역 인테리어 창업가가 직접 쓰려고 만들고 있습니다.
-              </h2>
-              <p className="text-sm text-[var(--muted)] leading-relaxed mb-3">
-                잠실 르엘 현장에서 지금 이 제품으로 일하고 있어요.
-                카톡 단톡방에 사진이 묻히고, 고객은 매일 전화하고, 엑셀 공정표는 현장에서 쓸 수가 없었습니다.
-              </p>
-              <p className="text-sm text-[var(--muted)] leading-relaxed">
-                그래서 직접 만들었습니다. 현장 사장님이 매일 쓰는 도구를, 현장 사장님 입장에서.
-              </p>
-              <p className="mt-4 text-sm font-medium">배다솜 · 스몰테이블 대표</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ─── Problem Agitation ─── */}
       <section className="py-16 md:py-24 bg-white/[0.02]">
         <div className="max-w-5xl mx-auto px-6">
@@ -157,6 +128,35 @@ export default function LandingPage() {
                 <p className="text-sm text-[var(--muted)] leading-relaxed">{f.desc}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Founder Story ─── */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center gap-10">
+            {/* PHOTO_PENDING — 촬영 후 교체 */}
+            <div className="shrink-0 w-32 h-32 md:w-40 md:h-40 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center">
+              <svg viewBox="0 0 80 80" className="w-20 h-20 text-[var(--muted)]">
+                <circle cx="40" cy="28" r="14" fill="currentColor" opacity="0.3" />
+                <path d="M15 70c0-14 11-25 25-25s25 11 25 25" fill="currentColor" opacity="0.2" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--green)] mb-2">만드는 사람</p>
+              <h2 className="text-xl md:text-2xl font-bold mb-4">
+                7년차 현역 인테리어 창업가가 직접 쓰려고 만들고 있습니다.
+              </h2>
+              <p className="text-sm text-[var(--muted)] leading-relaxed mb-3">
+                잠실 르엘 현장에서 지금 이 제품으로 일하고 있어요.
+                카톡 단톡방에 사진이 묻히고, 고객은 매일 전화하고, 엑셀 공정표는 현장에서 쓸 수가 없었습니다.
+              </p>
+              <p className="text-sm text-[var(--muted)] leading-relaxed">
+                그래서 직접 만들었습니다. 현장 사장님이 매일 쓰는 도구를, 현장 사장님 입장에서.
+              </p>
+              <p className="mt-4 text-sm font-medium">배다솜 · 스몰테이블 대표</p>
+            </div>
           </div>
         </div>
       </section>
