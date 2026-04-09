@@ -1,633 +1,226 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import {
-  Building2,
-  Sparkles,
-  Megaphone,
-  Calculator,
-  ArrowRight,
-  Play,
-  Users,
-  Minus,
-  Plus,
-  Check,
-} from "lucide-react";
-import SocialProofWidget from "@/components/SocialProofWidget";
-import {
-  CATS,
-  GRADES,
-  calcCatTotal,
-} from "@/lib/estimate-engine";
-import { fmtShort, cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
+import { ArrowRight, CheckCircle2, MessageSquare, Clock, Camera, ChevronRight } from "lucide-react";
 
-// ─── Counter Animation Hook ───
+const LiveDemo = dynamic(() => import("@/components/landing/LiveDemo"), { ssr: false });
 
-function useCountUp(target: number, duration = 1200) {
-  const [value, setValue] = useState(0);
-  const [started, setStarted] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) setStarted(true);
-      },
-      { threshold: 0.3 }
-    );
-    observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!started) return;
-    const start = performance.now();
-    function tick(now: number) {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(target * eased));
-      if (progress < 1) requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  }, [started, target, duration]);
-
-  return { value, ref };
-}
-
-// ─── 견적코치 미니 데모 ───
-
-function EstimateCoachMiniDemo() {
-  const [area, setArea] = useState(27);
-  const [grade, setGrade] = useState("standard");
-
-  const gradeOptions = GRADES.filter((g) =>
-    ["economy", "standard", "comfort", "premium"].includes(g.key)
-  );
-
-  const selectedGrade = GRADES.find((g) => g.key === grade) || GRADES[2];
-
-  const breakdown = CATS.map((cat) => ({
-    id: cat.id,
-    name: cat.name,
-    icon: cat.icon,
-    color: cat.color,
-    total: calcCatTotal(cat, area, grade),
-  }));
-
-  const directTotal = breakdown.reduce((s, c) => s + c.total, 0);
-  const topCats = [...breakdown].sort((a, b) => b.total - a.total).slice(0, 5);
-  const maxCatTotal = topCats[0]?.total || 1;
-
-  return (
-    <div className="p-6 rounded-2xl bg-[var(--card)] border border-[var(--border)]">
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <label className="text-xs text-[var(--muted)] mb-1.5 block">
-            평수
-          </label>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setArea(Math.max(10, area - 1))}
-              className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-white/[0.06] text-[var(--muted)]"
-            >
-              <Minus size={14} />
-            </button>
-            <div className="flex-1">
-              <input
-                type="range"
-                min={10}
-                max={80}
-                value={area}
-                onChange={(e) => setArea(Number(e.target.value))}
-                className="w-full accent-[var(--green)]"
-              />
-            </div>
-            <button
-              onClick={() => setArea(Math.min(80, area + 1))}
-              className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-white/[0.06] text-[var(--muted)]"
-            >
-              <Plus size={14} />
-            </button>
-            <span className="text-lg font-bold min-w-[60px] text-right">
-              {area}평
-            </span>
-          </div>
-        </div>
-        <div className="sm:w-48">
-          <label className="text-xs text-[var(--muted)] mb-1.5 block">
-            등급
-          </label>
-          <div className="grid grid-cols-2 gap-1.5">
-            {gradeOptions.map((g) => (
-              <button
-                key={g.key}
-                onClick={() => setGrade(g.key)}
-                className={cn(
-                  "px-2.5 py-2 rounded-lg text-xs font-medium transition-colors",
-                  grade === g.key
-                    ? "bg-[var(--green)]/10 text-[var(--green)] border border-[var(--green)]/30"
-                    : "bg-white/[0.04] text-[var(--muted)] hover:bg-white/[0.08]"
-                )}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Result Summary */}
-      <div className="p-4 rounded-xl bg-gradient-to-r from-[var(--green)]/5 to-transparent border border-[var(--green)]/20 mb-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs text-[var(--muted)]">
-              {area}평 · {selectedGrade.label} 등급 예상 총 공사비
-            </p>
-            <p className="text-2xl font-bold mt-1">{fmtShort(directTotal)}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-[var(--muted)]">평당</p>
-            <p className="text-lg font-bold">
-              {fmtShort(Math.round(directTotal / area))}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Categories Chart */}
-      <div className="space-y-2.5">
-        {topCats.map((cat) => {
-          const pct = (cat.total / maxCatTotal) * 100;
-          const sharePct =
-            directTotal > 0 ? ((cat.total / directTotal) * 100).toFixed(1) : "0";
-          return (
-            <div key={cat.id}>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold"
-                    style={{
-                      backgroundColor: cat.color + "20",
-                      color: cat.color,
-                    }}
-                  >
-                    {cat.icon}
-                  </span>
-                  <span className="text-sm">{cat.name}</span>
-                  <span className="text-[10px] text-[var(--muted)]">
-                    {sharePct}%
-                  </span>
-                </div>
-                <span className="text-sm font-medium tabular-nums">
-                  {fmtShort(cat.total)}
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${pct}%`,
-                    backgroundColor: cat.color,
-                    opacity: 0.7,
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-5 text-center">
-        <Link
-          href="/estimates/coach"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-semibold hover:opacity-90 transition-opacity"
-        >
-          전체 분석 보기
-          <ArrowRight size={16} />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-// ─── Feature Cards ───
-
-const FEATURES = [
-  {
-    icon: Building2,
-    title: "현장관리",
-    desc: "공정/일정/사진/수금을 현장별로 통합 관리. 헬스 스코어로 위험 현장을 한눈에 파악합니다.",
-    color: "var(--blue)",
-    highlights: ["공정별 진행률", "현장 헬스 스코어", "사진 기록"],
-  },
-  {
-    icon: Sparkles,
-    title: "견적코치 AI",
-    desc: "평수·등급별 실시간 견적 시뮬레이션. AI가 비용 절감 포인트와 업체 비교 팁을 코칭합니다.",
-    color: "var(--green)",
-    highlights: ["12공종 분석", "등급별 비교", "AI 맞춤 상담"],
-  },
-  {
-    icon: Megaphone,
-    title: "마케팅 자동화",
-    desc: "스레드·인스타·블로그·유튜브 콘텐츠를 AI가 생성하고 자동 발행합니다.",
-    color: "var(--orange)",
-    highlights: ["5채널 자동화", "AI 콘텐츠 생성", "메타 광고 대시보드"],
-  },
-  {
-    icon: Calculator,
-    title: "세무/회계",
-    desc: "OCR 영수증 스캔, 부가세 자동 산출, AI 세무 상담으로 세무사 비용을 절감합니다.",
-    color: "var(--red)",
-    highlights: ["OCR 영수증", "부가세 자동", "AI 세무 상담"],
-  },
-];
-
-// ─── Cost Comparison ───
-
-const COST_ITEMS = [
-  { label: "네이버 블로그 대행", cost: 700000 },
-  { label: "세무사 기장료", cost: 100000 },
-  { label: "SNS 대행", cost: 500000 },
-];
-
-// ─── Main Landing Page ───
+// ─── 헤드라인 A/B variant (env: NEXT_PUBLIC_HEADLINE_VARIANT) ───
+const HEADLINES: Record<string, { main: string; sub: string }> = {
+  "1": { main: "현장이 돌아가는\n단 하나의 톡방", sub: "카톡 100개의 지옥 대신, 현장마다 톡방 하나.\n고객과 목수, 자재상까지 한 화면에서." },
+  "2": { main: "카톡 100개 대신,\n현장 하나에 톡방 하나", sub: "시공 사진, 공정 일정, 자재 발주, 고객 공유까지.\n흩어진 현장 소통을 하나로 정리합니다." },
+  "3": { main: "밤 11시에도\n현장은 혼자 돌아갑니다", sub: "사진 자동 정리, 공정 알림, 고객 포털.\n사장님이 안 봐도 현장은 돌아갑니다." },
+  "4": { main: "고객에게 '이 업체\n뭔가 다르네' 듣는 톡방", sub: "고객 포털 하나로 신뢰가 올라갑니다.\n진행 상황을 실시간으로 공유하세요." },
+  "5": { main: "인테리어 현장이\n처음으로 정리되는 곳", sub: "카톡에 묻힌 사진, 엑셀 공정표, 전화 수금.\n전부 한 곳에서 해결됩니다." },
+};
+const variant = typeof window !== "undefined"
+  ? (process.env.NEXT_PUBLIC_HEADLINE_VARIANT || "1")
+  : "1";
+const headline = HEADLINES[variant] || HEADLINES["1"];
 
 export default function LandingPage() {
-  const stats1 = useCountUp(1247);
-  const stats2 = useCountUp(38500);
-  const stats3 = useCountUp(92);
-
-  const totalCurrent = COST_ITEMS.reduce((s, c) => s + c.cost, 0);
-  const proPrice = 299000;
-  const savings = totalCurrent - proPrice;
-
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      {/* ─── Header ─── */}
-      <header className="border-b border-[var(--border)] sticky top-0 z-50 bg-[var(--background)]/80 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[var(--green)] flex items-center justify-center">
-              <span className="text-black font-bold text-sm">IC</span>
-            </div>
-            <span className="font-bold text-lg">인테리어코치</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-[var(--muted)]">
-            <a href="#features" className="hover:text-[var(--foreground)] transition-colors">
-              기능
-            </a>
-            <a href="#demo" className="hover:text-[var(--foreground)] transition-colors">
-              데모
-            </a>
-            <a href="#pricing-compare" className="hover:text-[var(--foreground)] transition-colors">
-              비용 비교
-            </a>
-            <Link href="/pricing" className="hover:text-[var(--foreground)] transition-colors">
-              요금제
-            </Link>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/auth/login"
-              className="px-4 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
-            >
-              로그인
-            </Link>
-            <Link
-              href="/auth/login"
-              className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
-              무료 시작
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+      {/* ─── Nav ─── */}
+      <nav className="sticky top-0 z-50 bg-[var(--background)]/80 backdrop-blur-xl border-b border-[var(--border)]">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="text-lg font-bold text-[var(--green)]">인테리어코치</Link>
+          <div className="flex items-center gap-4">
+            <Link href="/estimates/coach" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors hidden sm:block">견적코치</Link>
+            <Link href="/pricing" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors hidden sm:block">요금제</Link>
+            <Link href="/auth/login" className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-semibold hover:opacity-90 transition-opacity">
+              무료로 시작하기
             </Link>
           </div>
         </div>
-      </header>
+      </nav>
 
       {/* ─── Hero ─── */}
-      <section className="relative overflow-hidden">
-        {/* Background Glow */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-[-200px] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[var(--green)]/[0.04] rounded-full blur-[120px]" />
-        </div>
-
-        <div className="relative max-w-5xl mx-auto px-6 pt-20 pb-16 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--green)]/10 border border-[var(--green)]/20 text-xs text-[var(--green)] mb-6">
-            <Sparkles size={14} />
-            AI 기반 인테리어 업체 올인원 SaaS
+      <section className="pt-20 pb-16 md:pt-28 md:pb-20">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white/[0.04] border border-[var(--border)] mb-8">
+            <span className="text-xs text-[var(--muted)]">베타 운영 중</span>
+            <span className="w-px h-3 bg-[var(--border)]" />
+            <span className="text-xs text-[var(--muted)]">자재DB 868건</span>
+            <span className="w-px h-3 bg-[var(--border)]" />
+            <span className="text-xs text-[var(--muted)]">Build in Public</span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
-            인테리어 업체의
-            <br />
-            <span className="text-[var(--green)]">모든 업무, 하나로.</span>
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-black leading-tight tracking-tight whitespace-pre-line">
+            {headline.main.split("\n").map((line, i) => (
+              <span key={i}>
+                {i === 1 ? <span className="text-[var(--green)]">{line}</span> : line}
+                {i === 0 && <br />}
+              </span>
+            ))}
           </h1>
 
-          <p className="mt-5 text-base md:text-lg text-[var(--muted)] max-w-2xl mx-auto leading-relaxed">
-            현장관리 · 견적 · 마케팅 · 세무회계까지
-            <br className="hidden sm:block" />
-            월 30만원 하나로 블로그 대행 + 세무사 + 현장앱을 대체하세요.
+          <p className="mt-6 text-lg md:text-xl text-[var(--muted)] max-w-2xl mx-auto leading-relaxed whitespace-pre-line">
+            {headline.sub}
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
-            <Link
-              href="/auth/login"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[var(--green)] text-black font-semibold hover:opacity-90 transition-opacity text-base"
-            >
-              무료로 시작하기
-              <ArrowRight size={18} />
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-10">
+            <Link href="/auth/login" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[var(--green)] text-black font-bold text-base hover:opacity-90 transition-opacity">
+              무료로 시작하기 <ArrowRight size={18} />
             </Link>
-            <a
-              href="#demo"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors"
-            >
-              <Play size={16} />
-              견적코치 데모 보기
+            <a href="#demo" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-[var(--border)] text-sm font-medium hover:bg-white/[0.04] transition-colors">
+              어떻게 동작하나요 <ChevronRight size={16} />
             </a>
           </div>
 
-          <p className="text-xs text-[var(--muted)] mt-3">
-            카드 등록 불필요 · 영구 무료 플랜 포함 · 3분 만에 시작
-          </p>
-
-          <div className="mt-6 flex justify-center">
-            <SocialProofWidget />
-          </div>
+          <p className="mt-4 text-xs text-[var(--muted)]">14일 무료 체험 · 카드 등록 불필요 · 해지 버튼 한 번</p>
         </div>
       </section>
 
-      {/* ─── Social Proof / Stats ─── */}
-      <section className="py-12 border-y border-[var(--border)]">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="grid grid-cols-3 gap-6 text-center">
-            <div ref={stats1.ref}>
-              <p className="text-3xl md:text-4xl font-bold text-[var(--green)]">
-                {stats1.value.toLocaleString()}+
-              </p>
-              <p className="text-sm text-[var(--muted)] mt-1">사용 업체</p>
-            </div>
-            <div ref={stats2.ref}>
-              <p className="text-3xl md:text-4xl font-bold text-[var(--green)]">
-                {stats2.value.toLocaleString()}+
-              </p>
-              <p className="text-sm text-[var(--muted)] mt-1">견적 분석 건수</p>
-            </div>
-            <div ref={stats3.ref}>
-              <p className="text-3xl md:text-4xl font-bold text-[var(--green)]">
-                {stats3.value}%
-              </p>
-              <p className="text-sm text-[var(--muted)] mt-1">고객 만족도</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Features ─── */}
-      <section id="features" className="py-20">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold">
-              하나의 플랫폼, 네 가지 핵심 기능
-            </h2>
-            <p className="text-[var(--muted)] mt-3 max-w-lg mx-auto">
-              인테리어 업체 운영에 필요한 모든 도구를 하나로 통합했습니다.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {FEATURES.map((f) => (
-              <div
-                key={f.title}
-                className="p-6 rounded-2xl bg-[var(--card)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-all hover:-translate-y-0.5"
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-                  style={{ backgroundColor: f.color + "15" }}
-                >
-                  <f.icon size={22} style={{ color: f.color }} />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
-                <p className="text-sm text-[var(--muted)] leading-relaxed mb-4">
-                  {f.desc}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {f.highlights.map((h) => (
-                    <span
-                      key={h}
-                      className="px-2.5 py-1 rounded-lg text-xs font-medium bg-white/[0.04] text-[var(--muted)]"
-                    >
-                      {h}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ─── Estimate Coach Mini Demo ─── */}
-      <section id="demo" className="py-20 bg-white/[0.02]">
+      {/* ─── Live Demo ─── */}
+      <section id="demo" className="py-16 md:py-24 bg-white/[0.02]">
         <div className="max-w-4xl mx-auto px-6">
           <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold">
-              견적코치 AI를 직접 체험해보세요
-            </h2>
-            <p className="text-[var(--muted)] mt-3">
-              평수와 등급만 조절하면 AI가 12개 공종별 상세 견적을 즉시
-              분석합니다.
-            </p>
+            <p className="text-sm font-semibold text-[var(--green)] mb-3">직접 보세요</p>
+            <h2 className="text-2xl md:text-3xl font-bold">실제 현장 톡방은 이렇게 동작합니다</h2>
+            <p className="text-sm text-[var(--muted)] mt-2">가입 없이 아래에서 바로 확인하세요</p>
           </div>
-
-          <EstimateCoachMiniDemo />
+          <LiveDemo />
         </div>
       </section>
 
-      {/* ─── Cost Comparison ─── */}
-      <section id="pricing-compare" className="py-20">
+      {/* ─── Founder Story ─── */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center gap-10">
+            {/* PHOTO_PENDING — 촬영 후 교체 */}
+            <div className="shrink-0 w-32 h-32 md:w-40 md:h-40 rounded-2xl bg-[var(--card)] border border-[var(--border)] flex items-center justify-center">
+              <svg viewBox="0 0 80 80" className="w-20 h-20 text-[var(--muted)]">
+                <circle cx="40" cy="28" r="14" fill="currentColor" opacity="0.3" />
+                <path d="M15 70c0-14 11-25 25-25s25 11 25 25" fill="currentColor" opacity="0.2" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-[var(--green)] mb-2">만드는 사람</p>
+              <h2 className="text-xl md:text-2xl font-bold mb-4">
+                7년차 현역 인테리어 창업가가 직접 쓰려고 만들고 있습니다.
+              </h2>
+              <p className="text-sm text-[var(--muted)] leading-relaxed mb-3">
+                잠실 르엘 현장에서 지금 이 제품으로 일하고 있어요.
+                카톡 단톡방에 사진이 묻히고, 고객은 매일 전화하고, 엑셀 공정표는 현장에서 쓸 수가 없었습니다.
+              </p>
+              <p className="text-sm text-[var(--muted)] leading-relaxed">
+                그래서 직접 만들었습니다. 현장 사장님이 매일 쓰는 도구를, 현장 사장님 입장에서.
+              </p>
+              <p className="mt-4 text-sm font-medium">배다솜 · 스몰테이블 대표</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Problem Agitation ─── */}
+      <section className="py-16 md:py-24 bg-white/[0.02]">
         <div className="max-w-5xl mx-auto px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold">
-              매달 이만큼 쓰고 계시진 않나요?
-            </h2>
-            <p className="text-[var(--muted)] mt-3">
-              인테리어코치 Pro 하나면 전부 해결됩니다.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            {/* Current Cost */}
-            <div className="space-y-3">
-              {COST_ITEMS.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center justify-between p-4 rounded-xl border border-[var(--border)] bg-[var(--card)]"
-                >
-                  <span className="text-sm">{item.label}</span>
-                  <span className="text-sm font-medium text-[var(--red)]">
-                    월 {fmtShort(item.cost)}
-                  </span>
-                </div>
-              ))}
-              <div className="flex items-center justify-between p-4 rounded-xl border border-[var(--red)]/30 bg-[var(--red)]/5">
-                <span className="text-sm font-semibold">합계</span>
-                <span className="text-xl font-bold text-[var(--red)]">
-                  월 {fmtShort(totalCurrent)}
-                </span>
-              </div>
-            </div>
-
-            {/* Solution */}
-            <div className="flex flex-col items-center">
-              <div className="text-center p-8 rounded-2xl border-2 border-[var(--green)] bg-[var(--green)]/5 w-full">
-                <p className="text-sm text-[var(--muted)] mb-1">
-                  인테리어코치 Pro
-                </p>
-                <p className="text-4xl font-bold text-[var(--green)]">
-                  월 {fmtShort(proPrice)}
-                </p>
-                <p className="text-xs text-[var(--muted)] mt-2">
-                  위 서비스 전부 + 현장관리 + 견적 AI + 고객관리
-                </p>
-              </div>
-
-              <div className="mt-5 p-4 rounded-xl bg-[var(--green)]/10 border border-[var(--green)]/20 w-full text-center">
-                <p className="text-sm text-[var(--muted)]">연간 절감액</p>
-                <p className="text-3xl font-bold text-[var(--green)] mt-1">
-                  {fmtShort(savings * 12)}
-                </p>
-                <p className="text-xs text-[var(--muted)] mt-1">
-                  매달 {fmtShort(savings)}을 아끼면서 더 많은 기능을!
-                </p>
-              </div>
-
-              <Link
-                href="/pricing"
-                className="mt-5 inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors"
-              >
-                전체 요금제 비교하기
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── How It Works ─── */}
-      <section className="py-20 bg-white/[0.02]">
-        <div className="max-w-4xl mx-auto px-6">
           <div className="text-center mb-12">
-            <h2 className="text-2xl md:text-3xl font-bold">
-              3분이면 시작할 수 있습니다
-            </h2>
+            <h2 className="text-2xl md:text-3xl font-bold">이런 경험, 있으시죠?</h2>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             {[
-              {
-                step: "01",
-                title: "회원가입",
-                desc: "이메일 하나로 즉시 가입. 카드 등록 없이 무료 플랜을 바로 시작합니다.",
-                icon: Users,
-              },
-              {
-                step: "02",
-                title: "첫 현장 등록",
-                desc: "현장 이름과 주소만 입력하면 끝. 공정/일정/예산 관리가 자동 세팅됩니다.",
-                icon: Building2,
-              },
-              {
-                step: "03",
-                title: "AI 코칭 시작",
-                desc: "견적코치 AI가 비용 분석, 마케팅 자동화, 세무 상담을 즉시 지원합니다.",
-                icon: Sparkles,
-              },
-            ].map((s) => (
-              <div
-                key={s.step}
-                className="text-center p-6 rounded-2xl bg-[var(--card)] border border-[var(--border)]"
-              >
-                <div className="text-3xl font-bold text-[var(--green)]/30 mb-3">
-                  {s.step}
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-[var(--green)]/10 flex items-center justify-center mx-auto mb-4">
-                  <s.icon size={24} className="text-[var(--green)]" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">{s.title}</h3>
-                <p className="text-sm text-[var(--muted)] leading-relaxed">
-                  {s.desc}
-                </p>
+              { emoji: "😵", title: "밤 11시, 카톡 100개", desc: "단톡방 3개에 사진, 메모, 도면이 뒤섞여 있습니다. 어제 목수한테 보낸 게 어디 있는지 10분째 찾고 있어요." },
+              { emoji: "📞", title: "'지금 어디까지 됐나요?'", desc: "고객은 매일 전화합니다. 진행 상황을 하나하나 설명하느라 하루에 30분이 사라져요." },
+              { emoji: "💸", title: "수금 떼인 뒤에야", desc: "잔금 날짜를 놓쳐서 3번이나 전화해야 했습니다. 엑셀에 적어놨는데 현장에서는 못 봤어요." },
+            ].map((card, i) => (
+              <div key={i} className="p-6 rounded-2xl bg-[var(--card)] border border-[var(--border)]">
+                <span className="text-2xl">{card.emoji}</span>
+                <h3 className="text-base font-bold mt-3 mb-2">{card.title}</h3>
+                <p className="text-sm text-[var(--muted)] leading-relaxed">{card.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ─── 견적 분석 가격 (3건 패키지 포함) ─── */}
-      <section className="py-20">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold">
-              견적 분석 가격
-            </h2>
-            <p className="text-[var(--muted)] mt-3">
-              견적서 사진만 올리면 AI가 공종별 과다/과소 항목을 분석합니다
-            </p>
+      {/* ─── The Single Room Promise ─── */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-5xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold text-[var(--green)] mb-3">해결책</p>
+            <h2 className="text-2xl md:text-3xl font-bold">현장 하나에 톡방 하나</h2>
+            <p className="text-sm text-[var(--muted)] mt-2">채팅 + 사이드바(진행률·수금·하자) + 자동 사진 아카이브. 고객도 같은 방에서 볼 수 있습니다.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto">
-            {/* 1건 */}
-            <div className="p-6 rounded-2xl bg-[var(--card)] border border-[var(--border)] text-center">
-              <p className="text-sm text-[var(--muted)] mb-2">1건 분석</p>
-              <p className="text-3xl font-bold">39,900<span className="text-base font-normal text-[var(--muted)]">원</span></p>
-              <ul className="mt-4 space-y-2 text-left">
-                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                  <Check size={14} className="text-[var(--green)] shrink-0" />
-                  공종별 상세 분석
-                </li>
-                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                  <Check size={14} className="text-[var(--green)] shrink-0" />
-                  과다/과소 항목 지적
-                </li>
-                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                  <Check size={14} className="text-[var(--green)] shrink-0" />
-                  절감 포인트 분석
-                </li>
-              </ul>
-            </div>
-
-            {/* 3건 패키지 */}
-            <div className="p-6 rounded-2xl bg-[var(--card)] border-2 border-[var(--green)] text-center relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-[var(--green)] text-black text-xs font-semibold">
-                인기
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { icon: <MessageSquare size={24} />, title: "현장 톡방", desc: "사진, 메모, 파일을 현장별로 정리. 카톡 대신 여기서 소통. 고객에게 링크 하나로 공유." },
+              { icon: <Clock size={24} />, title: "AI 공정매니저", desc: "평수+공종만 선택하면 공정표 자동 생성. 간트차트, 드래그 일정 조절, 발주 타이밍 알림." },
+              { icon: <Camera size={24} />, title: "시공 사진 관리", desc: "날짜·공종별 자동 정리. 준공 사진 관리. 고객 포털에 바로 공유." },
+            ].map((f, i) => (
+              <div key={i} className="p-6 rounded-2xl bg-[var(--card)] border border-[var(--border)] hover:border-[var(--green)]/30 transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-[var(--green)]/10 flex items-center justify-center text-[var(--green)] mb-4">{f.icon}</div>
+                <h3 className="text-lg font-bold mb-2">{f.title}</h3>
+                <p className="text-sm text-[var(--muted)] leading-relaxed">{f.desc}</p>
               </div>
-              <p className="text-sm text-[var(--muted)] mb-2">3회권</p>
-              <p className="text-3xl font-bold">99,900<span className="text-base font-normal text-[var(--muted)]">원</span></p>
-              <p className="text-xs text-[var(--green)] mt-1">1건당 33,300원 · 17% 할인</p>
-              <ul className="mt-4 space-y-2 text-left">
-                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                  <Check size={14} className="text-[var(--green)] shrink-0" />
-                  1건 분석의 모든 기능 포함
-                </li>
-                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                  <Check size={14} className="text-[var(--green)] shrink-0" />
-                  여러 업체 견적 비교 가능
-                </li>
-                <li className="flex items-center gap-2 text-sm text-[var(--muted)]">
-                  <Check size={14} className="text-[var(--green)] shrink-0" />
-                  미사용 건은 마이페이지에서 사용
-                </li>
-              </ul>
-            </div>
+            ))}
           </div>
+        </div>
+      </section>
 
-          <p className="text-center text-xs text-[var(--muted)] mt-4">
-            분석 완료 후 24시간 이내 전액 환불 가능 ·{" "}
-            <Link href="/refund-policy" className="underline hover:text-[var(--foreground)]">환불 정책</Link>
+      {/* ─── Roadmap Transparency ─── */}
+      <section className="py-16 md:py-24 bg-white/[0.02]">
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold">이 순서대로 만들고 있습니다</h2>
+            <p className="text-sm text-[var(--muted)] mt-2">Threads에서 실시간 공개 중</p>
+          </div>
+          <div className="space-y-3">
+            {[
+              { status: "done", label: "현장 톡방 + 고객 포털", when: "지금" },
+              { status: "next", label: "공정매니저 심화", when: "Q2 2026" },
+              { status: "plan", label: "견적코치 연동", when: "Q3 2026" },
+              { status: "plan", label: "마케팅 자동화", when: "Q4 2026" },
+              { status: "plan", label: "세무/회계", when: "2027" },
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-[var(--card)] border border-[var(--border)]">
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                  item.status === "done" ? "bg-[var(--green)]/20 text-[var(--green)]" :
+                  item.status === "next" ? "bg-amber-500/20 text-amber-400" :
+                  "bg-white/[0.06] text-[var(--muted)]"
+                }`}>
+                  {item.status === "done" ? <CheckCircle2 size={14} /> : item.status === "next" ? "🔜" : "○"}
+                </span>
+                <span className="flex-1 text-sm font-medium">{item.label}</span>
+                <span className="text-xs text-[var(--muted)]">{item.when}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Pricing — 단순화 ─── */}
+      <section className="py-16 md:py-24">
+        <div className="max-w-3xl mx-auto px-6 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">가격</h2>
+          <div className="p-8 rounded-2xl bg-[var(--card)] border-2 border-[var(--green)] max-w-md mx-auto">
+            <p className="text-sm text-[var(--muted)] mb-2">월간 구독</p>
+            <p className="text-4xl font-black">300,000<span className="text-base font-normal text-[var(--muted)]">원/월</span></p>
+            <p className="text-sm text-[var(--green)] mt-2 mb-6">14일 무료 체험 · 카드 등록 불필요 · 언제든 해지</p>
+            <ul className="text-left space-y-2 mb-6">
+              {[
+                "현장 톡방 무제한",
+                "고객 포털 공유",
+                "AI 공정매니저",
+                "시공 사진 관리",
+                "견적 분석 AI",
+                "고객·협력사 관리",
+              ].map((f, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm">
+                  <CheckCircle2 size={14} className="text-[var(--green)] shrink-0" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <Link href="/auth/login" className="block w-full py-3.5 rounded-xl bg-[var(--green)] text-black font-bold text-center hover:opacity-90 transition-opacity">
+              14일 무료 체험 시작
+            </Link>
+          </div>
+          <p className="mt-4 text-xs text-[var(--muted)]">
+            현장 3개까지는 무료 플랜으로 계속 사용 가능
           </p>
         </div>
       </section>
@@ -636,31 +229,14 @@ export default function LandingPage() {
       <section className="py-20 bg-gradient-to-b from-[var(--green)]/10 to-transparent">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-2xl md:text-3xl font-bold">
-            인테리어 사업의 모든 업무,
+            지금 바로 시작해서,
             <br />
-            지금 바로 하나로 관리하세요.
+            5분 안에 샘플 현장 톡방을 써보세요.
           </h2>
-          <p className="text-[var(--muted)] mt-4 max-w-lg mx-auto">
-            영구 무료 플랜으로 시작하세요. 카드 등록이 필요 없습니다.
-            <br />
-            Pro 플랜은 14일 무료 체험 후 결정하세요.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
-            <Link
-              href="/auth/login"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[var(--green)] text-black font-semibold hover:opacity-90 transition-opacity text-base"
-            >
-              무료로 시작하기
-              <ArrowRight size={18} />
-            </Link>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors"
-            >
-              요금제 비교하기
-            </Link>
-          </div>
+          <p className="text-[var(--muted)] mt-4">가입 즉시 샘플 현장이 자동 생성됩니다.</p>
+          <Link href="/auth/login" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-[var(--green)] text-black font-bold text-base hover:opacity-90 transition-opacity mt-8">
+            무료로 시작하기 <ArrowRight size={18} />
+          </Link>
         </div>
       </section>
 
@@ -672,10 +248,10 @@ export default function LandingPage() {
               <p className="font-medium text-sm text-[var(--foreground)]/80">스몰테이블</p>
               <p>대표자명: 배다솜</p>
               <p>사업자등록번호: 511-27-58367</p>
-              <p>통신판매업 신고번호: 제2026-인천연수-XXXX호</p>
+              <p>통신판매업 신고번호: 제2026-인천연수-0926호</p>
             </div>
             <div className="space-y-1.5">
-              <p>인천광역시 연수구 인천타워대로 301, A동 1301호</p>
+              <p>인천광역시 연수구 인천타워대로 301, A동 30층</p>
               <p>유선번호: 0507-1315-3173</p>
               <p>이메일: smalltablekorea@gmail.com</p>
               <p className="mt-1">
@@ -685,27 +261,17 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="space-y-1.5">
-              <Link href="/pricing" className="hover:text-[var(--foreground)] transition-colors block">
-                요금제
-              </Link>
-              <Link href="/auth/login" className="hover:text-[var(--foreground)] transition-colors block">
-                로그인
-              </Link>
-              <Link href="/estimates/coach" className="hover:text-[var(--foreground)] transition-colors block">
-                견적코치 AI
-              </Link>
-              <Link href="/refund-policy" className="hover:text-[var(--foreground)] transition-colors block">
-                환불 정책
-              </Link>
-              <Link href="/terms" className="hover:text-[var(--foreground)] transition-colors block">
-                이용약관
-              </Link>
+              <Link href="/pricing" className="hover:text-[var(--foreground)] transition-colors block">요금제</Link>
+              <Link href="/auth/login" className="hover:text-[var(--foreground)] transition-colors block">로그인</Link>
+              <Link href="/estimates/coach" className="hover:text-[var(--foreground)] transition-colors block">견적코치 AI</Link>
+              <Link href="/refund-policy" className="hover:text-[var(--foreground)] transition-colors block">환불 정책</Link>
+              <Link href="/terms" className="hover:text-[var(--foreground)] transition-colors block">이용약관</Link>
             </div>
           </div>
           <div className="mt-6 border-t border-[var(--border)] pt-6 text-center space-y-2">
             <p className="text-[10px] text-[var(--muted)]/60 max-w-xl mx-auto leading-relaxed">
               본 서비스의 견적 분석은 참고용이며, 실제 시공 가격은 현장 조건에 따라 달라질 수 있습니다.
-              견적코치는 가격을 보증하지 않으며, 본 분석을 근거로 한 의사결정에 대해 책임지지 않습니다.
+              인테리어코치는 가격을 보증하지 않으며, 본 분석을 근거로 한 의사결정에 대해 책임지지 않습니다.
             </p>
             <p>&copy; 2026 스몰테이블. All rights reserved.</p>
           </div>
