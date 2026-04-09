@@ -77,9 +77,12 @@ export default function LiveDemo() {
     return () => clearInterval(timer);
   }, [started]);
 
-  // Auto scroll
+  // Auto scroll — 채팅 컨테이너 내부에서만 스크롤 (페이지 전체 이동 방지)
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = chatEndRef.current;
+    if (el?.parentElement) {
+      el.parentElement.scrollTop = el.parentElement.scrollHeight;
+    }
   }, [visibleCount]);
 
   return (
