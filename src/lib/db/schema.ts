@@ -1334,6 +1334,83 @@ export const zoneRanges = pgTable("zone_ranges", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// ─── 현장 톡방 ───
+
+export const siteChatRooms = pgTable("site_chat_rooms", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id")
+    .notNull()
+    .references(() => sites.id),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id),
+  title: text("title").notNull(),
+  clientPortalSlug: text("client_portal_slug").unique(),
+  clientPortalEnabled: boolean("client_portal_enabled").notNull().default(false),
+  clientPortalPasswordHash: text("client_portal_password_hash"),
+  isSample: boolean("is_sample").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const siteChatMessages = pgTable("site_chat_messages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  roomId: uuid("room_id")
+    .notNull()
+    .references(() => siteChatRooms.id, { onDelete: "cascade" }),
+  senderId: text("sender_id").references(() => user.id),
+  senderType: text("sender_type").notNull(), // owner, team, partner, client, system
+  senderDisplayName: text("sender_display_name").notNull(),
+  content: text("content"),
+  contentType: text("content_type").notNull().default("text"), // text, image, file, system_event
+  replyToId: uuid("reply_to_id"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  editedAt: timestamp("edited_at"),
+  deletedAt: timestamp("deleted_at"),
+});
+
+export const siteChatAttachments = pgTable("site_chat_attachments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  messageId: uuid("message_id")
+    .notNull()
+    .references(() => siteChatMessages.id, { onDelete: "cascade" }),
+  storagePath: text("storage_path").notNull(),
+  fileType: text("file_type"),
+  fileSize: bigint("file_size", { mode: "number" }),
+  thumbnailPath: text("thumbnail_path"),
+  exifTakenAt: timestamp("exif_taken_at"),
+  autoCategorizedTag: text("auto_categorized_tag"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const siteChatParticipants = pgTable("site_chat_participants", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  roomId: uuid("room_id")
+    .notNull()
+    .references(() => siteChatRooms.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id),
+  role: text("role").notNull(), // owner, team, partner, client
+  displayName: text("display_name").notNull(),
+  joinedVia: text("joined_via").notNull().default("direct"), // direct, invite_link, client_portal
+  lastReadAt: timestamp("last_read_at"),
+  notificationEnabled: boolean("notification_enabled").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const siteChatPinnedSummary = pgTable("site_chat_pinned_summary", {
+  roomId: uuid("room_id")
+    .primaryKey()
+    .references(() => siteChatRooms.id, { onDelete: "cascade" }),
+  currentProgressPercent: integer("current_progress_percent").default(0),
+  nextMilestoneTitle: text("next_milestone_title"),
+  nextMilestoneDate: date("next_milestone_date"),
+  pendingPaymentAmount: bigint("pending_payment_amount", { mode: "number" }).default(0),
+  pendingPaymentDueDate: date("pending_payment_due_date"),
+  openDefectsCount: integer("open_defects_count").default(0),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // ─── n8n 웹훅 로그 ───
 
 export const n8nWebhookLogs = pgTable("n8n_webhook_logs", {

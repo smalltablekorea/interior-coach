@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
+import { refreshPinnedSummary } from "@/lib/site-chat/pinned-summary";
 
 export async function PATCH(
   request: NextRequest,
@@ -37,6 +38,10 @@ export async function PATCH(
       .returning();
 
     if (!row) return err("공정을 찾을 수 없습니다", 404);
+
+    // pinned_summary 자동 갱신
+    refreshPinnedSummary(row.siteId).catch(() => {});
+
     return ok(row);
   } catch (error) {
     return serverError(error);

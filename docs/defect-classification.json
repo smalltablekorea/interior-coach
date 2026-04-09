@@ -1,0 +1,943 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-03-29",
+  "description": "인테리어 하자 유형 분류 체계 - 앱 드롭다운 데이터",
+  "trades": [
+    {
+      "id": "wallpaper",
+      "name": "도배",
+      "icon": "📋",
+      "sortOrder": 1,
+      "defects": [
+        {
+          "id": "WP-01",
+          "name": "도배 들뜸/기포",
+          "severity": 2,
+          "frequency": "high",
+          "avgRepairDays": 1,
+          "description": "도배지가 벽면에서 들뜨거나 기포가 발생한 상태",
+          "legalBasis": "하자보수기간 2년 (공동주택관리법)",
+          "repairMethod": "재시공 또는 부분 접착 보수",
+          "photoRequired": true
+        },
+        {
+          "id": "WP-02",
+          "name": "이음새 벌어짐",
+          "severity": 2,
+          "frequency": "high",
+          "avgRepairDays": 1,
+          "description": "도배지 이음새 부분이 벌어져 벽면 노출",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "이음새 재접착 또는 부분 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "WP-03",
+          "name": "변색/오염",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "시공 직후 도배지 변색 또는 접착제 오염",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "부분 교체 또는 세척",
+          "photoRequired": true
+        },
+        {
+          "id": "WP-04",
+          "name": "곰팡이 발생",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 3,
+          "description": "결로/습기로 인한 곰팡이 (구조적 원인 가능)",
+          "legalBasis": "하자보수기간 2년, 구조 원인 시 5년",
+          "repairMethod": "곰팡이 제거 + 방곰팡이 처리 + 재도배",
+          "photoRequired": true
+        },
+        {
+          "id": "WP-05",
+          "name": "찢어짐/손상",
+          "severity": 2,
+          "frequency": "low",
+          "avgRepairDays": 1,
+          "description": "시공 중 도배지 찢어짐 또는 뜯어짐",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "부분 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "WP-06",
+          "name": "주름/울퉁불퉁",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "벽면 평활도 불량으로 도배지에 주름 발생",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "하지 처리 후 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "WP-07",
+          "name": "패턴 불일치",
+          "severity": 2,
+          "frequency": "low",
+          "avgRepairDays": 2,
+          "description": "문양 있는 도배지의 패턴이 맞지 않음",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "WP-08",
+          "name": "모서리 탈락",
+          "severity": 1,
+          "frequency": "high",
+          "avgRepairDays": 1,
+          "description": "코너/모서리 부분 도배지 벗겨짐",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "코너 재접착",
+          "photoRequired": true
+        }
+      ]
+    },
+    {
+      "id": "flooring",
+      "name": "바닥재",
+      "icon": "🪵",
+      "sortOrder": 2,
+      "defects": [
+        {
+          "id": "FL-01",
+          "name": "들뜸/부풀음",
+          "severity": 3,
+          "frequency": "high",
+          "avgRepairDays": 3,
+          "description": "마루/장판이 바닥에서 들뜨거나 부풀어 오름",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "부분 재시공 또는 전면 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "FL-02",
+          "name": "삐걱거림",
+          "severity": 2,
+          "frequency": "high",
+          "avgRepairDays": 2,
+          "description": "보행 시 바닥에서 소음 발생",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "하지 보강 후 재시공",
+          "photoRequired": false
+        },
+        {
+          "id": "FL-03",
+          "name": "이음새 벌어짐",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "마루판 사이 틈 발생",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "퍼티 충진 또는 부분 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "FL-04",
+          "name": "스크래치/긁힘",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 2,
+          "description": "시공 중 발생한 바닥 스크래치",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "보수제 도포 또는 부분 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "FL-05",
+          "name": "색상 차이",
+          "severity": 2,
+          "frequency": "low",
+          "avgRepairDays": 3,
+          "description": "같은 제품인데 색상 편차가 큼",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "동일 LOT 제품으로 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "FL-06",
+          "name": "높이 차이/단차",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 3,
+          "description": "방간/문틈 바닥 높이 차이",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "하지 레벨링 후 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "FL-07",
+          "name": "장판 들뜸",
+          "severity": 2,
+          "frequency": "high",
+          "avgRepairDays": 1,
+          "description": "장판 접착 불량으로 들뜸",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "재접착",
+          "photoRequired": true
+        },
+        {
+          "id": "FL-08",
+          "name": "수분/곰팡이",
+          "severity": 4,
+          "frequency": "low",
+          "avgRepairDays": 5,
+          "description": "바닥 하부 누수로 곰팡이/부식 발생",
+          "legalBasis": "하자보수기간 2년, 방수 원인 시 3년",
+          "repairMethod": "원인 해결 후 전면 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "FL-09",
+          "name": "걸레받이 탈락",
+          "severity": 1,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "걸레받이 접착 불량으로 떨어짐",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "재접착",
+          "photoRequired": true
+        }
+      ]
+    },
+    {
+      "id": "tile",
+      "name": "타일",
+      "icon": "🔲",
+      "sortOrder": 3,
+      "defects": [
+        {
+          "id": "TL-01",
+          "name": "타일 들뜸",
+          "severity": 4,
+          "frequency": "medium",
+          "avgRepairDays": 3,
+          "description": "타일이 벽/바닥에서 분리 (안전 위험)",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "재시공 (접착면 처리 후)",
+          "photoRequired": true
+        },
+        {
+          "id": "TL-02",
+          "name": "줄눈 크랙",
+          "severity": 2,
+          "frequency": "high",
+          "avgRepairDays": 1,
+          "description": "줄눈 갈라짐",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "줄눈 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "TL-03",
+          "name": "타일 깨짐",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 2,
+          "description": "타일 표면 깨짐/파손",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "해당 타일 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "TL-04",
+          "name": "평활도 불량",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 5,
+          "description": "타일면이 울퉁불퉁, 평탄하지 않음",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "하지 처리 후 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "TL-05",
+          "name": "줄눈 색상 불균일",
+          "severity": 1,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "줄눈 색상이 고르지 않음",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "줄눈 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "TL-06",
+          "name": "타일 절단면 거침",
+          "severity": 2,
+          "frequency": "low",
+          "avgRepairDays": 1,
+          "description": "모서리/절단면 마감 불량",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "절단면 연마 또는 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "TL-07",
+          "name": "배수 구배 불량",
+          "severity": 4,
+          "frequency": "low",
+          "avgRepairDays": 5,
+          "description": "바닥 물빠짐 방향 잘못되어 물이 고임",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "구배 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "TL-08",
+          "name": "보수 흔적 부조화",
+          "severity": 2,
+          "frequency": "low",
+          "avgRepairDays": 2,
+          "description": "보수 부위와 기존 부위 색상/질감 차이",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "동일 제품으로 재교체",
+          "photoRequired": true
+        }
+      ]
+    },
+    {
+      "id": "carpentry",
+      "name": "목공",
+      "icon": "🪚",
+      "sortOrder": 4,
+      "defects": [
+        {
+          "id": "CP-01",
+          "name": "문 개폐 불량",
+          "severity": 3,
+          "frequency": "high",
+          "avgRepairDays": 2,
+          "description": "문이 잘 열리지/닫히지 않음, 바닥 긁힘",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "경첩 조정 또는 문짝 재가공",
+          "photoRequired": true
+        },
+        {
+          "id": "CP-02",
+          "name": "가구 뒤틀림",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 3,
+          "description": "붙박이장/수납장 뒤틀림, 문짝 틀어짐",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "프레임 교정 또는 재제작",
+          "photoRequired": true
+        },
+        {
+          "id": "CP-03",
+          "name": "경첩/하드웨어 불량",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "경첩 느슨함, 손잡이 풀림, 댐퍼 불량",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "하드웨어 교체 또는 조정",
+          "photoRequired": true
+        },
+        {
+          "id": "CP-04",
+          "name": "마감면 흠집",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "가구/몰딩 표면 긁힘, 찍힘",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "터치업 또는 부분 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "CP-05",
+          "name": "몰딩 이음새 벌어짐",
+          "severity": 2,
+          "frequency": "high",
+          "avgRepairDays": 1,
+          "description": "천장/바닥 몰딩 이음새 벌어짐",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "코킹 또는 재접착",
+          "photoRequired": true
+        },
+        {
+          "id": "CP-06",
+          "name": "수평/수직 불량",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 3,
+          "description": "가구/선반 수평이 맞지 않음",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "재설치 또는 조정",
+          "photoRequired": true
+        },
+        {
+          "id": "CP-07",
+          "name": "서랍 레일 불량",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "서랍 개폐 불량, 레일 소음",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "레일 교체 또는 조정",
+          "photoRequired": true
+        },
+        {
+          "id": "CP-08",
+          "name": "접착면 탈락",
+          "severity": 3,
+          "frequency": "low",
+          "avgRepairDays": 2,
+          "description": "합판/시트지 접착면 벗겨짐",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "재접착 또는 시트지 교체",
+          "photoRequired": true
+        }
+      ]
+    },
+    {
+      "id": "electrical",
+      "name": "전기",
+      "icon": "⚡",
+      "sortOrder": 5,
+      "defects": [
+        {
+          "id": "EL-01",
+          "name": "콘센트/스위치 불량",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "전원 불량, 접촉 불량",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "콘센트/스위치 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "EL-02",
+          "name": "조명 불량",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "조명 불켜짐, 깜빡임, 색온도 불일치",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "LED 모듈/드라이버 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "EL-03",
+          "name": "누전/합선",
+          "severity": 5,
+          "frequency": "low",
+          "avgRepairDays": 2,
+          "description": "누전차단기 반복 트립 (화재 위험)",
+          "legalBasis": "하자보수기간 2년, 안전 관련 즉시 조치",
+          "repairMethod": "배선 점검 및 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "EL-04",
+          "name": "배선 노출",
+          "severity": 4,
+          "frequency": "low",
+          "avgRepairDays": 2,
+          "description": "마감 불량으로 전선 노출 (안전 위험)",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "배선 매립 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "EL-05",
+          "name": "위치 오류",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 3,
+          "description": "콘센트/스위치 위치가 도면과 다름",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "위치 이동 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "EL-06",
+          "name": "분전반 불량",
+          "severity": 4,
+          "frequency": "low",
+          "avgRepairDays": 2,
+          "description": "차단기 용량 부족, 라벨링 누락",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "분전반 교체 또는 보강",
+          "photoRequired": true
+        },
+        {
+          "id": "EL-07",
+          "name": "매립 불량",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 2,
+          "description": "매립배관 마감 돌출, 매립 깊이 부족",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "재매립 시공",
+          "photoRequired": true
+        }
+      ]
+    },
+    {
+      "id": "plumbing",
+      "name": "설비/배관",
+      "icon": "🔧",
+      "sortOrder": 6,
+      "defects": [
+        {
+          "id": "PL-01",
+          "name": "누수",
+          "severity": 5,
+          "frequency": "medium",
+          "avgRepairDays": 3,
+          "description": "배관 연결부/접합부 누수 (피해 확산 위험)",
+          "legalBasis": "하자보수기간 2년, 피해 발생 시 손해배상",
+          "repairMethod": "누수 부위 재시공, 피해 부위 복구",
+          "photoRequired": true
+        },
+        {
+          "id": "PL-02",
+          "name": "배수 불량",
+          "severity": 3,
+          "frequency": "high",
+          "avgRepairDays": 2,
+          "description": "물빠짐 느림, 역류",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "배수관 점검 및 보수",
+          "photoRequired": true
+        },
+        {
+          "id": "PL-03",
+          "name": "수전 불량",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "수전 잠김 불량, 물방울 떨어짐",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "수전 교체 또는 카트리지 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "PL-04",
+          "name": "보일러 연결 불량",
+          "severity": 4,
+          "frequency": "low",
+          "avgRepairDays": 2,
+          "description": "난방 불균일, 보일러 에러 발생",
+          "legalBasis": "하자보수기간 2~3년",
+          "repairMethod": "배관 연결 재시공, 밸브 조정",
+          "photoRequired": true
+        },
+        {
+          "id": "PL-05",
+          "name": "배수구 악취",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "트랩 불량으로 하수 악취 역류",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "트랩 교체 또는 재설치",
+          "photoRequired": false
+        },
+        {
+          "id": "PL-06",
+          "name": "수압 불량",
+          "severity": 3,
+          "frequency": "low",
+          "avgRepairDays": 2,
+          "description": "특정 수전 수압이 약함",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "배관 점검, 밸브 조정",
+          "photoRequired": false
+        },
+        {
+          "id": "PL-07",
+          "name": "동파 위험",
+          "severity": 4,
+          "frequency": "low",
+          "avgRepairDays": 3,
+          "description": "보온재 미시공으로 동파 위험",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "보온재 시공",
+          "photoRequired": true
+        },
+        {
+          "id": "PL-08",
+          "name": "배관 소음",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 2,
+          "description": "워터해머, 배관 진동 소음",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "워터해머 방지기 설치, 배관 고정",
+          "photoRequired": false
+        }
+      ]
+    },
+    {
+      "id": "painting",
+      "name": "도장",
+      "icon": "🎨",
+      "sortOrder": 7,
+      "defects": [
+        {
+          "id": "PT-01",
+          "name": "도막 벗겨짐",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "페인트 벗겨짐, 탈락",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "하지 처리 후 재도장",
+          "photoRequired": true
+        },
+        {
+          "id": "PT-02",
+          "name": "색상 불균일",
+          "severity": 2,
+          "frequency": "high",
+          "avgRepairDays": 2,
+          "description": "부위별 색상 차이",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "동일 페인트로 재도장",
+          "photoRequired": true
+        },
+        {
+          "id": "PT-03",
+          "name": "붓/롤러 자국",
+          "severity": 1,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "도장면에 도구 자국 남음",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "샌딩 후 재도장",
+          "photoRequired": true
+        },
+        {
+          "id": "PT-04",
+          "name": "기포/핀홀",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "표면에 미세 기포 발생",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "샌딩 후 재도장",
+          "photoRequired": true
+        },
+        {
+          "id": "PT-05",
+          "name": "처짐/흘러내림",
+          "severity": 2,
+          "frequency": "low",
+          "avgRepairDays": 1,
+          "description": "과도한 도포로 흘러내린 자국",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "제거 후 재도장",
+          "photoRequired": true
+        },
+        {
+          "id": "PT-06",
+          "name": "크랙",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 2,
+          "description": "도막 갈라짐 (하지 처리 불량 가능)",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "하지 보강 후 재도장",
+          "photoRequired": true
+        },
+        {
+          "id": "PT-07",
+          "name": "이질 부위 오염",
+          "severity": 1,
+          "frequency": "high",
+          "avgRepairDays": 1,
+          "description": "페인트가 타일/목재 등 다른 자재에 묻음",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "오염 제거/세척",
+          "photoRequired": true
+        }
+      ]
+    },
+    {
+      "id": "windows_doors",
+      "name": "창호",
+      "icon": "🪟",
+      "sortOrder": 8,
+      "defects": [
+        {
+          "id": "WD-01",
+          "name": "기밀 불량",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 2,
+          "description": "틈새바람, 소리 유입, 결로 발생",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "기밀재 교체 또는 창호 조정",
+          "photoRequired": true
+        },
+        {
+          "id": "WD-02",
+          "name": "개폐 불량",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "창문/문 개폐 뻑뻑하거나 안 됨",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "레일 조정 또는 하드웨어 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "WD-03",
+          "name": "유리 파손/크랙",
+          "severity": 4,
+          "frequency": "low",
+          "avgRepairDays": 3,
+          "description": "유리 깨짐, 미세 크랙",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "유리 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "WD-04",
+          "name": "하드웨어 불량",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "잠금장치/핸들 불량",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "하드웨어 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "WD-05",
+          "name": "실리콘 마감 불량",
+          "severity": 1,
+          "frequency": "high",
+          "avgRepairDays": 1,
+          "description": "실리콘 들뜸, 불균일, 변색",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "실리콘 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "WD-06",
+          "name": "방충망 불량",
+          "severity": 1,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "방충망 찢어짐, 레일 불량",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "방충망 교체",
+          "photoRequired": true
+        },
+        {
+          "id": "WD-07",
+          "name": "결로",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 7,
+          "description": "단열 성능 부족으로 결로 발생",
+          "legalBasis": "하자보수기간 2년, 구조 원인 시 5년",
+          "repairMethod": "단열 보강 또는 창호 교체",
+          "photoRequired": true
+        }
+      ]
+    },
+    {
+      "id": "waterproofing",
+      "name": "방수",
+      "icon": "💧",
+      "sortOrder": 9,
+      "defects": [
+        {
+          "id": "WF-01",
+          "name": "욕실 누수",
+          "severity": 5,
+          "frequency": "medium",
+          "avgRepairDays": 7,
+          "description": "방수층 파손으로 하층 누수",
+          "legalBasis": "하자보수기간 3년",
+          "repairMethod": "방수 전면 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "WF-02",
+          "name": "베란다 누수",
+          "severity": 4,
+          "frequency": "medium",
+          "avgRepairDays": 5,
+          "description": "베란다 방수 불량으로 누수",
+          "legalBasis": "하자보수기간 3년",
+          "repairMethod": "방수 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "WF-03",
+          "name": "방수층 들뜸",
+          "severity": 4,
+          "frequency": "low",
+          "avgRepairDays": 3,
+          "description": "방수 시트/도막 접착 불량",
+          "legalBasis": "하자보수기간 3년",
+          "repairMethod": "방수층 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "WF-04",
+          "name": "곰팡이/결로",
+          "severity": 3,
+          "frequency": "high",
+          "avgRepairDays": 5,
+          "description": "방수/단열 불량으로 습기 문제",
+          "legalBasis": "하자보수기간 3년",
+          "repairMethod": "원인 해결 + 방곰팡이 처리",
+          "photoRequired": true
+        },
+        {
+          "id": "WF-05",
+          "name": "배수구 주변 누수",
+          "severity": 4,
+          "frequency": "medium",
+          "avgRepairDays": 3,
+          "description": "배수구 방수 처리 불량",
+          "legalBasis": "하자보수기간 3년",
+          "repairMethod": "배수구 주변 방수 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "WF-06",
+          "name": "코킹 불량",
+          "severity": 2,
+          "frequency": "high",
+          "avgRepairDays": 1,
+          "description": "실리콘 코킹 탈락/불량",
+          "legalBasis": "하자보수기간 2년",
+          "repairMethod": "코킹 재시공",
+          "photoRequired": true
+        }
+      ]
+    },
+    {
+      "id": "other",
+      "name": "기타",
+      "icon": "📌",
+      "sortOrder": 10,
+      "defects": [
+        {
+          "id": "OT-01",
+          "name": "철거 미완료",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "기존 자재 잔여물, 철거 흔적",
+          "legalBasis": "시공 계약 범위",
+          "repairMethod": "잔여물 제거",
+          "photoRequired": true
+        },
+        {
+          "id": "OT-02",
+          "name": "청소 불량",
+          "severity": 1,
+          "frequency": "high",
+          "avgRepairDays": 1,
+          "description": "시공 후 잔여 먼지/폐자재 미정리",
+          "legalBasis": "시공 계약 범위",
+          "repairMethod": "재청소",
+          "photoRequired": true
+        },
+        {
+          "id": "OT-03",
+          "name": "도면과 불일치",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 5,
+          "description": "시공 결과가 합의 도면과 다름",
+          "legalBasis": "도급계약 위반, 민법 제667조",
+          "repairMethod": "협의 후 재시공 또는 보상",
+          "photoRequired": true
+        },
+        {
+          "id": "OT-04",
+          "name": "자재 불일치",
+          "severity": 3,
+          "frequency": "medium",
+          "avgRepairDays": 5,
+          "description": "합의한 자재와 다른 자재 사용",
+          "legalBasis": "도급계약 위반, 소비자기본법",
+          "repairMethod": "합의 자재로 재시공",
+          "photoRequired": true
+        },
+        {
+          "id": "OT-05",
+          "name": "이웃 세대 피해",
+          "severity": 4,
+          "frequency": "low",
+          "avgRepairDays": 7,
+          "description": "시공 중 이웃 세대에 피해 발생",
+          "legalBasis": "민법 불법행위 (제750조)",
+          "repairMethod": "피해 복구 + 손해배상",
+          "photoRequired": true
+        },
+        {
+          "id": "OT-06",
+          "name": "미시공",
+          "severity": 4,
+          "frequency": "low",
+          "avgRepairDays": 3,
+          "description": "계약 항목 중 누락된 시공",
+          "legalBasis": "도급계약 위반",
+          "repairMethod": "누락 항목 시공 완료",
+          "photoRequired": true
+        },
+        {
+          "id": "OT-07",
+          "name": "보양 미흡",
+          "severity": 2,
+          "frequency": "medium",
+          "avgRepairDays": 1,
+          "description": "기존 시설물 보호 부족으로 손상",
+          "legalBasis": "시공자 주의의무",
+          "repairMethod": "손상 부위 복구",
+          "photoRequired": true
+        },
+        {
+          "id": "OT-08",
+          "name": "안전 문제",
+          "severity": 5,
+          "frequency": "low",
+          "avgRepairDays": 1,
+          "description": "안전 기준 미달 시공 (감전, 추락 위험 등)",
+          "legalBasis": "산업안전보건법, 건축법",
+          "repairMethod": "즉시 안전 조치 + 재시공",
+          "photoRequired": true
+        }
+      ]
+    }
+  ],
+  "severityLevels": [
+    { "level": 1, "name": "경미", "nameEn": "Minor", "color": "#22C55E", "emoji": "🟢", "responseTime": "7일 이내" },
+    { "level": 2, "name": "보통", "nameEn": "Moderate", "color": "#EAB308", "emoji": "🟡", "responseTime": "3~5일 이내" },
+    { "level": 3, "name": "심각", "nameEn": "Serious", "color": "#F97316", "emoji": "🟠", "responseTime": "1~3일 이내" },
+    { "level": 4, "name": "중대", "nameEn": "Critical", "color": "#EF4444", "emoji": "🔴", "responseTime": "24시간 이내" },
+    { "level": 5, "name": "긴급", "nameEn": "Emergency", "color": "#1F2937", "emoji": "⚫", "responseTime": "즉시" }
+  ],
+  "frequencyLevels": [
+    { "id": "high", "name": "빈번", "description": "전체 하자의 30% 이상" },
+    { "id": "medium", "name": "보통", "description": "전체 하자의 10~30%" },
+    { "id": "low", "name": "드묾", "description": "전체 하자의 10% 미만" }
+  ],
+  "defectStatuses": [
+    { "id": "reported", "name": "접수", "color": "#6B7280" },
+    { "id": "confirmed", "name": "확인", "color": "#3B82F6" },
+    { "id": "in_repair", "name": "보수중", "color": "#F59E0B" },
+    { "id": "pending_review", "name": "검수대기", "color": "#8B5CF6" },
+    { "id": "resolved", "name": "완료", "color": "#10B981" },
+    { "id": "reopened", "name": "재시공", "color": "#EF4444" }
+  ]
+}

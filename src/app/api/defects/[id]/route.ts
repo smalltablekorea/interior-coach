@@ -6,6 +6,7 @@ import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, notFound, serverError } from "@/lib/api/response";
 import { logActivity } from "@/lib/activity-log";
+import { refreshPinnedSummary } from "@/lib/site-chat/pinned-summary";
 import type { UpdateDefectRequest, DefectSeverity } from "@/types/defect";
 
 const VALID_SEVERITIES: DefectSeverity[] = ["minor", "major", "critical"];
@@ -120,6 +121,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       });
     }
 
+    // pinned_summary 자동 갱신
+    refreshPinnedSummary(updated.siteId).catch(() => {});
+
     return ok(updated);
   } catch (error) {
     return serverError(error);
@@ -145,6 +149,9 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       .returning({ id: defects.id, siteId: defects.siteId, title: defects.title });
 
     if (!deleted) return notFound("하자를 찾을 수 없습니다.");
+
+    // pinned_summary 자동 갱신
+    refreshPinnedSummary(deleted.siteId).catch(() => {});
 
     logActivity({
       siteId: deleted.siteId,
