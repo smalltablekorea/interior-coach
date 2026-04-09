@@ -444,6 +444,13 @@ export default function SiteDetailPage() {
               </>
             ) : (
               <>
+                <Link
+                  href={`/chat`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--green)]/10 text-[var(--green)] text-xs font-medium hover:bg-[var(--green)]/20 transition-colors"
+                >
+                  <MessageCircle size={14} />
+                  톡방
+                </Link>
                 <button
                   onClick={startEditing}
                   className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
