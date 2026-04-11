@@ -207,7 +207,7 @@ export default function SchedulePage() {
     setLoading(true);
     const [cy, cm] = centerMonth.split("-").map(Number);
     const months: string[] = [];
-    for (let off = -3; off <= 3; off++) {
+    for (let off = -3; off <= 9; off++) {
       const d = new Date(cy, cm - 1 + off, 1);
       months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     }
@@ -321,7 +321,7 @@ export default function SchedulePage() {
   // 여러 달 캘린더 데이터 (앞뒤 3개월씩 총 7개월)
   const multiMonthCalendar = useMemo(() => {
     const result: { label: string; yr: number; mo: number; days: (number | null)[] }[] = [];
-    for (let off = -3; off <= 3; off++) {
+    for (let off = -3; off <= 9; off++) {
       const d = new Date(yr, mo - 1 + off, 1);
       const y = d.getFullYear(), m = d.getMonth() + 1;
       const dim = new Date(y, m, 0).getDate();
