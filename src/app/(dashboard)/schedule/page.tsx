@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  CalendarDays, ChevronLeft, ChevronRight, Building2, Hammer, Package,
+  CalendarDays, ChevronUp, ChevronDown, Building2, Hammer, Package,
   LayoutGrid, TableProperties, Check, Plus, Trash2, Sparkles, GripVertical,
 } from "lucide-react";
 import Link from "next/link";
@@ -417,10 +417,16 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Month navigation */}
-      <div className="flex items-center justify-between px-4 py-3 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      {/* Month navigation — 위아래 스크롤로 월 전환 */}
+      <div
+        className="flex items-center justify-between px-4 py-3 rounded-2xl border border-[var(--border)] bg-[var(--card)]"
+        onWheel={(e) => {
+          if (e.deltaY > 30) nextMonth();
+          else if (e.deltaY < -30) prevMonth();
+        }}
+      >
         <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-[var(--border)] transition-colors">
-          <ChevronLeft size={20} />
+          <ChevronUp size={20} />
         </button>
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">{monthLabel}</h2>
@@ -429,7 +435,7 @@ export default function SchedulePage() {
           </button>
         </div>
         <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-[var(--border)] transition-colors">
-          <ChevronRight size={20} />
+          <ChevronDown size={20} />
         </button>
       </div>
 
@@ -457,8 +463,15 @@ export default function SchedulePage() {
             ))}
           </div>
 
-          {/* Calendar View */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+          {/* Calendar View — 스크롤로 월 전환 */}
+          <div
+            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden"
+            onWheel={(e) => {
+              if (Math.abs(e.deltaY) < 30) return;
+              if (e.deltaY > 0) nextMonth();
+              else prevMonth();
+            }}
+          >
             <div className="grid grid-cols-7 border-b border-[var(--border)]">
               {WEEKDAYS.map((d, i) => (
                 <div key={d} className={`px-2 py-2.5 text-center text-xs font-medium ${i === 0 ? "text-[var(--red)]" : i === 6 ? "text-[var(--blue)]" : "text-[var(--muted)]"}`}>
