@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
-  CalendarDays, ChevronUp, ChevronDown, Building2, Hammer, Package,
+  CalendarDays, ChevronLeft, ChevronRight, Building2, Hammer, Package,
   LayoutGrid, TableProperties, Check, Plus, Trash2, Sparkles, GripVertical,
 } from "lucide-react";
 import Link from "next/link";
@@ -318,7 +318,7 @@ export default function SchedulePage() {
     return map;
   }, [sites]);
 
-  /* ===== TABLE VIEW DATA ===== */
+  /* ===== TABLE VIEW DATA — 캘린더용 (현재 달만) ===== */
   const monthDays = useMemo(() => {
     return Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
@@ -328,8 +328,51 @@ export default function SchedulePage() {
     });
   }, [currentMonth, daysInMonth, yr, mo]);
 
-  // Build table data: for each site+date, list of work items
-  // Phases span their full date range (not just start date)
+  /* ===== TABLE VIEW DATA — 현장별 연속 스크롤 (전체 기간) ===== */
+  const allDays = useMemo(() => {
+    // 전체 공정의 최소/최대 날짜 계산
+    let minDate = new Date(yr, mo - 1, 1); // 기본: 현재 달 시작
+    let maxDate = new Date(yr, mo, 0); // 기본: 현재 달 끝
+
+    // 현장 startDate/endDate
+    sites.forEach(s => {
+      if (s.startDate) { const d = new Date(s.startDate + "T00:00:00"); if (d < minDate) minDate = d; }
+      if (s.endDate) { const d = new Date(s.endDate + "T00:00:00"); if (d > maxDate) maxDate = d; }
+    });
+    // 공정 날짜
+    phases.forEach(p => {
+      const s = p.actualStart || p.plannedStart;
+      const e = p.actualEnd || p.plannedEnd;
+      if (s) { const d = new Date(s + "T00:00:00"); if (d < minDate) minDate = d; }
+      if (e) { const d = new Date(e + "T00:00:00"); if (d > maxDate) maxDate = d; }
+    });
+
+    // 시작일 1주 전 ~ 종료일 1주 후
+    const from = new Date(minDate);
+    from.setDate(from.getDate() - 7);
+    const to = new Date(maxDate);
+    to.setDate(to.getDate() + 7);
+
+    const days: { day: number; dateStr: string; dayOfWeek: number; monthLabel: string | null }[] = [];
+    const cursor = new Date(from);
+    let lastMonth = "";
+    while (cursor <= to) {
+      const dateStr = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
+      const curMonth = `${cursor.getFullYear()}년 ${cursor.getMonth() + 1}월`;
+      const isNewMonth = curMonth !== lastMonth;
+      if (isNewMonth) lastMonth = curMonth;
+      days.push({
+        day: cursor.getDate(),
+        dateStr,
+        dayOfWeek: cursor.getDay(),
+        monthLabel: isNewMonth ? curMonth : null,
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return days;
+  }, [sites, phases, yr, mo]);
+
+  // Build table data: for each site+date, list of work items (전체 기간)
   const siteTableData = useMemo(() => {
     const map = new Map<string, TableItem[]>();
 
@@ -340,10 +383,7 @@ export default function SchedulePage() {
       if (item.phaseId ? !arr.some((x) => x.phaseId === item.phaseId) : !arr.some((x) => x.text === item.text)) arr.push(item);
     };
 
-    const monthStart = new Date(yr, mo - 1, 1);
-    const monthEnd = new Date(yr, mo, 0);
-
-    // Phases: show on EACH day within the date range (clipped to month)
+    // Phases: 클리핑 없이 전체 기간 표시
     phases.forEach((p) => {
       const start = p.actualStart || p.plannedStart;
       const end = p.actualEnd || p.plannedEnd;
@@ -351,11 +391,9 @@ export default function SchedulePage() {
 
       const startD = new Date(start + "T00:00:00");
       const endD = end ? new Date(end + "T00:00:00") : startD;
-      const from = startD < monthStart ? monthStart : startD;
-      const to = endD > monthEnd ? monthEnd : endD;
 
-      const cursor = new Date(from);
-      while (cursor <= to) {
+      const cursor = new Date(startD);
+      while (cursor <= endD) {
         const ds = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}-${String(cursor.getDate()).padStart(2, "0")}`;
         addItem(p.siteId, ds, { text: p.category, done: p.status === "완료", kind: "phase", phaseId: p.id });
         cursor.setDate(cursor.getDate() + 1);
@@ -373,7 +411,7 @@ export default function SchedulePage() {
     });
 
     return map;
-  }, [phases, orders, yr, mo]);
+  }, [phases, orders]);
 
   return (
     <div className="space-y-4">
@@ -417,16 +455,10 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Month navigation — 위아래 스크롤로 월 전환 */}
-      <div
-        className="flex items-center justify-between px-4 py-3 rounded-2xl border border-[var(--border)] bg-[var(--card)]"
-        onWheel={(e) => {
-          if (e.deltaY > 30) nextMonth();
-          else if (e.deltaY < -30) prevMonth();
-        }}
-      >
+      {/* Month navigation */}
+      <div className="flex items-center justify-between px-4 py-3 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
         <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-[var(--border)] transition-colors">
-          <ChevronUp size={20} />
+          <ChevronLeft size={20} />
         </button>
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">{monthLabel}</h2>
@@ -435,7 +467,7 @@ export default function SchedulePage() {
           </button>
         </div>
         <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-[var(--border)] transition-colors">
-          <ChevronDown size={20} />
+          <ChevronRight size={20} />
         </button>
       </div>
 
@@ -463,15 +495,8 @@ export default function SchedulePage() {
             ))}
           </div>
 
-          {/* Calendar View — 스크롤로 월 전환 */}
-          <div
-            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden"
-            onWheel={(e) => {
-              if (Math.abs(e.deltaY) < 30) return;
-              if (e.deltaY > 0) nextMonth();
-              else prevMonth();
-            }}
-          >
+          {/* Calendar View */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
             <div className="grid grid-cols-7 border-b border-[var(--border)]">
               {WEEKDAYS.map((d, i) => (
                 <div key={d} className={`px-2 py-2.5 text-center text-xs font-medium ${i === 0 ? "text-[var(--red)]" : i === 6 ? "text-[var(--blue)]" : "text-[var(--muted)]"}`}>
@@ -582,170 +607,125 @@ export default function SchedulePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {monthDays.map(({ day, dateStr, dayOfWeek }) => {
+                  {allDays.map(({ day, dateStr, dayOfWeek, monthLabel }) => {
                     const isToday = dateStr === today;
                     const isSun = dayOfWeek === 0;
                     const isSat = dayOfWeek === 6;
                     const isWeekend = isSun || isSat;
-
-                    // Check if any site has items on this day
-                    const hasAnyItem = sites.some((s) => {
-                      const items = siteTableData.get(`${s.id}|${dateStr}`);
-                      return items && items.length > 0;
-                    });
+                    const hasAnyItem = sites.some((s) => (siteTableData.get(`${s.id}|${dateStr}`) || []).length > 0);
 
                     return (
-                      <tr
-                        key={dateStr}
-                        className={`border-b border-[var(--border)] last:border-b-0 transition-colors ${
+                      <React.Fragment key={dateStr}>
+                        {/* 월 구분 헤더 */}
+                        {monthLabel && (
+                          <tr>
+                            <td
+                              colSpan={1 + sites.length}
+                              className="sticky left-0 z-10 bg-[var(--green)]/[0.06] px-3 py-2 text-xs font-bold text-[var(--green)] border-b border-[var(--border)]"
+                            >
+                              {monthLabel}
+                            </td>
+                          </tr>
+                        )}
+                        {/* 날짜 행 */}
+                        <tr className={`border-b border-[var(--border)] last:border-b-0 transition-colors ${
                           isToday ? "bg-[var(--green)]/[0.04]" :
                           isWeekend && !hasAnyItem ? "bg-white/[0.01]" :
                           "hover:bg-white/[0.02]"
-                        }`}
-                      >
-                        {/* Date cell (sticky left) */}
-                        <td className={`sticky left-0 z-10 border-r border-[var(--border)] px-3 py-2 whitespace-nowrap ${
-                          isToday ? "bg-[var(--green)]/[0.07]" :
-                          isWeekend ? "bg-[#090909]" :
-                          "bg-[var(--card)]"
                         }`}>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-xs font-semibold tabular-nums ${
-                              isToday ? "text-[var(--green)]" :
-                              isSun ? "text-[var(--red)]" :
-                              isSat ? "text-[var(--blue)]" : ""
-                            }`}>
-                              {day}일
-                            </span>
-                            <span className={`text-[10px] ${
-                              isSun ? "text-[var(--red)]" :
-                              isSat ? "text-[var(--blue)]" :
-                              "text-[var(--muted)]"
-                            }`}>
-                              {WEEKDAYS[dayOfWeek]}
-                            </span>
-                            {isToday && (
-                              <span className="px-1 py-px rounded text-[8px] bg-[var(--green)] text-black font-bold leading-tight">
-                                오늘
+                          <td className={`sticky left-0 z-10 border-r border-[var(--border)] px-3 py-2 whitespace-nowrap ${
+                            isToday ? "bg-[var(--green)]/[0.07]" :
+                            isWeekend ? "bg-[#090909]" :
+                            "bg-[var(--card)]"
+                          }`}>
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-xs font-semibold tabular-nums ${
+                                isToday ? "text-[var(--green)]" :
+                                isSun ? "text-[var(--red)]" :
+                                isSat ? "text-[var(--blue)]" : ""
+                              }`}>
+                                {day}일
                               </span>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Site columns — Excel-like */}
-                        {sites.map((site) => {
-                          const items = siteTableData.get(`${site.id}|${dateStr}`) || [];
-                          const cellKey = `${site.id}|${dateStr}`;
-                          const isDragOver = dragOverCell === cellKey;
-
-                          return (
-                            <td
-                              key={site.id}
-                              className={`border-r last:border-r-0 border-[var(--border)] px-1.5 py-1 align-top min-h-[32px] transition-colors ${
-                                isDragOver ? "bg-[var(--green)]/10 ring-1 ring-inset ring-[var(--green)]/30" : ""
-                              }`}
-                              onDoubleClick={() => items.length === 0 && handleQuickAdd(site.id, dateStr)}
-                              onDragOver={(e) => { e.preventDefault(); setDragOverCell(cellKey); }}
-                              onDragLeave={() => setDragOverCell(null)}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                const phaseId = e.dataTransfer.getData("phaseId");
-                                if (phaseId) handleDrop(phaseId, dateStr);
-                              }}
-                            >
-                              {items.length > 0 ? (
-                                <div className="space-y-0.5">
-                                  {items.map((item, i) => {
-                                    const phaseColor = item.kind === "phase" ? getPhaseColor(item.text) : null;
-                                    const isEditing = inlineEditId === item.phaseId;
-                                    return (
-                                    <div
-                                      key={i}
-                                      draggable={!!item.phaseId}
-                                      onDragStart={(e) => {
-                                        if (!item.phaseId) return;
-                                        e.dataTransfer.setData("phaseId", item.phaseId);
-                                        setDraggingPhase({ phaseId: item.phaseId, siteId: site.id, origDate: dateStr });
-                                      }}
-                                      onDragEnd={() => { setDraggingPhase(null); setDragOverCell(null); }}
-                                      className={`flex items-center gap-1 group/item rounded-md px-1.5 py-0.5 border transition-colors ${
-                                        item.kind === "phase" && phaseColor
-                                          ? `${phaseColor.bg} ${item.done ? "border-transparent opacity-50" : phaseColor.border}`
-                                          : "border-transparent"
-                                      } ${item.phaseId ? "cursor-grab active:cursor-grabbing" : ""}`}
-                                    >
-                                      {/* Drag handle */}
-                                      {item.phaseId && (
-                                        <GripVertical size={10} className="shrink-0 text-[var(--muted)] opacity-0 group-hover/item:opacity-40" />
-                                      )}
-                                      {/* Checkbox */}
-                                      <button
-                                        type="button"
-                                        onClick={(e) => { e.stopPropagation(); item.phaseId && handleTogglePhase(item.phaseId, item.done); }}
-                                        className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${
-                                          item.done ? "bg-[var(--green)]/20 border-[var(--green)]/50" : "border-white/20 bg-transparent hover:border-[var(--green)]/30"
-                                        } ${item.phaseId ? "cursor-pointer" : "cursor-default"}`}
-                                      >
-                                        {item.done && <Check size={8} className="text-[var(--green)]" />}
-                                      </button>
-                                      {/* Text — inline editable */}
-                                      {isEditing ? (
-                                        <input
-                                          autoFocus
-                                          value={inlineEditVal}
-                                          onChange={(e) => setInlineEditVal(e.target.value)}
-                                          onBlur={() => handleInlineEdit(item.phaseId!)}
-                                          onKeyDown={(e) => {
-                                            if (e.key === "Enter") handleInlineEdit(item.phaseId!);
-                                            if (e.key === "Escape") setInlineEditId(null);
-                                          }}
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="text-[11px] font-medium bg-transparent border-b border-[var(--green)] outline-none flex-1 min-w-0 text-[var(--foreground)]"
-                                        />
-                                      ) : (
-                                        <span
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            if (item.phaseId) { setInlineEditId(item.phaseId); setInlineEditVal(item.text); }
-                                          }}
-                                          className={`text-[11px] leading-snug flex-1 font-medium min-w-0 truncate ${item.phaseId ? "cursor-text" : ""} ${
-                                            item.done ? "text-[var(--muted)] line-through" :
-                                            item.kind === "order" ? "text-purple-400" :
-                                            item.kind === "delivery" ? "text-amber-400" :
-                                            phaseColor ? phaseColor.text :
-                                            "text-[var(--foreground)]"
-                                          }`}
-                                          title="클릭하여 수정"
-                                        >
-                                          {item.text}
-                                        </span>
-                                      )}
-                                      {/* Delete */}
-                                      {item.phaseId && !isEditing && (
-                                        <button
-                                          onClick={(e) => { e.stopPropagation(); handleDeletePhase(item.phaseId!); }}
-                                          className="opacity-0 group-hover/item:opacity-100 w-3.5 h-3.5 flex items-center justify-center rounded text-[var(--muted)] hover:text-[var(--red)] transition-all shrink-0"
-                                        >
-                                          <Trash2 size={9} />
-                                        </button>
-                                      )}
-                                    </div>
-                                    );
-                                  })}
-                                </div>
-                              ) : (
-                                /* Empty cell — show + on hover */
-                                <div
-                                  className="h-full min-h-[24px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
-                                  onClick={() => handleQuickAdd(site.id, dateStr)}
-                                >
-                                  <Plus size={12} className="text-[var(--muted)]" />
-                                </div>
+                              <span className={`text-[10px] ${
+                                isSun ? "text-[var(--red)]" :
+                                isSat ? "text-[var(--blue)]" :
+                                "text-[var(--muted)]"
+                              }`}>
+                                {WEEKDAYS[dayOfWeek]}
+                              </span>
+                              {isToday && (
+                                <span className="px-1 py-px rounded text-[8px] bg-[var(--green)] text-black font-bold leading-tight">
+                                  오늘
+                                </span>
                               )}
-                            </td>
-                          );
-                        })}
-                      </tr>
+                            </div>
+                          </td>
+                          {sites.map((site) => {
+                            const items = siteTableData.get(`${site.id}|${dateStr}`) || [];
+                            const cellKey = `${site.id}|${dateStr}`;
+                            const isDragOver = dragOverCell === cellKey;
+                            return (
+                              <td
+                                key={site.id}
+                                className={`border-r last:border-r-0 border-[var(--border)] px-1.5 py-1 align-top min-h-[32px] transition-colors ${
+                                  isDragOver ? "bg-[var(--green)]/10 ring-1 ring-inset ring-[var(--green)]/30" : ""
+                                }`}
+                                onDoubleClick={() => items.length === 0 && handleQuickAdd(site.id, dateStr)}
+                                onDragOver={(e) => { e.preventDefault(); setDragOverCell(cellKey); }}
+                                onDragLeave={() => setDragOverCell(null)}
+                                onDrop={(e) => { e.preventDefault(); const pid = e.dataTransfer.getData("phaseId"); if (pid) handleDrop(pid, dateStr); }}
+                              >
+                                {items.length > 0 ? (
+                                  <div className="space-y-0.5">
+                                    {items.map((item, i) => {
+                                      const phaseColor = item.kind === "phase" ? getPhaseColor(item.text) : null;
+                                      const isEditing = inlineEditId === item.phaseId;
+                                      return (
+                                        <div
+                                          key={i}
+                                          draggable={!!item.phaseId}
+                                          onDragStart={(e) => { if (!item.phaseId) return; e.dataTransfer.setData("phaseId", item.phaseId); setDraggingPhase({ phaseId: item.phaseId, siteId: site.id, origDate: dateStr }); }}
+                                          onDragEnd={() => { setDraggingPhase(null); setDragOverCell(null); }}
+                                          className={`flex items-center gap-1 group/item rounded-md px-1.5 py-0.5 border transition-colors ${
+                                            item.kind === "phase" && phaseColor ? `${phaseColor.bg} ${item.done ? "border-transparent opacity-50" : phaseColor.border}` : "border-transparent"
+                                          } ${item.phaseId ? "cursor-grab active:cursor-grabbing" : ""}`}
+                                        >
+                                          {item.phaseId && <GripVertical size={10} className="shrink-0 text-[var(--muted)] opacity-0 group-hover/item:opacity-40" />}
+                                          <button type="button" onClick={(e) => { e.stopPropagation(); item.phaseId && handleTogglePhase(item.phaseId, item.done); }}
+                                            className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center border transition-colors ${item.done ? "bg-[var(--green)]/20 border-[var(--green)]/50" : "border-white/20 bg-transparent hover:border-[var(--green)]/30"} ${item.phaseId ? "cursor-pointer" : "cursor-default"}`}>
+                                            {item.done && <Check size={8} className="text-[var(--green)]" />}
+                                          </button>
+                                          {isEditing ? (
+                                            <input autoFocus value={inlineEditVal} onChange={(e) => setInlineEditVal(e.target.value)}
+                                              onBlur={() => handleInlineEdit(item.phaseId!)} onKeyDown={(e) => { if (e.key === "Enter") handleInlineEdit(item.phaseId!); if (e.key === "Escape") setInlineEditId(null); }}
+                                              onClick={(e) => e.stopPropagation()} className="text-[11px] font-medium bg-transparent border-b border-[var(--green)] outline-none flex-1 min-w-0 text-[var(--foreground)]" />
+                                          ) : (
+                                            <span onClick={(e) => { e.stopPropagation(); if (item.phaseId) { setInlineEditId(item.phaseId); setInlineEditVal(item.text); } }}
+                                              className={`text-[11px] leading-snug flex-1 font-medium min-w-0 truncate ${item.phaseId ? "cursor-text" : ""} ${
+                                                item.done ? "text-[var(--muted)] line-through" : item.kind === "order" ? "text-purple-400" : item.kind === "delivery" ? "text-amber-400" : phaseColor ? phaseColor.text : "text-[var(--foreground)]"
+                                              }`} title="클릭하여 수정">{item.text}</span>
+                                          )}
+                                          {item.phaseId && !isEditing && (
+                                            <button onClick={(e) => { e.stopPropagation(); handleDeletePhase(item.phaseId!); }}
+                                              className="opacity-0 group-hover/item:opacity-100 w-3.5 h-3.5 flex items-center justify-center rounded text-[var(--muted)] hover:text-[var(--red)] transition-all shrink-0">
+                                              <Trash2 size={9} />
+                                            </button>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="h-full min-h-[24px] flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                                    onClick={() => handleQuickAdd(site.id, dateStr)}>
+                                    <Plus size={12} className="text-[var(--muted)]" />
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
