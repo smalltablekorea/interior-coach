@@ -646,12 +646,12 @@ export default function SchedulePage() {
 
                     return (
                       <React.Fragment key={dateStr}>
-                        {/* 월 구분 헤더 */}
+                        {/* 월 구분 헤더 — 스크롤 시 상단 고정 */}
                         {monthLabel && (
-                          <tr>
+                          <tr className="sticky top-[48px] z-20">
                             <td
                               colSpan={1 + sites.length}
-                              className="sticky left-0 z-10 bg-[var(--green)]/[0.06] px-3 py-2 text-xs font-bold text-[var(--green)] border-b border-[var(--border)]"
+                              className="bg-[var(--green)]/[0.08] px-3 py-2 text-sm font-bold text-[var(--green)] border-b border-[var(--green)]/20 backdrop-blur-sm"
                             >
                               {monthLabel}
                             </td>
