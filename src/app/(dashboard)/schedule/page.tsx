@@ -203,15 +203,31 @@ export default function SchedulePage() {
     await fetch("/api/schedule", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: phaseId, plannedStart: newStart, plannedEnd: newEnd }) });
   };
 
-  const fetchData = (month: string) => {
+  const fetchData = (centerMonth: string) => {
     setLoading(true);
-    fetch(`/api/schedule?month=${month}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setSites(data.sites || []);
-        setAllSites(data.allSites || data.sites || []);
-        setPhases(data.phases || []);
-        setOrders(data.orders || []);
+    const [cy, cm] = centerMonth.split("-").map(Number);
+    const months: string[] = [];
+    for (let off = -3; off <= 3; off++) {
+      const d = new Date(cy, cm - 1 + off, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+    Promise.all(months.map(m => fetch(`/api/schedule?month=${m}`).then(r => r.json()).catch(() => null)))
+      .then(results => {
+        const sMap = new Map<string, SiteEvent>();
+        const pMap = new Map<string, PhaseEvent>();
+        const oMap = new Map<string, OrderEvent>();
+        let asList: { id: string; name: string; status: string }[] = [];
+        for (const d of results) {
+          if (!d) continue;
+          (d.sites || []).forEach((s: SiteEvent) => sMap.set(s.id, s));
+          (d.phases || []).forEach((p: PhaseEvent) => pMap.set(p.id, p));
+          (d.orders || []).forEach((o: OrderEvent) => oMap.set(o.id, o));
+          if (!asList.length) asList = d.allSites || d.sites || [];
+        }
+        setSites(Array.from(sMap.values()));
+        setAllSites(asList.length ? asList : Array.from(sMap.values()));
+        setPhases(Array.from(pMap.values()));
+        setOrders(Array.from(oMap.values()));
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -302,14 +318,22 @@ export default function SchedulePage() {
     return map;
   }, [events]);
 
-  const calendarDays = useMemo(() => {
-    const firstDay = new Date(yr, mo - 1, 1).getDay();
-    const days: (number | null)[] = [];
-    for (let i = 0; i < firstDay; i++) days.push(null);
-    for (let i = 1; i <= daysInMonth; i++) days.push(i);
-    while (days.length % 7 !== 0) days.push(null);
-    return days;
-  }, [yr, mo, daysInMonth]);
+  // 여러 달 캘린더 데이터 (앞뒤 3개월씩 총 7개월)
+  const multiMonthCalendar = useMemo(() => {
+    const result: { label: string; yr: number; mo: number; days: (number | null)[] }[] = [];
+    for (let off = -3; off <= 3; off++) {
+      const d = new Date(yr, mo - 1 + off, 1);
+      const y = d.getFullYear(), m = d.getMonth() + 1;
+      const dim = new Date(y, m, 0).getDate();
+      const firstDay = new Date(y, m - 1, 1).getDay();
+      const days: (number | null)[] = [];
+      for (let i = 0; i < firstDay; i++) days.push(null);
+      for (let i = 1; i <= dim; i++) days.push(i);
+      while (days.length % 7 !== 0) days.push(null);
+      result.push({ label: `${y}년 ${m}월`, yr: y, mo: m, days });
+    }
+    return result;
+  }, [yr, mo]);
 
   // Site color mapping for calendar
   const siteColorMap = useMemo(() => {
@@ -495,58 +519,64 @@ export default function SchedulePage() {
             ))}
           </div>
 
-          {/* Calendar View */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
-            <div className="grid grid-cols-7 border-b border-[var(--border)]">
-              {WEEKDAYS.map((d, i) => (
-                <div key={d} className={`px-2 py-2.5 text-center text-xs font-medium ${i === 0 ? "text-[var(--red)]" : i === 6 ? "text-[var(--blue)]" : "text-[var(--muted)]"}`}>
-                  {d}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7">
-              {calendarDays.map((day, idx) => {
-                const dateStr = day ? `${currentMonth}-${String(day).padStart(2, "0")}` : "";
-                const dayEvents = day ? eventsByDate.get(dateStr) || [] : [];
-                const isToday = dateStr === today;
-                const dayOfWeek = idx % 7;
-
-                return (
-                  <div key={idx} className={`min-h-[90px] border-b border-r border-[var(--border)] p-1.5 ${!day ? "bg-white/[0.01]" : "hover:bg-white/[0.02]"} transition-colors`}>
-                    {day && (
-                      <>
-                        <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-[var(--green)] text-black" : dayOfWeek === 0 ? "text-[var(--red)]" : dayOfWeek === 6 ? "text-[var(--blue)]" : "text-[var(--muted)]"}`}>
-                          {day}
-                        </div>
-                        <div className="space-y-0.5">
-                          {dayEvents.slice(0, 3).map((ev) => {
-                            // 현장별 색상: phase 이벤트는 siteId로 색상 결정
-                            const siteColor = ev.siteId ? siteColorMap.get(ev.siteId) : null;
-                            const colors = (ev.type === "phase" || ev.type === "site-start" || ev.type === "site-end") && siteColor
-                              ? siteColor
-                              : TYPE_COLORS[ev.type];
-                            const phaseId = ev.type === "phase" ? ev.id.replace("phase-", "") : null;
-                            return (
-                              <div
-                                key={ev.id}
-                                onClick={() => phaseId && openEditPhase(phaseId)}
-                                className={`px-1.5 py-0.5 rounded text-[10px] truncate ${colors.bg} ${colors.text} ${phaseId ? "cursor-pointer hover:ring-1 hover:ring-current" : ""}`}
-                                title={`${ev.sub ? ev.sub + " · " : ""}${TYPE_LABELS[ev.type]}: ${ev.title}`}
-                              >
-                                {ev.title}
+          {/* Calendar View — 여러 달 연속 스크롤 */}
+          <div className="space-y-6">
+            {multiMonthCalendar.map((month) => {
+              const monthStr = `${month.yr}-${String(month.mo).padStart(2, "0")}`;
+              return (
+                <div key={monthStr} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+                  {/* 월 헤더 */}
+                  <div className="px-4 py-2.5 border-b border-[var(--border)] bg-[var(--green)]/[0.04]">
+                    <h3 className="text-sm font-bold text-[var(--green)]">{month.label}</h3>
+                  </div>
+                  {/* 요일 헤더 */}
+                  <div className="grid grid-cols-7 border-b border-[var(--border)]">
+                    {WEEKDAYS.map((d, i) => (
+                      <div key={d} className={`px-2 py-2 text-center text-xs font-medium ${i === 0 ? "text-[var(--red)]" : i === 6 ? "text-[var(--blue)]" : "text-[var(--muted)]"}`}>
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+                  {/* 날짜 그리드 */}
+                  <div className="grid grid-cols-7">
+                    {month.days.map((day, idx) => {
+                      const dateStr = day ? `${monthStr}-${String(day).padStart(2, "0")}` : "";
+                      const dayEvents = day ? eventsByDate.get(dateStr) || [] : [];
+                      const isToday = dateStr === today;
+                      const dayOfWeek = idx % 7;
+                      return (
+                        <div key={idx} className={`min-h-[80px] border-b border-r border-[var(--border)] p-1.5 ${!day ? "bg-white/[0.01]" : "hover:bg-white/[0.02]"} transition-colors`}>
+                          {day && (
+                            <>
+                              <div className={`text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full ${isToday ? "bg-[var(--green)] text-black" : dayOfWeek === 0 ? "text-[var(--red)]" : dayOfWeek === 6 ? "text-[var(--blue)]" : "text-[var(--muted)]"}`}>
+                                {day}
                               </div>
-                            );
-                          })}
-                          {dayEvents.length > 3 && (
-                            <div className="text-[10px] text-[var(--muted)] pl-1">+{dayEvents.length - 3}건</div>
+                              <div className="space-y-0.5">
+                                {dayEvents.slice(0, 3).map((ev) => {
+                                  const siteColor = ev.siteId ? siteColorMap.get(ev.siteId) : null;
+                                  const colors = (ev.type === "phase" || ev.type === "site-start" || ev.type === "site-end") && siteColor ? siteColor : TYPE_COLORS[ev.type];
+                                  const phaseId = ev.type === "phase" ? ev.id.replace("phase-", "") : null;
+                                  return (
+                                    <div key={ev.id} onClick={() => phaseId && openEditPhase(phaseId)}
+                                      className={`px-1.5 py-0.5 rounded text-[10px] truncate ${colors.bg} ${colors.text} ${phaseId ? "cursor-pointer hover:ring-1 hover:ring-current" : ""}`}
+                                      title={`${ev.sub ? ev.sub + " · " : ""}${TYPE_LABELS[ev.type]}: ${ev.title}`}>
+                                      {ev.title}
+                                    </div>
+                                  );
+                                })}
+                                {dayEvents.length > 3 && (
+                                  <div className="text-[10px] text-[var(--muted)] pl-1">+{dayEvents.length - 3}건</div>
+                                )}
+                              </div>
+                            </>
                           )}
                         </div>
-                      </>
-                    )}
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Calendar Summary */}
