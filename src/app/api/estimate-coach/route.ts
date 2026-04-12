@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
+import { checkRateLimit, callAnthropicWithRetry, extractText } from "@/lib/api/ai-helpers";
 import {
   CATS,
   GRADES,
@@ -96,9 +96,10 @@ export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("estimates", "write");
   if (!auth.ok) return auth.response;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return err("ANTHROPIC_API_KEY가 설정되지 않았습니다.", 500);
+  // Rate limiting
+  const rateCheck = checkRateLimit(auth.userId);
+  if (!rateCheck.allowed) {
+    return err(`요청이 너무 많습니다. ${Math.ceil((rateCheck.retryAfterMs ?? 0) / 1000)}초 후 다시 시도해주세요.`, 429);
   }
 
   try {
@@ -131,15 +132,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const client = new Anthropic({ apiKey });
-
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1200,
-      messages: [
-        {
-          role: "user",
-          content: `당신은 대한민국 인테리어 견적 전문 코치입니다. 10년 이상 경력의 인테리어 견적 전문가로서, 건축주에게 실질적이고 구체적인 조언을 제공합니다.
+    const answer = await callAnthropicWithRetry(async (client) => {
+      const response = await client.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1200,
+        messages: [
+          {
+            role: "user",
+            content: `당신은 대한민국 인테리어 견적 전문 코치입니다. 10년 이상 경력의 인테리어 견적 전문가로서, 건축주에게 실질적이고 구체적인 조언을 제공합니다.
 
 전문 분야:
 - 인테리어 공사 견적 분석 및 참고 가격 범위 제시
@@ -160,15 +160,17 @@ ${contextParts.length > 0 ? `\n현재 고객 상황:\n${contextParts.join("\n")}
 - 과도한 절약이 품질 하락으로 이어지는 경우 경고
 
 질문: ${question}`,
-        },
-      ],
+          },
+        ],
+      });
+      return extractText(response);
     });
-
-    const answer =
-      response.content[0].type === "text" ? response.content[0].text.trim() : "";
 
     return ok({ question, answer, createdAt: new Date().toISOString() });
   } catch (error) {
+    if (error instanceof Error && error.message.includes("ANTHROPIC_API_KEY")) {
+      return err(error.message, 500);
+    }
     return serverError(error);
   }
 }

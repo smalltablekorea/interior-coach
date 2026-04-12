@@ -1,15 +1,17 @@
 import { NextRequest } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
+import { checkRateLimit, callAnthropicWithRetry, extractJson } from "@/lib/api/ai-helpers";
 import { CATS, calcSub } from "@/lib/estimate-engine";
 
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("estimates", "write");
   if (!auth.ok) return auth.response;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return err("ANTHROPIC_API_KEY가 설정되지 않았습니다.", 500);
+  const rateCheck = checkRateLimit(auth.userId);
+  if (!rateCheck.allowed) {
+    return err(`요청이 너무 많습니다. ${Math.ceil((rateCheck.retryAfterMs ?? 0) / 1000)}초 후 다시 시도해주세요.`, 429);
+  }
 
   try {
     const body = await request.json();
@@ -35,15 +37,14 @@ export async function POST(request: NextRequest) {
       computed: Math.round(calcSub(sub, area || 27)),
     }));
 
-    const client = new Anthropic({ apiKey });
-
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 1500,
-      messages: [
-        {
-          role: "user",
-          content: `당신은 대한민국 인테리어 현장 견적 전문가입니다. 아래 현장 조건에 맞는 "${catName}" 공종의 세부내역을 현실적으로 작성해주세요.
+    const parsed = await callAnthropicWithRetry(async (client) => {
+      const response = await client.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1500,
+        messages: [
+          {
+            role: "user",
+            content: `당신은 대한민국 인테리어 현장 견적 전문가입니다. 아래 현장 조건에 맞는 "${catName}" 공종의 세부내역을 현실적으로 작성해주세요.
 
 현장 조건:
 - 면적: ${area || 27}평
@@ -71,16 +72,11 @@ ${engineSubs.map((s) => `[${s.index}] ${s.name} (${s.type}) = ${s.computed.toLoc
     { "name": "자재명", "qty": 1, "unit": "개", "unitPrice": 50000 }
   ]
 }`,
-        },
-      ],
+          },
+        ],
+      });
+      return extractJson<{ subs?: unknown[]; customSubs?: unknown[]; matOverrides?: unknown[] }>(response);
     });
-
-    const text =
-      response.content[0].type === "text" ? response.content[0].text.trim() : "";
-
-    // JSON 파싱 (코드블록 제거)
-    const jsonStr = text.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-    const parsed = JSON.parse(jsonStr);
 
     return ok({
       subs: parsed.subs || [],
@@ -88,6 +84,12 @@ ${engineSubs.map((s) => `[${s.index}] ${s.name} (${s.type}) = ${s.computed.toLoc
       matOverrides: parsed.matOverrides || [],
     });
   } catch (error) {
+    if (error instanceof SyntaxError) {
+      return err("AI 응답 파싱 실패. 다시 시도해주세요.", 422);
+    }
+    if (error instanceof Error && error.message.includes("ANTHROPIC_API_KEY")) {
+      return err(error.message, 500);
+    }
     return serverError(error);
   }
 }

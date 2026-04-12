@@ -69,7 +69,26 @@ GRADES.forEach(g => { gradeMap[g.key] = g; });
 
 // ─── 계산 함수 ───
 export const BASE = 27;
-export const areaCoeff = (a: number) => a <= 15 ? 1.18 : a <= 20 ? 1.10 : a <= 26 ? 1.04 : a <= 32 ? 1.0 : a <= 40 ? 0.96 : a <= 50 ? 0.92 : a <= 65 ? 0.88 : a <= 80 ? 0.85 : 0.82;
+
+// 면적별 계수 테이블 (선형 보간 적용)
+const AREA_COEFF_TABLE: [number, number][] = [
+  [10, 1.18], [15, 1.18], [20, 1.10], [26, 1.04], [32, 1.0],
+  [40, 0.96], [50, 0.92], [65, 0.88], [80, 0.85], [100, 0.82],
+];
+
+export const areaCoeff = (a: number): number => {
+  if (a <= AREA_COEFF_TABLE[0][0]) return AREA_COEFF_TABLE[0][1];
+  if (a >= AREA_COEFF_TABLE[AREA_COEFF_TABLE.length - 1][0]) return AREA_COEFF_TABLE[AREA_COEFF_TABLE.length - 1][1];
+  for (let i = 0; i < AREA_COEFF_TABLE.length - 1; i++) {
+    const [x0, y0] = AREA_COEFF_TABLE[i];
+    const [x1, y1] = AREA_COEFF_TABLE[i + 1];
+    if (a >= x0 && a <= x1) {
+      const t = (a - x0) / (x1 - x0);
+      return Math.round((y0 + t * (y1 - y0)) * 1000) / 1000;
+    }
+  }
+  return 1.0;
+};
 export const rooms = (a: number) => a <= 15 ? 1 : a <= 20 ? 2 : a <= 26 ? 3 : a <= 32 ? 4 : a <= 42 ? 5 : a <= 55 ? 6 : a <= 75 ? 7 : 8;
 export const baths = (a: number) => a <= 26 ? 1 : a <= 42 ? 2 : a <= 65 ? 2 : 3;
 

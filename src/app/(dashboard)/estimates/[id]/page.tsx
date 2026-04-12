@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Printer, Send, CheckCircle, Pencil, Save, X } from "lucide-react";
+import { ArrowLeft, Printer, Send, CheckCircle, Pencil, Save, X, Share2, Download, History, Copy } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { fmt, fmtDate } from "@/lib/utils";
 
@@ -46,6 +46,10 @@ export default function EstimateDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editItems, setEditItems] = useState<EstimateItem[]>([]);
   const [saving, setSaving] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyItems, setHistoryItems] = useState<{ id: string; action: string; changes: unknown; createdAt: string; userName: string }[]>([]);
 
   useEffect(() => {
     fetch(`/api/estimates/${id}`)
@@ -59,6 +63,51 @@ export default function EstimateDetailPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleShare = async () => {
+    setSharing(true);
+    try {
+      const res = await fetch(`/api/estimates/${id}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresInDays: 30 }),
+      });
+      const data = await res.json();
+      if (data.shareUrl) {
+        const fullUrl = `${window.location.origin}${data.shareUrl}`;
+        setShareUrl(fullUrl);
+        await navigator.clipboard.writeText(fullUrl).catch(() => {});
+      }
+    } catch { /* ignore */ }
+    setSharing(false);
+  };
+
+  const handleDownload = () => {
+    window.open(`/api/estimates/${id}/export?format=csv`, "_blank");
+  };
+
+  const handleShowHistory = async () => {
+    if (showHistory) { setShowHistory(false); return; }
+    try {
+      const res = await fetch(`/api/estimates/${id}/history`);
+      const data = await res.json();
+      setHistoryItems(data.history || []);
+    } catch { /* ignore */ }
+    setShowHistory(true);
+  };
+
+  const handleSaveTemplate = async () => {
+    const name = prompt("템플릿 이름을 입력하세요:");
+    if (!name) return;
+    try {
+      await fetch("/api/estimates/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, fromEstimateId: id }),
+      });
+      alert("템플릿으로 저장되었습니다.");
+    } catch { alert("저장 실패"); }
   };
 
   const startEditing = () => {
@@ -203,6 +252,35 @@ export default function EstimateDetailPage() {
                 <Printer size={16} />
                 인쇄
               </button>
+              <button
+                onClick={handleDownload}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+              >
+                <Download size={16} />
+                엑셀
+              </button>
+              <button
+                onClick={handleShare}
+                disabled={sharing}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+              >
+                <Share2 size={16} />
+                {sharing ? "생성중..." : "공유"}
+              </button>
+              <button
+                onClick={handleShowHistory}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+              >
+                <History size={16} />
+                이력
+              </button>
+              <button
+                onClick={handleSaveTemplate}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)] transition-colors"
+              >
+                <Copy size={16} />
+                템플릿
+              </button>
               {estimate.status === "작성중" && (
                 <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--blue)] text-white text-sm font-medium">
                   <Send size={16} />
@@ -219,6 +297,53 @@ export default function EstimateDetailPage() {
           )}
         </div>
       </div>
+
+      {/* 공유 URL 알림 */}
+      {shareUrl && (
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-center justify-between print:hidden">
+          <div>
+            <p className="text-sm font-medium text-blue-800 dark:text-blue-200">공유 링크가 생성되었습니다 (클립보드에 복사됨)</p>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 break-all">{shareUrl}</p>
+          </div>
+          <button onClick={() => setShareUrl(null)} className="text-blue-400 hover:text-blue-600">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* 변경 이력 패널 */}
+      {showHistory && (
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 print:hidden">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-sm">변경 이력</h3>
+            <button onClick={() => setShowHistory(false)} className="text-[var(--muted)]"><X size={16} /></button>
+          </div>
+          {historyItems.length === 0 ? (
+            <p className="text-sm text-[var(--muted)]">변경 이력이 없습니다.</p>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {historyItems.map((h) => (
+                <div key={h.id} className="flex items-start gap-3 text-sm border-b border-[var(--border)] pb-2">
+                  <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">
+                      {h.action === "status_changed" && "상태 변경"}
+                      {h.action === "items_updated" && "항목 수정"}
+                      {h.action === "updated" && "정보 수정"}
+                      {h.action === "created" && "생성"}
+                      {h.action === "shared" && "공유"}
+                      {h.action === "duplicated" && "복제"}
+                    </p>
+                    <p className="text-xs text-[var(--muted)]">
+                      {h.userName || "알 수 없음"} · {new Date(h.createdAt).toLocaleString("ko-KR")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Document */}
       <div

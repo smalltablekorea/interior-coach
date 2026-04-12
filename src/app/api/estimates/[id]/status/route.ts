@@ -4,6 +4,8 @@ import { eq, and } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, notFound, serverError } from "@/lib/api/response";
+import { logEstimateChange } from "@/lib/api/estimate-audit";
+import { notifyEstimateStatusChange } from "@/lib/api/estimate-notify";
 
 const VALID_STATUSES = ["작성중", "발송", "승인", "거절"];
 
@@ -39,6 +41,22 @@ export async function PUT(
       .update(estimates)
       .set({ status, updatedAt: new Date() })
       .where(and(eq(estimates.id, id), workspaceFilter(estimates.workspaceId, estimates.userId, wid, uid)));
+
+    // Audit log + 알림 (비동기, 실패해도 응답은 정상)
+    await Promise.allSettled([
+      logEstimateChange({
+        estimateId: id,
+        userId: uid,
+        action: "status_changed",
+        changes: { status: { old: existing.status, new: status } },
+      }),
+      notifyEstimateStatusChange({
+        estimateId: id,
+        newStatus: status,
+        userId: uid,
+        workspaceId: wid,
+      }),
+    ]);
 
     return ok({
       message: `상태가 '${status}'(으)로 변경되었습니다`,

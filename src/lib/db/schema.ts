@@ -210,6 +210,8 @@ export const estimates = pgTable("estimates", {
   status: text("status").notNull().default("작성중"), // 작성중, 발송, 승인, 거절
   memo: text("memo"),
   metadata: jsonb("metadata"), // 빌더 추가 데이터 (gradeKey, companyInfo 등)
+  shareToken: text("share_token").unique(), // 고객 공유용 토큰
+  shareExpiresAt: timestamp("share_expires_at"), // 공유 링크 만료일
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
@@ -228,6 +230,43 @@ export const estimateItems = pgTable("estimate_items", {
   amount: integer("amount").default(0),
   sortOrder: integer("sort_order").default(0),
   memo: text("memo"),
+});
+
+// ─── 견적 변경 이력 (Audit Log) ───
+
+export const estimateHistory = pgTable("estimate_history", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  estimateId: uuid("estimate_id")
+    .notNull()
+    .references(() => estimates.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  action: text("action").notNull(), // created, updated, status_changed, items_updated, shared, duplicated
+  changes: jsonb("changes"), // { field: { old, new } } 형태
+  snapshot: jsonb("snapshot"), // 변경 시점 전체 스냅샷 (선택적)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── 견적 템플릿 ───
+
+export const estimateTemplates = pgTable("estimate_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  buildingType: text("building_type"), // 아파트, 빌라 등
+  areaPyeong: real("area_pyeong"),
+  gradeKey: text("grade_key"),
+  items: jsonb("items").notNull(), // estimateItem[] 형태
+  metadata: jsonb("metadata"), // profitRate, overheadRate, vatEnabled 등
+  usageCount: integer("usage_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
 });
 
 // ─── 계약 관리 ───
@@ -1409,6 +1448,81 @@ export const siteChatPinnedSummary = pgTable("site_chat_pinned_summary", {
   pendingPaymentDueDate: date("pending_payment_due_date"),
   openDefectsCount: integer("open_defects_count").default(0),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ─── 전자서명 ───
+
+export const signatureRequests = pgTable("signature_requests", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id),
+  siteId: uuid("site_id").references(() => sites.id),
+  documentType: text("document_type").notNull(), // estimate, contract, defect_confirm, completion
+  documentId: uuid("document_id"), // 연결된 견적/계약 ID
+  title: text("title").notNull(),
+  description: text("description"),
+  requestedBy: text("requested_by")
+    .notNull()
+    .references(() => user.id),
+  signerName: text("signer_name").notNull(),
+  signerEmail: text("signer_email"),
+  signerPhone: text("signer_phone"),
+  signerToken: text("signer_token").notNull().unique(), // 서명 링크용 고유 토큰
+  status: text("status").notNull().default("pending"), // pending, signed, expired, canceled
+  signedAt: timestamp("signed_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  signatureImageUrl: text("signature_image_url"), // Vercel Blob URL
+  signedIp: text("signed_ip"),
+  signedUserAgent: text("signed_user_agent"),
+  documentHash: text("document_hash"), // 서명 시점 문서 내용 SHA-256
+  pdfUrl: text("pdf_url"), // 서명 완료 후 생성된 PDF URL
+  metadata: jsonb("metadata"), // 추가 데이터 (서명 좌표 등)
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ─── 트래킹 링크 ───
+
+export const trackingLinks = pgTable("tracking_links", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  workspaceId: uuid("workspace_id")
+    .notNull()
+    .references(() => workspaces.id),
+  siteId: uuid("site_id").references(() => sites.id),
+  token: text("token").notNull().unique(), // URL 토큰
+  targetType: text("target_type").notNull(), // estimate, contract, portal, custom
+  targetId: uuid("target_id"), // 연결된 문서 ID
+  targetUrl: text("target_url").notNull(), // 실제 이동할 내부 경로
+  recipientName: text("recipient_name"), // 수신자 이름
+  recipientContact: text("recipient_contact"), // 이메일 또는 전화번호
+  createdBy: text("created_by")
+    .notNull()
+    .references(() => user.id),
+  isActive: boolean("is_active").notNull().default(true),
+  expiresAt: timestamp("expires_at"),
+  totalViews: integer("total_views").notNull().default(0),
+  uniqueViews: integer("unique_views").notNull().default(0),
+  lastViewedAt: timestamp("last_viewed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const trackingPageViews = pgTable("tracking_page_views", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  linkId: uuid("link_id")
+    .notNull()
+    .references(() => trackingLinks.id, { onDelete: "cascade" }),
+  sessionId: text("session_id").notNull(), // 브라우저 세션 구분
+  viewerIp: text("viewer_ip"),
+  userAgent: text("user_agent"),
+  referrer: text("referrer"),
+  section: text("section"), // 현재 보고 있는 섹션 (견적 항목명 등)
+  scrollDepth: integer("scroll_depth"), // 0~100%
+  dwellTimeSeconds: integer("dwell_time_seconds").default(0), // 체류시간 (초)
+  isActive: boolean("is_active").notNull().default(true), // 현재 보고 있는 중인지
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  lastPingAt: timestamp("last_ping_at").notNull().defaultNow(),
+  endedAt: timestamp("ended_at"),
 });
 
 // ─── n8n 웹훅 로그 ───

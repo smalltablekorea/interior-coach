@@ -3,7 +3,8 @@ import { estimates, estimateItems, sites, customers } from "@/lib/db/schema";
 import { eq, and, isNull } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
-import { ok, notFound, serverError } from "@/lib/api/response";
+import { ok, err, notFound, serverError } from "@/lib/api/response";
+import { logEstimateChange } from "@/lib/api/estimate-audit";
 
 export async function GET(
   _request: Request,
@@ -90,7 +91,7 @@ export async function PUT(
   const { id } = await params;
 
   const [existing] = await db
-    .select({ id: estimates.id })
+    .select({ id: estimates.id, updatedAt: estimates.updatedAt })
     .from(estimates)
     .where(and(eq(estimates.id, id), workspaceFilter(estimates.workspaceId, estimates.userId, auth.workspaceId, auth.userId), isNull(estimates.deletedAt)));
 
@@ -98,6 +99,15 @@ export async function PUT(
 
   try {
     const body = await request.json();
+
+    // Optimistic locking: 클라이언트가 보낸 updatedAt과 DB의 updatedAt 비교
+    if (body.expectedUpdatedAt && existing.updatedAt) {
+      const clientTime = new Date(body.expectedUpdatedAt).getTime();
+      const dbTime = new Date(existing.updatedAt).getTime();
+      if (clientTime !== dbTime) {
+        return err("다른 사용자가 이미 수정했습니다. 새로고침 후 다시 시도해주세요.", 409);
+      }
+    }
 
     if (body.items) {
       await db.delete(estimateItems).where(eq(estimateItems.estimateId, id));
@@ -139,6 +149,16 @@ export async function PUT(
     if (Object.keys(updateFields).length > 1) {
       await db.update(estimates).set(updateFields).where(eq(estimates.id, id));
     }
+
+    // Audit log 기록
+    const changes: Record<string, { old: unknown; new: unknown }> = {};
+    if (body.status !== undefined) changes.status = { old: null, new: body.status };
+    if (body.items) changes.items = { old: "이전 항목", new: `${body.items.length}개 항목` };
+    if (body.profitRate !== undefined) changes.profitRate = { old: null, new: body.profitRate };
+    if (body.overheadRate !== undefined) changes.overheadRate = { old: null, new: body.overheadRate };
+
+    const action = body.status ? "status_changed" as const : body.items ? "items_updated" as const : "updated" as const;
+    await logEstimateChange({ estimateId: id, userId: auth.userId, action, changes });
 
     return ok({ message: "수정되었습니다" });
   } catch (error) {

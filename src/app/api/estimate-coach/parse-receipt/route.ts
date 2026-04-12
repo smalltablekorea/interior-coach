@@ -2,7 +2,9 @@ import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
+import { checkRateLimit, callAnthropicWithRetry, extractJson } from "@/lib/api/ai-helpers";
 import { CATS } from "@/lib/estimate-engine";
+import { z } from "zod";
 
 const CAT_KEYWORDS: Record<string, string[]> = {
   demolition: ["철거", "해체", "폐기물", "잔재물", "덤프"],
@@ -30,23 +32,62 @@ function matchCategory(itemName: string, itemCategory?: string): string | null {
   return null;
 }
 
+// ─── 이미지 검증 스키마 ───
+const VALID_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"] as const;
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB per image
+
+const imageSchema = z.object({
+  data: z.string().min(1, "이미지 데이터가 비어있습니다"),
+  mimeType: z.enum(VALID_MIME_TYPES, { message: "지원하지 않는 이미지 형식입니다 (JPEG, PNG, WebP, GIF만 가능)" }),
+});
+
+const requestSchema = z.object({
+  images: z.array(imageSchema).min(1, "이미지가 필요합니다").max(10, "최대 10장까지 첨부 가능합니다"),
+});
+
+// ─── 파싱 결과 검증 스키마 ───
+const parsedItemSchema = z.object({
+  name: z.string().default("항목명 없음"),
+  catId: z.string().optional(),
+  qty: z.number().default(1),
+  unit: z.string().default("식"),
+  unitPrice: z.number().default(0),
+  totalAmount: z.number().default(0),
+});
+
+const parsedResultSchema = z.object({
+  items: z.array(parsedItemSchema),
+});
+
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("estimates", "write");
   if (!auth.ok) return auth.response;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return err("ANTHROPIC_API_KEY가 설정되지 않았습니다.", 500);
+  // Rate limiting
+  const rateCheck = checkRateLimit(auth.userId);
+  if (!rateCheck.allowed) {
+    return err(`요청이 너무 많습니다. ${Math.ceil((rateCheck.retryAfterMs ?? 0) / 1000)}초 후 다시 시도해주세요.`, 429);
+  }
 
   try {
     const body = await request.json();
-    const { images } = body as {
-      images: { data: string; mimeType: string }[];
-    };
 
-    if (!images || images.length === 0) return err("이미지가 필요합니다.");
-    if (images.length > 10) return err("최대 10장까지 첨부 가능합니다.");
+    // 서버 측 입력 검증
+    const validation = requestSchema.safeParse(body);
+    if (!validation.success) {
+      const messages = validation.error.issues.map((i) => i.message).join(", ");
+      return err(messages);
+    }
 
-    const client = new Anthropic({ apiKey });
+    const { images } = validation.data;
+
+    // 개별 이미지 크기 검증 (base64 → 실제 크기 근사)
+    for (let i = 0; i < images.length; i++) {
+      const approxBytes = Math.ceil(images[i].data.length * 0.75);
+      if (approxBytes > MAX_IMAGE_SIZE_BYTES) {
+        return err(`${i + 1}번째 이미지가 너무 큽니다 (최대 5MB).`);
+      }
+    }
 
     const catNames = CATS.map((c) => `${c.id}(${c.name})`).join(", ");
 
@@ -91,26 +132,30 @@ export async function POST(request: NextRequest) {
 - 단가 불명확하면 totalAmount을 qty로 나눈 값`,
     });
 
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 3000,
-      messages: [{ role: "user", content }],
+    // 재시도 로직 적용
+    const parsed = await callAnthropicWithRetry(async (client) => {
+      const response = await client.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 3000,
+        messages: [{ role: "user", content }],
+      });
+      return extractJson<{ items: unknown[] }>(response);
     });
 
-    const text =
-      response.content[0].type === "text" ? response.content[0].text.trim() : "";
+    // 구조 검증
+    const result = parsedResultSchema.safeParse(parsed);
+    if (!result.success) {
+      return err("영수증 분석 결과 형식이 올바르지 않습니다. 다시 시도해주세요.", 422);
+    }
 
-    const jsonStr = text.replace(/```json?\n?/g, "").replace(/```/g, "").trim();
-    const parsed = JSON.parse(jsonStr);
-
-    if (!parsed.items || !Array.isArray(parsed.items)) {
-      return err("파싱 결과가 올바르지 않습니다.", 422);
+    if (result.data.items.length === 0) {
+      return err("영수증에서 인식된 항목이 없습니다. 이미지를 확인해주세요.", 422);
     }
 
     // 공종별로 그룹화
     const grouped: Record<string, { name: string; qty: number; unit: string; unitPrice: number }[]> = {};
 
-    for (const item of parsed.items) {
+    for (const item of result.data.items) {
       const catId = item.catId || matchCategory(item.name) || "carpentry";
       if (!grouped[catId]) grouped[catId] = [];
       grouped[catId].push({
@@ -121,10 +166,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return ok({ grouped, rawItems: parsed.items });
+    return ok({ grouped, rawItems: result.data.items });
   } catch (error) {
     if (error instanceof SyntaxError) {
-      return err("영수증 분석 결과 파싱 실패. 다시 시도해주세요.", 422);
+      return err("영수증 분석 결과를 해석할 수 없습니다. 이미지를 다시 촬영해주세요.", 422);
+    }
+    if (error instanceof Error && error.message.includes("ANTHROPIC_API_KEY")) {
+      return err(error.message, 500);
     }
     return serverError(error);
   }
