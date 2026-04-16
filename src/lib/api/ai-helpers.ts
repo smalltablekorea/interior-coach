@@ -3,24 +3,54 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import type { PlanId } from "@/lib/plans";
 
 // ─── Rate Limiter (메모리 기반, 유저별 분당 요청 제한) ───
 const requestLog = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1분
-const RATE_LIMIT_MAX = 10; // 분당 최대 10회
 
-export function checkRateLimit(userId: string): { allowed: boolean; retryAfterMs?: number } {
+/**
+ * 플랜별 AI 엔드포인트 분당 최대 요청 수.
+ * Free는 체험 용도, Pro는 넉넉하게 허용해 과금 폭탄을 방지한다.
+ */
+export const AI_RATE_LIMITS: Record<PlanId, number> = {
+  free: 5,
+  starter: 20,
+  pro: 60,
+};
+
+export interface RateLimitResult {
+  allowed: boolean;
+  retryAfterMs?: number;
+  limit: number;
+  remaining: number;
+  plan: PlanId;
+}
+
+export function checkRateLimit(userId: string, plan: PlanId = "free"): RateLimitResult {
+  const max = AI_RATE_LIMITS[plan] ?? AI_RATE_LIMITS.free;
   const now = Date.now();
   const log = requestLog.get(userId) ?? [];
   // 윈도우 밖 기록 제거
   const recent = log.filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  if (recent.length >= RATE_LIMIT_MAX) {
+  if (recent.length >= max) {
     const oldest = recent[0];
-    return { allowed: false, retryAfterMs: RATE_LIMIT_WINDOW_MS - (now - oldest) };
+    return {
+      allowed: false,
+      retryAfterMs: RATE_LIMIT_WINDOW_MS - (now - oldest),
+      limit: max,
+      remaining: 0,
+      plan,
+    };
   }
   recent.push(now);
   requestLog.set(userId, recent);
-  return { allowed: true };
+  return {
+    allowed: true,
+    limit: max,
+    remaining: Math.max(0, max - recent.length),
+    plan,
+  };
 }
 
 // ─── 재시도 로직 ───

@@ -6,6 +6,7 @@ import { eq, and, ilike } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
+import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
 
 interface ParsedItem {
   name: string;
@@ -26,6 +27,10 @@ interface AnalysisResult {
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("tax", "write");
   if (!auth.ok) return auth.response;
+
+  // Plan-aware rate limiting (AI 과금 방어)
+  const gate = await enforceAiRateLimit(auth.userId);
+  if (!gate.ok) return gate.response;
 
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY;
