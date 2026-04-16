@@ -10,6 +10,8 @@ import { eq, and } from "drizzle-orm";
 import { put } from "@vercel/blob";
 import { broadcastToRoom } from "@/lib/site-chat/utils";
 import { stripHtml } from "@/lib/api/validate";
+import { checkRateLimit as checkAiRateLimit } from "@/lib/api/ai-helpers";
+import { getUserSubscription } from "@/lib/subscription";
 
 const MAX_CAPTION_LENGTH = 4000;
 
@@ -135,10 +137,16 @@ export async function POST(req: NextRequest) {
     .returning();
 
   // AI 자동 태깅 (이미지인 경우, 비동기)
+  // AI-21: 업로더의 플랜별 분당 한도에 포함시켜 Anthropic 과금 폭탄 방지.
+  // 한도 초과 시 태깅은 건너뛰되 업로드 자체는 성공으로 처리한다.
   if (isImage && process.env.ANTHROPIC_API_KEY) {
-    tagImageAsync(attachment.id, blob.url).catch(() => {
-      /* 태깅 실패는 무시 */
-    });
+    const { plan } = await getUserSubscription(auth.userId);
+    const gate = checkAiRateLimit(auth.userId, plan);
+    if (gate.allowed) {
+      tagImageAsync(attachment.id, blob.url).catch(() => {
+        /* 태깅 실패는 무시 */
+      });
+    }
   }
 
   // SSE 브로드캐스트
