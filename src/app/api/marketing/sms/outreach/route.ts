@@ -6,6 +6,7 @@ import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 import { sendSms } from "@/lib/solapi";
+import { enforceApiRateLimit } from "@/lib/api/rate-limit";
 
 export async function GET(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "read");
@@ -49,6 +50,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+
+  // SMS 과금/남용 방지 (AI-21): 유저당 분당 20회
+  const gate = enforceApiRateLimit(auth.userId, { bucket: "sms-outreach", max: 20 });
+  if (!gate.ok) return gate.response;
+
   try {
     const body = await request.json();
     const { leadId, campaignId, channel, templateType, content, recipientPhone, stepIndex } = body;

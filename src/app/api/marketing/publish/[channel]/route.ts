@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { marketingPosts } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ok, err, serverError } from "@/lib/api/response";
+import { enforceApiRateLimit } from "@/lib/api/rate-limit";
 
 export async function POST(
   request: NextRequest,
@@ -13,6 +14,10 @@ export async function POST(
   const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
   const uid = auth.userId;
+
+  // 외부 플랫폼 게시 남용 방지 (AI-21): 유저당 분당 30회
+  const gate = enforceApiRateLimit(uid, { bucket: "marketing-publish", max: 30 });
+  if (!gate.ok) return gate.response;
 
   const { channel } = await params;
 

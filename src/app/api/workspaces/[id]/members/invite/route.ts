@@ -8,6 +8,7 @@ import { hasMinRole, type WorkspaceRole } from "@/lib/workspace-auth";
 import { sendInviteEmail } from "@/lib/email";
 import { z } from "zod";
 import * as crypto from "crypto";
+import { enforceApiRateLimit } from "@/lib/api/rate-limit";
 
 const inviteSchema = z.object({
   email: z.string().email("유효한 이메일을 입력해주세요"),
@@ -20,6 +21,10 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function POST(request: NextRequest, context: RouteContext) {
   const auth = await requireAuth();
   if (!auth.ok) return auth.response;
+
+  // 초대 이메일 남용 방지 (AI-21): 유저당 분당 10회
+  const gate = enforceApiRateLimit(auth.userId, { bucket: "workspace-invite", max: 10 });
+  if (!gate.ok) return gate.response;
 
   const { id } = await context.params;
 
