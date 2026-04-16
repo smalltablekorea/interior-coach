@@ -8,19 +8,30 @@ import ChatMessageList from "@/components/site-chat/ChatMessageList";
 import ChatComposer from "@/components/site-chat/ChatComposer";
 import RoomSidebar from "@/components/site-chat/RoomSidebar";
 import ClientPortalToggle from "@/components/site-chat/ClientPortalToggle";
+import { useAuth } from "@/components/auth/AuthProvider";
 import type { SiteChatMessage, SiteChatRoom, PinnedSummary } from "@/components/site-chat/types";
 
 export default function SiteChatPage() {
   const { id: roomId } = useParams<{ id: string }>();
   const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const userId = user?.id ?? null;
 
   const [room, setRoom] = useState<SiteChatRoom | null>(null);
   const [messages, setMessages] = useState<SiteChatMessage[]>([]);
   const [summary, setSummary] = useState<PinnedSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userId] = useState<string | null>(null); // TODO: from auth
   const [showSidebar, setShowSidebar] = useState(true);
   const [reconnecting, setReconnecting] = useState(false);
+
+  // 세션 로딩이 끝났는데도 인증되지 않은 경우 로그인 페이지로 리다이렉트
+  // (미들웨어가 1차 방어선이지만 클라이언트에서도 안전장치)
+  useEffect(() => {
+    if (!authLoading && !user) {
+      const callbackUrl = encodeURIComponent(`/projects/${roomId}/chat`);
+      router.replace(`/auth/login?callbackUrl=${callbackUrl}`);
+    }
+  }, [authLoading, user, roomId, router]);
 
   // Fetch room + messages
   useEffect(() => {
@@ -75,6 +86,7 @@ export default function SiteChatPage() {
   // Send message
   const handleSend = useCallback(async (text: string, files?: File[]) => {
     if (!roomId) return;
+    if (!userId) return; // 인증되지 않은 사용자는 메시지 전송 불가
 
     // 낙관적 업데이트
     const optimisticMsg: SiteChatMessage = {
@@ -146,7 +158,7 @@ export default function SiteChatPage() {
     setRoom(prev => prev ? { ...prev, clientPortalEnabled: enabled } : null);
   };
 
-  if (loading) {
+  if (loading || authLoading || !userId) {
     return (
       <div className="h-[calc(100vh-64px)] flex items-center justify-center">
         <span className="w-6 h-6 border-2 border-[var(--green)]/30 border-t-[var(--green)] rounded-full animate-spin" />
