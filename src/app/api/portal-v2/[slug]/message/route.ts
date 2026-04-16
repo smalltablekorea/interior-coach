@@ -6,6 +6,7 @@ import { checkRateLimit, isSpam, verifyPortalPassword } from "@/lib/site-chat/ut
 import { broadcastToRoom } from "@/lib/site-chat/utils";
 import { sendSms } from "@/lib/solapi";
 import { workspaces, user } from "@/lib/db/schema";
+import { portalChatMessageSchema, validateBody } from "@/lib/api/validate";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -22,17 +23,11 @@ export async function POST(req: NextRequest, { params }: Params) {
     );
   }
 
-  const body = await req.json();
-  const { content, displayName, password } = body;
+  const parsed = await validateBody(req, portalChatMessageSchema);
+  if (!parsed.ok) return parsed.response;
+  const { content, displayName, password } = parsed.data;
 
-  if (!content || !displayName) {
-    return NextResponse.json(
-      { error: "content와 displayName은 필수입니다" },
-      { status: 400 },
-    );
-  }
-
-  // 스팸 필터
+  // 스팸 필터 (sanitize 후 남은 content 기준)
   const spamCheck = isSpam(content);
   if (spamCheck.spam) {
     return NextResponse.json(
@@ -69,7 +64,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
   }
 
-  // 메시지 저장
+  // 메시지 저장 (content/displayName은 이미 sanitize됨)
   const [message] = await db
     .insert(siteChatMessages)
     .values({

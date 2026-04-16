@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { estimateSchema, estimateItemSchema, customerSchema, stripHtml } from "@/lib/api/validate";
+import {
+  estimateSchema,
+  estimateItemSchema,
+  customerSchema,
+  portalChatMessageSchema,
+  stripHtml,
+} from "@/lib/api/validate";
 
 describe("stripHtml", () => {
   it("script 태그를 제거한다 (태그가 실행되지 않도록)", () => {
@@ -103,6 +109,84 @@ describe("customerSchema sanitization", () => {
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.name).toBe("홍길동");
+    }
+  });
+});
+
+describe("portalChatMessageSchema", () => {
+  it("content와 displayName에서 script 페이로드를 제거한다", () => {
+    const result = portalChatMessageSchema.safeParse({
+      content: '<script>alert("xss")</script>문의드립니다',
+      displayName: '<img src=x onerror="alert(1)">홍길동',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.content).not.toContain("<script");
+      expect(result.data.content).not.toContain(">");
+      expect(result.data.content).toContain("문의드립니다");
+      expect(result.data.displayName).not.toContain("<img");
+      expect(result.data.displayName).toContain("홍길동");
+    }
+  });
+
+  it("content가 빈 문자열이면 거부한다", () => {
+    const empty = portalChatMessageSchema.safeParse({
+      content: "",
+      displayName: "홍길동",
+    });
+    expect(empty.success).toBe(false);
+  });
+
+  it("sanitize 후 공백만 남으면 거부한다", () => {
+    const tagsOnly = portalChatMessageSchema.safeParse({
+      content: "<div>   </div>",
+      displayName: "홍길동",
+    });
+    expect(tagsOnly.success).toBe(false);
+  });
+
+  it("displayName이 누락되면 거부한다", () => {
+    const missing = portalChatMessageSchema.safeParse({
+      content: "안녕하세요",
+    });
+    expect(missing.success).toBe(false);
+  });
+
+  it("비문자열 content는 거부한다", () => {
+    const nonString = portalChatMessageSchema.safeParse({
+      content: 42,
+      displayName: "홍길동",
+    });
+    expect(nonString.success).toBe(false);
+  });
+
+  it("긴 content는 4000자로 잘린다", () => {
+    const huge = "가".repeat(5000);
+    const result = portalChatMessageSchema.safeParse({
+      content: huge,
+      displayName: "홍길동",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.content.length).toBe(4000);
+    }
+  });
+
+  it("password는 선택적이다", () => {
+    const noPassword = portalChatMessageSchema.safeParse({
+      content: "안녕하세요",
+      displayName: "홍길동",
+    });
+    expect(noPassword.success).toBe(true);
+
+    const withPassword = portalChatMessageSchema.safeParse({
+      content: "안녕하세요",
+      displayName: "홍길동",
+      password: "secret",
+    });
+    expect(withPassword.success).toBe(true);
+    if (withPassword.success) {
+      expect(withPassword.data.password).toBe("secret");
     }
   });
 });
