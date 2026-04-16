@@ -8,6 +8,9 @@ import {
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { hashPortalPassword, generatePortalSlug } from "@/lib/site-chat/utils";
+import { stripHtml } from "@/lib/api/validate";
+
+const MAX_TITLE_LENGTH = 200;
 
 type Params = { params: Promise<{ roomId: string }> };
 
@@ -68,13 +71,23 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const body = await req.json();
   const updates: Partial<typeof siteChatRooms.$inferInsert> = {};
 
-  if (body.title !== undefined) updates.title = body.title;
+  if (body.title !== undefined) {
+    if (typeof body.title !== "string") {
+      return NextResponse.json({ error: "title은 문자열이어야 합니다" }, { status: 400 });
+    }
+    // XSS 방어: HTML 태그 제거 + 길이 제한
+    const sanitizedTitle = stripHtml(body.title).slice(0, MAX_TITLE_LENGTH).trim();
+    if (!sanitizedTitle) {
+      return NextResponse.json({ error: "title은 비어있을 수 없습니다" }, { status: 400 });
+    }
+    updates.title = sanitizedTitle;
+  }
 
   if (body.clientPortalEnabled !== undefined) {
     updates.clientPortalEnabled = body.clientPortalEnabled;
     // 포털 활성화 시 slug가 없으면 생성
     if (body.clientPortalEnabled && !room.clientPortalSlug) {
-      updates.clientPortalSlug = generatePortalSlug(room.title);
+      updates.clientPortalSlug = generatePortalSlug(updates.title ?? room.title);
     }
   }
 

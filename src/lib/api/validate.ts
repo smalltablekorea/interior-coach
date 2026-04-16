@@ -3,7 +3,11 @@ import { z } from "zod";
 import { err } from "./response";
 
 // ─── XSS 방지 sanitization ───
-function stripHtml(str: string): string {
+/**
+ * HTML 태그와 꺾쇠 괄호를 제거한다.
+ * 저장 단계의 방어선(defense-in-depth) — 렌더 단계는 React 기본 이스케이프에 의존.
+ */
+export function stripHtml(str: string): string {
   return str.replace(/<[^>]*>/g, "").replace(/[<>]/g, "");
 }
 

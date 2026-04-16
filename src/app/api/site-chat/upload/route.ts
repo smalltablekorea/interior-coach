@@ -9,6 +9,21 @@ import {
 import { eq, and } from "drizzle-orm";
 import { put } from "@vercel/blob";
 import { broadcastToRoom } from "@/lib/site-chat/utils";
+import { stripHtml } from "@/lib/api/validate";
+
+const MAX_CAPTION_LENGTH = 4000;
+
+/** 파일명에서 XSS 및 경로 조작 위험 문자를 제거하고, 저장용 안전한 파일명을 반환한다. */
+function sanitizeFileName(raw: string): string {
+  const stripped = stripHtml(raw);
+  // 경로 구분자 및 제어 문자 제거
+  const safe = stripped
+    .replace(/[\\/]/g, "_")
+    .replace(/\.\.+/g, ".")
+    .replace(/[\x00-\x1f\x7f]/g, "")
+    .trim();
+  return safe.slice(0, 200) || "file";
+}
 
 /** POST /api/site-chat/upload — 파일 업로드 + 메시지 생성 */
 export async function POST(req: NextRequest) {
@@ -58,9 +73,12 @@ export async function POST(req: NextRequest) {
   const isImage = file.type.startsWith("image/");
   const contentType = isImage ? "image" : "file";
 
+  // XSS 방어: 파일명 sanitize + blob 경로에 안전한 이름만 사용
+  const safeFileName = sanitizeFileName(file.name);
+
   // Vercel Blob에 업로드
   const blob = await put(
-    `site-chat/${auth.workspaceId}/${roomId}/${Date.now()}-${file.name}`,
+    `site-chat/${auth.workspaceId}/${roomId}/${Date.now()}-${safeFileName}`,
     file,
     { access: "public" },
   );
@@ -84,15 +102,22 @@ export async function POST(req: NextRequest) {
     )
     .limit(1);
 
-  // 메시지 생성
+  const sanitizedCaption = caption
+    ? stripHtml(caption).slice(0, MAX_CAPTION_LENGTH)
+    : null;
+  const sanitizedSessionName =
+    stripHtml(auth.session.user.name ?? "").slice(0, 120) || "사용자";
+  const displayName = participant?.displayName || sanitizedSessionName;
+
+  // 메시지 생성 (캡션 없으면 안전 처리된 파일명을 콘텐츠로 사용)
   const [message] = await db
     .insert(siteChatMessages)
     .values({
       roomId,
       senderId: auth.userId,
       senderType: participant?.role || "team",
-      senderDisplayName: participant?.displayName || auth.session.user.name,
-      content: caption || file.name,
+      senderDisplayName: displayName,
+      content: sanitizedCaption && sanitizedCaption.trim() ? sanitizedCaption : safeFileName,
       contentType,
     })
     .returning();

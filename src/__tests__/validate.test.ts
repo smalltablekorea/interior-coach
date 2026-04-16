@@ -1,5 +1,31 @@
 import { describe, it, expect } from "vitest";
-import { estimateSchema, estimateItemSchema, customerSchema } from "@/lib/api/validate";
+import { estimateSchema, estimateItemSchema, customerSchema, stripHtml } from "@/lib/api/validate";
+
+describe("stripHtml", () => {
+  it("script 태그를 제거한다 (태그가 실행되지 않도록)", () => {
+    const out = stripHtml('<script>alert("x")</script>안녕');
+    expect(out).not.toContain("<script");
+    expect(out).not.toContain("</script");
+    expect(out).toContain("안녕");
+  });
+
+  it("img onerror 태그를 제거한다", () => {
+    const out = stripHtml('<img src=x onerror="alert(1)">사진');
+    expect(out).not.toContain("<img");
+    expect(out).not.toContain(">");
+    expect(out).toContain("사진");
+  });
+
+  it("닫히지 않은 꺾쇠 괄호도 결과에 남지 않는다", () => {
+    const out = stripHtml("hello <world");
+    expect(out).not.toContain("<");
+    expect(out).not.toContain(">");
+  });
+
+  it("HTML이 없는 일반 텍스트는 그대로 둔다", () => {
+    expect(stripHtml("공사 현장 13층")).toBe("공사 현장 13층");
+  });
+});
 
 describe("estimateSchema", () => {
   it("기본값으로 파싱 가능", () => {
