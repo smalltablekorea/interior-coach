@@ -13,6 +13,7 @@ import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import Anthropic from "@anthropic-ai/sdk";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
+import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
 
 function buildPrompt(
   channel: string,
@@ -168,6 +169,11 @@ export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
   const wid = auth.workspaceId; const uid = auth.userId;
+
+  // Plan-aware rate limiting (AI 과금 폭탄 방어 - AI-21)
+  const gate = await enforceAiRateLimit(uid);
+  if (!gate.ok) return gate.response;
+
   try {
     const body = await request.json();
     const { channel, siteId, contentType, additionalContext } = body;

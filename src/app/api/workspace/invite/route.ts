@@ -5,11 +5,16 @@ import { workspaceInvitations, workspaces, user } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import { sendInviteEmail } from "@/lib/email";
+import { enforceApiRateLimit } from "@/lib/api/rate-limit";
 
 // POST: 이메일 초대 생성
 export async function POST(request: Request) {
   const auth = await requireWorkspaceAuth("settings", "admin");
   if (!auth.ok) return auth.response;
+
+  // 초대 이메일 남용 방지 (AI-21): 유저당 분당 10회
+  const gate = enforceApiRateLimit(auth.userId, { bucket: "workspace-invite", max: 10 });
+  if (!gate.ok) return gate.response;
 
   try {
     const { email, role } = await request.json();
