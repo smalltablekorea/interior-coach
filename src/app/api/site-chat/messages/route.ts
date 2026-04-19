@@ -9,6 +9,11 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, desc, lt, isNull } from "drizzle-orm";
 import { broadcastToRoom } from "@/lib/site-chat/utils";
+import { stripHtml } from "@/lib/api/validate";
+
+// text/file 메시지 최대 길이 (UI 과부하 및 악의적 페이로드 방지)
+const MAX_CONTENT_LENGTH = 4000;
+const ALLOWED_CONTENT_TYPES = new Set(["text", "image", "file", "system_event"]);
 
 /** GET /api/site-chat/messages?roomId=xxx&cursor=xxx&limit=50 */
 export async function GET(req: NextRequest) {
@@ -124,6 +129,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "roomId와 content는 필수입니다" }, { status: 400 });
   }
 
+  if (typeof content !== "string") {
+    return NextResponse.json({ error: "content는 문자열이어야 합니다" }, { status: 400 });
+  }
+
+  const resolvedContentType = typeof contentType === "string" ? contentType : "text";
+  if (!ALLOWED_CONTENT_TYPES.has(resolvedContentType)) {
+    return NextResponse.json({ error: "유효하지 않은 contentType입니다" }, { status: 400 });
+  }
+
+  // XSS 방어: HTML 태그 제거 + 길이 제한
+  const sanitizedContent = stripHtml(content).slice(0, MAX_CONTENT_LENGTH);
+  if (!sanitizedContent.trim()) {
+    return NextResponse.json({ error: "content는 비어있을 수 없습니다" }, { status: 400 });
+  }
+
   // 워크스페이스 소속 방인지 확인
   const [room] = await db
     .select({ id: siteChatRooms.id })
@@ -148,14 +168,15 @@ export async function POST(req: NextRequest) {
     .limit(1);
 
   const senderType = participant?.role || "team";
-  const displayName = participant?.displayName || auth.session.user.name;
+  const sanitizedSessionName = stripHtml(auth.session.user.name ?? "").slice(0, 120) || "사용자";
+  const displayName = participant?.displayName || sanitizedSessionName;
 
   if (!participant) {
     await db.insert(siteChatParticipants).values({
       roomId,
       userId: auth.userId,
       role: "team",
-      displayName: auth.session.user.name,
+      displayName: sanitizedSessionName,
       joinedVia: "direct",
     });
   }
@@ -167,10 +188,10 @@ export async function POST(req: NextRequest) {
       senderId: auth.userId,
       senderType,
       senderDisplayName: displayName,
-      content,
-      contentType: contentType || "text",
+      content: sanitizedContent,
+      contentType: resolvedContentType,
       replyToId: replyToId || null,
-      metadata: metadata || null,
+      metadata: metadata ?? null,
     })
     .returning();
 

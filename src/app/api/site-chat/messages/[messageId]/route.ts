@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { siteChatMessages, siteChatRooms } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { broadcastToRoom } from "@/lib/site-chat/utils";
+import { stripHtml } from "@/lib/api/validate";
+
+const MAX_CONTENT_LENGTH = 4000;
 
 type Params = { params: Promise<{ messageId: string }> };
 
@@ -42,10 +45,20 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "본인 메시지만 수정할 수 있습니다" }, { status: 403 });
   }
 
+  if (typeof body.content !== "string") {
+    return NextResponse.json({ error: "content는 문자열이어야 합니다" }, { status: 400 });
+  }
+
+  // XSS 방어: HTML 태그 제거 + 길이 제한
+  const sanitizedContent = stripHtml(body.content).slice(0, MAX_CONTENT_LENGTH);
+  if (!sanitizedContent.trim()) {
+    return NextResponse.json({ error: "content는 비어있을 수 없습니다" }, { status: 400 });
+  }
+
   const [updated] = await db
     .update(siteChatMessages)
     .set({
-      content: body.content,
+      content: sanitizedContent,
       editedAt: new Date(),
     })
     .where(eq(siteChatMessages.id, messageId))

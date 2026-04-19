@@ -1535,3 +1535,26 @@ export const n8nWebhookLogs = pgTable("n8n_webhook_logs", {
   responseBody: text("response_body"),
   executedAt: timestamp("executed_at").notNull().defaultNow(),
 });
+
+// ─── CRON 실행 로그 (AI-14) ───
+
+/**
+ * Vercel CRON 실행 결과를 기록한다.
+ * - `success`: 핸들러가 에러 없이 완료되었는지
+ * - `processed`: 처리 건수 (핸들러가 반환한 숫자 지표)
+ * - `metadata`: 핸들러가 반환한 추가 지표 (JSON)
+ * - `errorMessage` / `errorStack`: 실패 시 에러 상세
+ * - 실패 시 Slack/이메일 알림을 보내고, 최근 연속 실패 수를 조회해 에스컬레이션할 때 사용한다.
+ */
+export const cronExecutionLogs = pgTable("cron_execution_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  cronName: text("cron_name").notNull(),
+  success: boolean("success").notNull(),
+  processed: integer("processed").default(0),
+  durationMs: integer("duration_ms").notNull(),
+  metadata: jsonb("metadata"),
+  errorMessage: text("error_message"),
+  errorStack: text("error_stack"),
+  startedAt: timestamp("started_at").notNull(),
+  completedAt: timestamp("completed_at").notNull().defaultNow(),
+});

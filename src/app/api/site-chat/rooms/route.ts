@@ -9,6 +9,9 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { generatePortalSlug, hashPortalPassword } from "@/lib/site-chat/utils";
+import { stripHtml } from "@/lib/api/validate";
+
+const MAX_TITLE_LENGTH = 200;
 
 /** GET /api/site-chat/rooms — 워크스페이스의 모든 톡방 목록 */
 export async function GET() {
@@ -62,7 +65,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "현장을 찾을 수 없습니다" }, { status: 404 });
   }
 
-  const roomTitle = title || site.name;
+  // XSS 방어: 방 제목과 생성자 이름 sanitize
+  const rawTitle = typeof title === "string" && title.trim() ? title : site.name;
+  const roomTitle = stripHtml(rawTitle).slice(0, MAX_TITLE_LENGTH).trim() || site.name;
+  const sanitizedSessionName =
+    stripHtml(auth.session.user.name ?? "").slice(0, 120) || "사용자";
   const slug = enablePortal ? generatePortalSlug(roomTitle) : null;
   const passwordHash = enablePortal && portalPassword
     ? await hashPortalPassword(portalPassword)
@@ -85,7 +92,7 @@ export async function POST(req: NextRequest) {
     roomId: room.id,
     userId: auth.userId,
     role: "owner",
-    displayName: auth.session.user.name,
+    displayName: sanitizedSessionName,
     joinedVia: "direct",
   });
 
@@ -95,7 +102,7 @@ export async function POST(req: NextRequest) {
     roomId: room.id,
     senderType: "system",
     senderDisplayName: "시스템",
-    content: `${auth.session.user.name}님이 톡방을 생성했습니다.`,
+    content: `${sanitizedSessionName}님이 톡방을 생성했습니다.`,
     contentType: "system_event",
   });
 

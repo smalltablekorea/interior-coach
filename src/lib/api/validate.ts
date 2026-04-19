@@ -3,7 +3,11 @@ import { z } from "zod";
 import { err } from "./response";
 
 // ─── XSS 방지 sanitization ───
-function stripHtml(str: string): string {
+/**
+ * HTML 태그와 꺾쇠 괄호를 제거한다.
+ * 저장 단계의 방어선(defense-in-depth) — 렌더 단계는 React 기본 이스케이프에 의존.
+ */
+export function stripHtml(str: string): string {
   return str.replace(/<[^>]*>/g, "").replace(/[<>]/g, "");
 }
 
@@ -126,4 +130,23 @@ export const materialSchema = z.object({
   unitPrice: z.number().min(0).nullable().optional(),
   supplier: safeStringNullable(),
   memo: safeStringNullable(),
+});
+
+// ─── 고객 포털(인테리어코치) 채팅 메시지 ───
+// 공개 POST 엔드포인트에서 저장/브로드캐스트 전에 반드시 통과해야 한다.
+const PORTAL_MESSAGE_MAX_CONTENT = 4000;
+const PORTAL_DISPLAY_NAME_MAX = 120;
+
+export const portalChatMessageSchema = z.object({
+  content: z
+    .string({ message: "content는 문자열이어야 합니다" })
+    .min(1, "content는 필수입니다")
+    .transform((s) => stripHtml(s).slice(0, PORTAL_MESSAGE_MAX_CONTENT))
+    .refine((s) => s.trim().length > 0, { message: "content는 비어있을 수 없습니다" }),
+  displayName: z
+    .string({ message: "displayName은 문자열이어야 합니다" })
+    .min(1, "displayName은 필수입니다")
+    .transform((s) => stripHtml(s.trim()).slice(0, PORTAL_DISPLAY_NAME_MAX))
+    .refine((s) => s.length > 0, { message: "displayName은 비어있을 수 없습니다" }),
+  password: z.string().optional(),
 });

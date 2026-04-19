@@ -1,18 +1,13 @@
 import { db } from "@/lib/db";
 import { contractPayments, contracts, sites, notificationQueue } from "@/lib/db/schema";
 import { eq, and, isNull, lte, gte, ne } from "drizzle-orm";
-import { ok, err, serverError } from "@/lib/api/response";
 import { enqueueNotification } from "@/lib/notifications/queue";
+import { createCronRoute } from "@/lib/cron/monitor";
 
-/** Vercel Cron: D-3, D-1, D-Day 수금 기한 체크 (매일 09:00) */
-export async function POST(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return err("Unauthorized", 401);
-  }
-
-  try {
+/** Vercel Cron: D-3, D-1, D-Day 수금 기한 체크 (매일 00:00) */
+export const POST = createCronRoute({
+  name: "notifications/check-payments",
+  handler: async () => {
     const now = new Date();
     const today = now.toISOString().slice(0, 10);
 
@@ -123,9 +118,13 @@ export async function POST(request: Request) {
       enqueued++;
     }
 
-    return ok({ success: true, enqueued, timestamp: new Date().toISOString() });
-  } catch (error) {
-    console.error("[CheckPayments] Fatal error:", error);
-    return serverError(error);
-  }
-}
+    return {
+      processed: enqueued,
+      metadata: {
+        enqueued,
+        upcoming: upcomingPayments.length,
+        overdue: overduePayments.length,
+      },
+    };
+  },
+});
