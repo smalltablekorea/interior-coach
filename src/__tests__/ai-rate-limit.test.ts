@@ -71,14 +71,5 @@ describe("AI 엔드포인트 레이트 리밋 커버리지 (AI-21)", () => {
     }
   });
 
-  it("site-chat/upload의 AI 자동 태깅이 플랜별 레이트 리밋 뒤에 있다", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const { resolve } = await import("node:path");
-    const src = await readFile(
-      resolve(process.cwd(), "src/app/api/site-chat/upload/route.ts"),
-      "utf8"
-    );
-    expect(src).toMatch(/checkRateLimit as checkAiRateLimit/);
-    expect(src).toMatch(/tagImageAsync/);
-  });
+  // site-chat/upload 테스트는 톡방 기능 철거와 함께 제거됨.
 });
