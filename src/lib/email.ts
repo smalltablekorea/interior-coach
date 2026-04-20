@@ -1,6 +1,10 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@interiorcoach.kr";
 
@@ -31,7 +35,7 @@ export async function sendInviteEmail(params: {
   };
 
   try {
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: `인테리어코치 <${FROM_EMAIL}>`,
       to: params.to,
       subject: `[인테리어코치] ${params.workspaceName} 워크스페이스에 초대되었습니다`,
