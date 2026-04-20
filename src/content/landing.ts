@@ -54,22 +54,16 @@ export const landingCopy = {
   },
 
   features: {
-    eyebrow: "6가지 핵심 기능",
+    eyebrow: "12가지 핵심 기능",
     title: "현장 하나를\n끝까지 책임지는 워크플로우",
     blocks: [
+      // 기존 4 블록 (Part A에서 톡방/전자서명 2블록 제거)
       {
         name: "공정 매니저",
         problem: "엑셀 공정표는 공유 즉시 구버전이 됩니다.",
         solution:
-          "현장별 공정 타임라인을 모두가 같은 화면에서 봅니다.\n완료 체크 한 번이면 고객 포털에도 자동 반영.",
+          "현장별 공정 타임라인을 모두가 같은 화면에서 봅니다.\n완료 체크 한 번이면 자동 반영.",
         mockup: "schedule",
-      },
-      {
-        name: "현장 톡방 + 고객 포털",
-        problem: "카톡방에 고객·작업자·자재상이 뒤섞여 있습니다.",
-        solution:
-          "현장마다 톡방 1개, 고객은 별도 포털로 분리.\n사진·공정·결제 요청까지 한 화면에서.",
-        mockup: "chat",
       },
       {
         name: "견적코치 AI",
@@ -77,13 +71,6 @@ export const landingCopy = {
         solution:
           "자재 단가 DB 868건 기반 AI 견적 생성.\n항목만 체크하면 고객용 PDF까지 자동.",
         mockup: "estimate",
-      },
-      {
-        name: "계약·전자 서명",
-        problem: "계약서 출력하고 도장 받으러 다닙니다.",
-        solution:
-          "링크 하나로 모바일 서명 완료.\n계약 이력·수정 버전까지 자동 보관.",
-        mockup: "contract",
       },
       {
         name: "지출·정산 리포트",
@@ -98,6 +85,71 @@ export const landingCopy = {
         solution:
           "868건 단가 DB로 발주서 1분 완성.\n현장별 자재 투입량도 자동 집계.",
         mockup: "materials",
+      },
+      // 신규 8 블록 (Part C — 카피는 마케팅 봇 산출물 대기, placeholder)
+      {
+        name: "현장 손익 관리",
+        problem: "계약금 대비 지금 얼마 남았는지 월말에야 압니다.",
+        solution:
+          "현장별 계약금·투입비·예상 이익을 실시간으로.\n저마진 현장은 대시보드에서 먼저 경고.",
+        mockup: "pnl",
+        isNew: true,
+      },
+      {
+        name: "세금계산서 관리",
+        problem: "세금계산서 발행 놓치면 매출 증빙이 막힙니다.",
+        solution:
+          "미발행 건 자동 감지.\n발행 필요일 D-day 알림 + 한 화면에서 일괄 발행.",
+        mockup: "invoice",
+        isNew: true,
+      },
+      {
+        name: "하자관리",
+        problem: "카톡 사진으로 받은 하자를 엑셀에 정리합니다.",
+        solution:
+          "현장 사진 업로드 → AI가 공종·심각도 자동 분류.\n접수/진행/해결/종료 칸반으로 끝까지 추적.",
+        mockup: "defects",
+        isNew: true,
+      },
+      {
+        name: "업무일지",
+        problem: "오늘 누가 뭘 했는지 기억이 안 납니다.",
+        solution:
+          "현장별 하루 1개 일지.\n공종·인원·특이사항·사진까지 고객 공유 옵션 포함.",
+        mockup: "dailyLog",
+        isNew: true,
+      },
+      {
+        name: "근태급여",
+        problem: "일당 정산하려고 달력에 동그라미 치고 있습니다.",
+        solution:
+          "현장별 출퇴근 입력 → 월말에 자동 합산.\n급여 대장·4대보험 차감까지 한 번에.",
+        mockup: "attendance",
+        isNew: true,
+      },
+      {
+        name: "반장·기사 인력풀",
+        problem: "전에 썼던 목공 반장 번호를 또 뒤적입니다.",
+        solution:
+          "공종별 인력 DB + 평점·재고용률.\n공정 배정 시 추천 순으로 자동 정렬.",
+        mockup: "workers",
+        isNew: true,
+      },
+      {
+        name: "월간 리포트",
+        problem: "이번달 순이익이 얼마인지 정산하려면 하루 종일.",
+        solution:
+          "매월 1일 자동 생성.\n현장별 손익·공종별 비용·전년 동월 비교까지.",
+        mockup: "monthly",
+        isNew: true,
+      },
+      {
+        name: "공사 유형 템플릿",
+        problem: "현장마다 공정표를 처음부터 만듭니다.",
+        solution:
+          "아파트·상가·주택 5종 기본 템플릿.\n내 현장을 템플릿으로 저장해 다음 현장에 그대로 적용.",
+        mockup: "templates",
+        isNew: true,
       },
     ],
   },
@@ -142,70 +194,63 @@ export const landingCopy = {
     ],
   },
 
+  // Part B: 4티어 → 3티어 (무료 · 월간 · 연간).
+  // 월간/연간은 동일 기능을 주기만 달리하는 구조. 구체 가격/기능 목록은 마케팅 봇 산출물 도착 시 교체.
   pricing: {
     eyebrow: "요금제",
-    title: "현장 규모에 맞게 선택하세요",
-    subtitle: "모든 플랜 14일 무료 · 카드 등록 불필요",
+    title: "심플하게, 3가지 선택지",
+    subtitle: "모든 유료 플랜 14일 무료 · 카드 등록 불필요",
     plans: [
       {
-        name: "Free",
+        name: "무료",
         monthly: 0,
         yearly: 0,
-        tagline: "혼자 운영하는 1인 사장님",
-        features: ["현장 1개", "고객 5명", "기본 견적/계약", "커뮤니티 지원"],
+        tagline: "혼자 시작하는 1인 사장님",
+        features: [
+          "현장 1개 관리",
+          "기본 견적·계약",
+          "고객 5명",
+          "커뮤니티 지원",
+        ],
         ctaLabel: "무료로 시작",
         ctaHref: "/auth/signup",
         highlight: false,
       },
       {
-        name: "Starter",
-        monthly: 29000,
-        yearly: 290000,
-        tagline: "작은 업체 · 팀원 2~3명",
+        name: "월간 결제",
+        monthly: 79000,
+        yearly: 79000 * 12,
+        tagline: "부담 없이 월 단위로",
         features: [
-          "현장 10개",
-          "팀원 3명",
-          "견적코치 AI (월 20건)",
-          "고객 포털",
-          "이메일 지원",
-        ],
-        ctaLabel: "14일 무료 시작",
-        ctaHref: "/auth/signup?plan=starter",
-        highlight: false,
-      },
-      {
-        name: "Pro",
-        monthly: 69000,
-        yearly: 690000,
-        tagline: "성장 중인 업체",
-        features: [
+          "전체 기능",
           "현장 무제한",
           "팀원 10명",
-          "견적코치 AI (월 100건)",
-          "자재/작업자 관리",
-          "마케팅 자동화",
-          "우선 지원",
+          "견적코치 AI",
+          "자재·작업자·근태·하자 전체",
+          "세무/세금계산서",
+          "월간 리포트 자동 생성",
+          "이메일·채팅 지원",
         ],
-        ctaLabel: "Pro 시작하기",
-        ctaHref: "/auth/signup?plan=pro",
-        highlight: true,
-        badge: "가장 인기",
+        ctaLabel: "14일 무료 시작",
+        ctaHref: "/auth/signup?plan=monthly",
+        highlight: false,
       },
       {
-        name: "Enterprise",
+        name: "연간 결제",
         monthly: null,
-        yearly: null,
-        tagline: "다현장 · 지점 운영",
+        yearly: 790000,
+        tagline: "2개월 할인 · 가장 많이 선택",
         features: [
-          "현장/팀원 무제한",
-          "전담 매니저",
-          "데이터 마이그레이션",
-          "맞춤 교육",
-          "SLA 보장",
+          "월간 결제의 모든 기능",
+          "2개월 무료 (연 할인 17%)",
+          "전담 매니저 (Pro 지원)",
+          "데이터 마이그레이션 지원",
+          "맞춤 교육 1회",
         ],
-        ctaLabel: "상담 요청",
-        ctaHref: "/demo-request",
-        highlight: false,
+        ctaLabel: "연간 결제 시작",
+        ctaHref: "/auth/signup?plan=yearly",
+        highlight: true,
+        badge: "가장 인기",
       },
     ],
   },
@@ -220,11 +265,11 @@ export const landingCopy = {
       },
       {
         q: "기존에 쓰던 엑셀·카톡 데이터를 옮길 수 있나요?",
-        a: "Starter 이상 플랜에서는 CSV 일괄 업로드를 지원합니다. Pro 이상은 전담 매니저가 마이그레이션을 도와드립니다.",
+        a: "월간/연간 결제 플랜에서 CSV 일괄 업로드를 지원합니다. 연간 결제는 전담 매니저가 마이그레이션을 도와드립니다.",
       },
       {
-        q: "고객이 별도 앱을 설치해야 하나요?",
-        a: "아니요. 고객 포털은 모바일 웹 기반이라 링크 한 번 누르면 바로 열립니다.",
+        q: "현장에서 모바일로도 쓸 수 있나요?",
+        a: "네. 모든 주요 화면이 모바일 최적화되어 있어 현장에서 사진 업로드·공정 체크·지출 기록이 바로 됩니다.",
       },
       {
         q: "현장에서 인터넷이 안 되면 어떻게 되나요?",

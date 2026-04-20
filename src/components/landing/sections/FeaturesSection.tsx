@@ -34,9 +34,16 @@ export default function FeaturesSection() {
                 )}
               >
                 <FadeIn className="space-y-5">
-                  <span className="inline-block text-xs font-mono text-[var(--green)] tracking-wider">
-                    FEATURE 0{i + 1}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block text-xs font-mono text-[var(--green)] tracking-wider">
+                      FEATURE {String(i + 1).padStart(2, "0")}
+                    </span>
+                    {"isNew" in b && b.isNew && (
+                      <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--orange)]/15 text-[var(--orange)]">
+                        NEW
+                      </span>
+                    )}
+                  </div>
                   <h3 className="text-2xl md:text-3xl font-bold leading-tight">
                     {b.name}
                   </h3>

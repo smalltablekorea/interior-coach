@@ -96,9 +96,10 @@ export default function HeroSection() {
           className="relative grid gap-4"
         >
           <div className="hidden md:block absolute -top-8 -right-6 w-32 h-32 rounded-full bg-[var(--green)]/20 blur-3xl" />
-          <FeatureMockup kind="schedule" />
+          {/* Part A/C: 톡방 목업 제거, 대시보드/손익/업무일지 합성 */}
+          <FeatureMockup kind="pnl" />
           <div className="-mt-2 md:-mt-4 md:ml-8">
-            <FeatureMockup kind="chat" />
+            <FeatureMockup kind="dailyLog" />
           </div>
         </motion.div>
       </div>

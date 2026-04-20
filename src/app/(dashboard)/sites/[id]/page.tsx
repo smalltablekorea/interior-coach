@@ -388,17 +388,17 @@ export default function SiteDetailPage() {
     ? Math.round(sitePhases.reduce((s, p) => s + p.progress, 0) / sitePhases.length)
     : 0;
 
+  // Part A 철거: 채팅·고객 공유·서명 관련 기능 제거에 맞춰 탭 6개로 축소.
+  // 기존 workers/photos/estimates/contracts 탭 렌더 블록은 dead code로 남아있으나 tabs 배열에서 빠져 접근 불가.
   const tabs = [
     { key: "overview" as const, label: "기본", icon: MapPin },
     { key: "construction" as const, label: "공정", icon: Hammer, count: sitePhases.length },
     { key: "materials" as const, label: "자재", icon: Package },
-    { key: "workers" as const, label: "작업자", icon: HardHat },
     { key: "expenses" as const, label: "지출", icon: Receipt },
-    { key: "photos" as const, label: "사진", icon: Camera },
     { key: "defects" as const, label: "하자", icon: ShieldAlert },
-    { key: "estimates" as const, label: "견적", icon: FileText, count: siteEstimates.length },
-    { key: "contracts" as const, label: "계약", icon: FileCheck, count: siteContracts.length },
   ];
+  // siteEstimates / siteContracts 는 dead code 블록에서 참조되므로 suppress (추후 블록 제거 시 삭제)
+  void siteEstimates; void siteContracts;
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -444,13 +444,6 @@ export default function SiteDetailPage() {
               </>
             ) : (
               <>
-                <Link
-                  href={`/chat`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--green)]/10 text-[var(--green)] text-xs font-medium hover:bg-[var(--green)]/20 transition-colors"
-                >
-                  <MessageCircle size={14} />
-                  톡방
-                </Link>
                 <button
                   onClick={startEditing}
                   className="p-1.5 rounded-lg hover:bg-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
