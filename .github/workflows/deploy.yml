@@ -16,7 +16,8 @@ jobs:
   deploy:
     name: Deploy to Vercel Production
     runs-on: ubuntu-latest
-    # Only deploy if CI passed (the CI workflow handles checks on push to main)
+    # Skip if VERCEL_TOKEN not set (Vercel's native GitHub integration handles deploy)
+    if: ${{ secrets.VERCEL_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
 
