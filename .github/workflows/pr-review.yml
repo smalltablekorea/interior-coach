@@ -1,0 +1,61 @@
+name: PR Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  pr-summary:
+    name: PR Summary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate PR Summary
+        run: |
+          echo "## 📋 변경 사항 요약" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 파일 변경" >> $GITHUB_STEP_SUMMARY
+          git diff --stat origin/main...HEAD >> $GITHUB_STEP_SUMMARY 2>/dev/null || echo "비교 불가" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 변경된 API 라우트" >> $GITHUB_STEP_SUMMARY
+          git diff --name-only origin/main...HEAD 2>/dev/null | grep "api/" | head -20 >> $GITHUB_STEP_SUMMARY || echo "없음" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 변경된 테스트" >> $GITHUB_STEP_SUMMARY
+          git diff --name-only origin/main...HEAD 2>/dev/null | grep "test" | head -20 >> $GITHUB_STEP_SUMMARY || echo "없음" >> $GITHUB_STEP_SUMMARY
+
+  size-check:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build & Check Size
+        run: |
+          npm run build 2>&1 || true
+          echo "## 📦 빌드 크기" >> $GITHUB_STEP_SUMMARY
+          if [ -d ".next" ]; then
+            du -sh .next/ >> $GITHUB_STEP_SUMMARY
+            echo "### 페이지별 크기" >> $GITHUB_STEP_SUMMARY
+            find .next/server/app -name "*.html" -exec du -sh {} \; 2>/dev/null | sort -rh | head -10 >> $GITHUB_STEP_SUMMARY || true
+          fi
+        env:
+          DATABASE_URL: "postgresql://test:test@localhost:5432/test"
+          BETTER_AUTH_SECRET: "ci-test-secret"
+          BETTER_AUTH_URL: "http://localhost:3000"
+          NEXT_PUBLIC_BASE_URL: "http://localhost:3000"
+          NEXT_TELEMETRY_DISABLED: "1"
