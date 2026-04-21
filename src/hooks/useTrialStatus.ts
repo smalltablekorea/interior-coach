@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useUser } from "@/hooks/useAuth"; // Assuming this hook exists
+import { useSession } from "@/lib/auth-client";
 
 interface TrialStatus {
   isLoading: boolean;
@@ -29,7 +29,8 @@ interface UpgradeModal {
 }
 
 export function useTrialStatus() {
-  const { user } = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [status, setStatus] = useState<TrialStatus>({
     isLoading: true,
     isTrialExpired: false,
