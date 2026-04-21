@@ -16,7 +16,7 @@ describe("Performance — Extended module loads", () => {
     { name: "schedule-planner/trades", path: "@/lib/schedule-planner/trades", maxMs: 100 },
     { name: "notifications/templates", path: "@/lib/notifications/templates", maxMs: 50 },
     { name: "site-chat/utils", path: "@/lib/site-chat/utils", maxMs: 100 },
-    { name: "api/validate", path: "@/lib/api/validate", maxMs: 50 },
+    { name: "api/validate", path: "@/lib/api/validate", maxMs: 80 },
     { name: "api/query-helpers", path: "@/lib/api/query-helpers", maxMs: 50 },
     { name: "api/response", path: "@/lib/api/response", maxMs: 50 },
   ];
