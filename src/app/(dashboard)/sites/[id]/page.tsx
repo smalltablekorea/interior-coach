@@ -1276,8 +1276,10 @@ export default function SiteDetailPage() {
           icon={ShieldAlert}
           title="하자 관리"
           desc="이 현장의 하자 목록과 처리 상태를 확인합니다"
-          linkHref={`/construction?siteId=${id}&tab=defects`}
+          linkHref={`/defects?siteId=${id}`}
           linkLabel="하자 관리로 이동"
+          extraHref={`/defects/new?siteId=${id}`}
+          extraLabel="+ 하자 등록"
         />
       )}
     </div>
@@ -1291,24 +1293,38 @@ function SiteTabPlaceholder({
   desc,
   linkHref,
   linkLabel,
+  extraHref,
+  extraLabel,
 }: {
   icon: typeof Package;
   title: string;
   desc: string;
   linkHref: string;
   linkLabel: string;
+  extraHref?: string;
+  extraLabel?: string;
 }) {
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 text-center">
       <Icon size={32} className="mx-auto text-[var(--muted)] opacity-30 mb-3" />
       <h3 className="text-sm font-semibold mb-1">{title}</h3>
       <p className="text-xs text-[var(--muted)] mb-4">{desc}</p>
-      <Link
-        href={linkHref}
-        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)] transition-colors"
-      >
-        {linkLabel} <ChevronRight size={14} />
-      </Link>
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        <Link
+          href={linkHref}
+          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)] transition-colors"
+        >
+          {linkLabel} <ChevronRight size={14} />
+        </Link>
+        {extraHref && extraLabel && (
+          <Link
+            href={extraHref}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium hover:bg-white/[0.04] transition-colors"
+          >
+            {extraLabel}
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

@@ -27,6 +27,7 @@ import {
   Wallet,
   MoreHorizontal,
   ClipboardList,
+  ShieldAlert,
   Wrench,
 } from "lucide-react";
 import { useState } from "react";
@@ -63,6 +64,8 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/sites", icon: Building2, label: "현장 관리" },
       { href: "/schedule", icon: CalendarDays, label: "일정 관리" },
       { href: "/construction", icon: Hammer, label: "시공 관리" },
+      { href: "/daily-logs", icon: ClipboardList, label: "업무일지" },
+      { href: "/defects", icon: ShieldAlert, label: "하자 관리" },
       { href: "/materials", icon: Package, label: "자재 관리", requiredFeature: "materialsManagement" },
       { href: "/workers", icon: HardHat, label: "작업자 관리", requiredFeature: "workersManagement" },
     ],
