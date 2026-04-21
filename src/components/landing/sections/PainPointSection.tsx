@@ -21,12 +21,12 @@ export default function PainPointSection() {
     >
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn className="text-center max-w-2xl mx-auto">
-          <p className="text-sm font-semibold text-[var(--landing-accent)] tracking-wide uppercase mb-4">
+          <p className="text-sm font-medium text-[var(--landing-accent)] tracking-wide uppercase mb-4">
             {p.eyebrow}
           </p>
           <h2
             id="pain-heading"
-            className="text-3xl md:text-[44px] font-light leading-tight tracking-tight text-[var(--landing-heading)] whitespace-pre-line"
+            className="text-3xl md:text-[44px] font-light leading-tight tracking-[-0.02em] text-[var(--landing-heading)] whitespace-pre-line"
           >
             {p.title}
           </h2>
@@ -39,18 +39,18 @@ export default function PainPointSection() {
               <FadeIn
                 key={c.title}
                 delay={i * 0.08}
-                className="group p-7 rounded-xl border border-[var(--landing-border)] bg-white hover:shadow-[var(--landing-shadow-blue)_0px_30px_45px_-30px,var(--landing-shadow-black)_0px_18px_36px_-18px] transition-shadow duration-300"
+                className="group p-7 rounded-lg border border-[var(--landing-border)] bg-white hover:shadow-[rgba(50,50,93,0.25)_0px_30px_45px_-30px,rgba(0,0,0,0.1)_0px_18px_36px_-18px] transition-shadow duration-300"
               >
-                <div className="w-12 h-12 rounded-lg bg-[var(--landing-accent-light)] flex items-center justify-center mb-6">
+                <div className="w-12 h-12 rounded-md bg-[var(--landing-accent-light)] flex items-center justify-center mb-6">
                   <Icon
                     size={22}
                     className="text-[var(--landing-accent)]"
                   />
                 </div>
-                <h3 className="text-base font-semibold text-[var(--landing-heading)] mb-2">
+                <h3 className="text-base font-medium text-[var(--landing-heading)] mb-2">
                   {c.title}
                 </h3>
-                <p className="text-sm text-[var(--landing-body)] leading-relaxed whitespace-pre-line">
+                <p className="text-sm text-[var(--landing-body)] leading-relaxed whitespace-pre-line font-light">
                   {c.body}
                 </p>
               </FadeIn>

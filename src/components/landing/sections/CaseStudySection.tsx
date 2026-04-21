@@ -13,12 +13,12 @@ export default function CaseStudySection() {
     >
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn className="text-center max-w-2xl mx-auto">
-          <p className="text-sm font-semibold text-[var(--landing-accent)] tracking-wide uppercase mb-4">
+          <p className="text-sm font-medium text-[var(--landing-accent)] tracking-wide uppercase mb-4">
             {c.eyebrow}
           </p>
           <h2
             id="case-heading"
-            className="text-3xl md:text-[44px] font-light leading-tight tracking-tight"
+            className="text-3xl md:text-[44px] font-light leading-tight tracking-[-0.02em]"
           >
             {c.title}
           </h2>
@@ -29,7 +29,7 @@ export default function CaseStudySection() {
           {/* Before/After image placeholder */}
           <FadeIn>
             <div
-              className="aspect-[4/3] rounded-xl overflow-hidden relative"
+              className="aspect-[4/3] rounded-lg overflow-hidden relative"
               style={{
                 background:
                   "linear-gradient(135deg, #d3a777 0%, #9b7a5a 40%, #2d3c64 100%)",
@@ -42,7 +42,7 @@ export default function CaseStudySection() {
                 <p className="text-xs uppercase tracking-widest text-white/50">
                   Before → After
                 </p>
-                <p className="mt-2 text-lg font-semibold">
+                <p className="mt-2 text-lg font-light">
                   잠실르엘 32평 · 6주 완공
                 </p>
               </div>
@@ -50,7 +50,7 @@ export default function CaseStudySection() {
           </FadeIn>
 
           <FadeIn delay={0.1} className="space-y-8">
-            <p className="text-white/70 whitespace-pre-line leading-relaxed text-base">
+            <p className="text-white/70 whitespace-pre-line leading-relaxed text-base font-light">
               {c.summary}
             </p>
 
@@ -59,12 +59,12 @@ export default function CaseStudySection() {
               {c.stats.map((s) => (
                 <div
                   key={s.label}
-                  className="p-4 md:p-5 rounded-xl border border-white/10 bg-white/[0.04]"
+                  className="p-4 md:p-5 rounded-lg border border-white/10 bg-white/[0.04]"
                 >
                   <p className="text-[11px] text-white/40 uppercase tracking-wide">
                     {s.label}
                   </p>
-                  <p className="mt-2 text-lg md:text-xl font-semibold text-[var(--landing-accent)]">
+                  <p className="mt-2 text-lg md:text-xl font-light text-[var(--landing-accent)]">
                     {s.value}
                   </p>
                 </div>
@@ -85,7 +85,7 @@ export default function CaseStudySection() {
                     <p className="text-xs font-mono text-white/40">
                       {t.week}
                     </p>
-                    <p className="text-sm text-white/80">{t.label}</p>
+                    <p className="text-sm text-white/80 font-light">{t.label}</p>
                   </div>
                 </li>
               ))}

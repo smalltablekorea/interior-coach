@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Source_Sans_3 } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import "./globals.css";
@@ -16,6 +16,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -110,7 +116,7 @@ fbq('track', 'PageView');`}
         )}
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${sourceSans.variable} antialiased`}
       >
         <ThemeProvider>
           {children}

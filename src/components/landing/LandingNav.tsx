@@ -20,14 +20,14 @@ export default function LandingNav() {
     <nav
       className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-white/90 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+          ? "bg-white/90 backdrop-blur-xl shadow-[rgba(0,55,112,0.08)_0px_1px_3px]"
           : "bg-white"
       }`}
     >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link
           href="/"
-          className="text-xl font-bold tracking-tight text-[var(--landing-heading)]"
+          className="text-xl font-semibold tracking-tight text-[var(--landing-heading)]"
           aria-label="인테리어코치 홈으로"
         >
           <span className="text-[var(--landing-accent)]">인테리어</span>코치
@@ -38,20 +38,20 @@ export default function LandingNav() {
             <a
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-[var(--landing-body)] hover:text-[var(--landing-heading)] transition-colors"
+              className="text-sm font-normal text-[var(--landing-body)] hover:text-[var(--landing-heading)] transition-colors"
             >
               {l.label}
             </a>
           ))}
           <Link
             href={nav.ctaLogin.href}
-            className="text-sm font-medium text-[var(--landing-body)] hover:text-[var(--landing-heading)] transition-colors"
+            className="text-sm font-normal text-[var(--landing-body)] hover:text-[var(--landing-heading)] transition-colors"
           >
             {nav.ctaLogin.label}
           </Link>
           <Link
             href={nav.ctaSignup.href}
-            className="px-5 py-2.5 rounded-lg bg-[var(--landing-accent)] text-white text-sm font-semibold hover:bg-[var(--landing-accent-hover)] transition-colors shadow-[0_1px_3px_rgba(0,168,94,0.3)]"
+            className="px-5 py-2 rounded-md bg-[var(--landing-accent)] text-white text-sm font-medium hover:bg-[var(--landing-accent-hover)] transition-colors shadow-[rgba(50,50,93,0.25)_0px_2px_5px_-1px,rgba(0,0,0,0.3)_0px_1px_3px_-1px]"
           >
             {nav.ctaSignup.label}
           </Link>
@@ -79,20 +79,20 @@ export default function LandingNav() {
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="text-sm font-medium text-[var(--landing-body)] hover:text-[var(--landing-heading)] py-2"
+                className="text-sm font-normal text-[var(--landing-body)] hover:text-[var(--landing-heading)] py-2"
               >
                 {l.label}
               </a>
             ))}
             <Link
               href={nav.ctaLogin.href}
-              className="text-sm font-medium text-[var(--landing-body)] py-2"
+              className="text-sm font-normal text-[var(--landing-body)] py-2"
             >
               {nav.ctaLogin.label}
             </Link>
             <Link
               href={nav.ctaSignup.href}
-              className="mt-2 py-3 rounded-lg bg-[var(--landing-accent)] text-white text-sm font-semibold text-center"
+              className="mt-2 py-3 rounded-md bg-[var(--landing-accent)] text-white text-sm font-medium text-center"
             >
               {nav.ctaSignup.label}
             </Link>

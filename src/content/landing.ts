@@ -148,16 +148,6 @@ export const landingCopy = {
     subtitle: "모든 플랜 14일 무료 · 카드 등록 불필요",
     plans: [
       {
-        name: "Free",
-        monthly: 0,
-        yearly: 0,
-        tagline: "혼자 운영하는 1인 사장님",
-        features: ["현장 1개", "고객 5명", "기본 견적/계약", "커뮤니티 지원"],
-        ctaLabel: "무료로 시작",
-        ctaHref: "/auth/signup",
-        highlight: false,
-      },
-      {
         name: "Starter",
         monthly: 29000,
         yearly: 290000,

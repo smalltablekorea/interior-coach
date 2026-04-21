@@ -28,29 +28,29 @@ export default function PricingSection() {
     >
       <div className="max-w-6xl mx-auto px-6">
         <FadeIn className="text-center max-w-2xl mx-auto">
-          <p className="text-sm font-semibold text-[var(--landing-accent)] tracking-wide uppercase mb-4">
+          <p className="text-sm font-medium text-[var(--landing-accent)] tracking-wide uppercase mb-4">
             {p.eyebrow}
           </p>
           <h2
             id="pricing-heading"
-            className="text-3xl md:text-[44px] font-light leading-tight tracking-tight text-[var(--landing-heading)]"
+            className="text-3xl md:text-[44px] font-light leading-tight tracking-[-0.02em] text-[var(--landing-heading)]"
           >
             {p.title}
           </h2>
-          <p className="mt-3 text-[var(--landing-body)]">{p.subtitle}</p>
+          <p className="mt-3 text-[var(--landing-body)] font-light">{p.subtitle}</p>
 
           {/* Cycle toggle */}
           <div
             role="tablist"
             aria-label="결제 주기 선택"
-            className="mt-8 inline-flex items-center gap-1 p-1 rounded-lg border border-[var(--landing-border)] bg-[var(--landing-card-alt)]"
+            className="mt-8 inline-flex items-center gap-1 p-1 rounded-md border border-[var(--landing-border)] bg-[var(--landing-card-alt)]"
           >
             <button
               role="tab"
               aria-selected={cycle === "monthly"}
               onClick={() => setCycle("monthly")}
               className={cn(
-                "px-5 py-2.5 rounded-md text-sm font-medium transition-all",
+                "px-5 py-2.5 rounded text-sm font-normal transition-all",
                 cycle === "monthly"
                   ? "bg-[var(--landing-accent)] text-white shadow-sm"
                   : "text-[var(--landing-body)] hover:text-[var(--landing-heading)]",
@@ -63,7 +63,7 @@ export default function PricingSection() {
               aria-selected={cycle === "yearly"}
               onClick={() => setCycle("yearly")}
               className={cn(
-                "px-5 py-2.5 rounded-md text-sm font-medium transition-all",
+                "px-5 py-2.5 rounded text-sm font-normal transition-all",
                 cycle === "yearly"
                   ? "bg-[var(--landing-accent)] text-white shadow-sm"
                   : "text-[var(--landing-body)] hover:text-[var(--landing-heading)]",
@@ -75,28 +75,28 @@ export default function PricingSection() {
           </div>
         </FadeIn>
 
-        <div className="mt-14 md:mt-16 grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="mt-14 md:mt-16 grid sm:grid-cols-1 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
           {p.plans.map((plan, i) => (
             <FadeIn
               key={plan.name}
               delay={i * 0.06}
               className={cn(
-                "relative p-7 rounded-xl border flex flex-col transition-shadow duration-300",
+                "relative p-8 rounded-lg border flex flex-col transition-shadow duration-300",
                 plan.highlight
-                  ? "border-[var(--landing-accent)] bg-white shadow-[var(--landing-shadow-blue)_0px_30px_45px_-30px,var(--landing-shadow-black)_0px_18px_36px_-18px]"
-                  : "border-[var(--landing-border)] bg-white hover:shadow-[var(--landing-shadow-ambient)_0px_15px_35px_0px]",
+                  ? "border-[var(--landing-accent)] bg-white shadow-[rgba(50,50,93,0.25)_0px_30px_45px_-30px,rgba(0,0,0,0.1)_0px_18px_36px_-18px] scale-[1.02] z-10"
+                  : "border-[var(--landing-border)] bg-white hover:shadow-[rgba(23,23,23,0.08)_0px_15px_35px_0px]",
               )}
             >
               {plan.highlight && "badge" in plan && plan.badge && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[var(--landing-accent)] text-white text-[11px] font-bold shadow-sm">
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[var(--landing-accent)] text-white text-[11px] font-medium shadow-sm">
                   {plan.badge}
                 </span>
               )}
 
-              <p className="text-sm font-semibold text-[var(--landing-heading)]">
+              <p className="text-sm font-medium text-[var(--landing-heading)]">
                 {plan.name}
               </p>
-              <p className="mt-1 text-xs text-[var(--landing-body)]">
+              <p className="mt-1 text-xs text-[var(--landing-body)] font-light">
                 {plan.tagline}
               </p>
 
@@ -122,7 +122,7 @@ export default function PricingSection() {
                 {plan.features.map((feat) => (
                   <li
                     key={feat}
-                    className="flex items-start gap-3 text-sm text-[var(--landing-heading)]"
+                    className="flex items-start gap-3 text-sm text-[var(--landing-heading)] font-light"
                   >
                     <Check
                       size={16}
@@ -137,9 +137,9 @@ export default function PricingSection() {
                 href={plan.ctaHref}
                 aria-label={`${plan.name} 플랜 선택`}
                 className={cn(
-                  "mt-8 py-3 rounded-lg text-sm font-semibold text-center transition-colors",
+                  "mt-8 py-3 rounded-md text-sm font-medium text-center transition-colors",
                   plan.highlight
-                    ? "bg-[var(--landing-accent)] text-white hover:bg-[var(--landing-accent-hover)] shadow-[0_2px_8px_rgba(0,168,94,0.25)]"
+                    ? "bg-[var(--landing-accent)] text-white hover:bg-[var(--landing-accent-hover)] shadow-[rgba(50,50,93,0.25)_0px_2px_5px_-1px,rgba(0,0,0,0.3)_0px_1px_3px_-1px]"
                     : "border border-[var(--landing-border)] text-[var(--landing-heading)] hover:bg-[var(--landing-card-alt)]",
                 )}
               >
