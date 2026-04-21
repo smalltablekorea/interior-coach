@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Skip static prerender errors (global-error useContext bug in Next.js 16 + React 19)
   output: "standalone",
+  experimental: {
+    // Skip prerendering of error pages to avoid useContext crash in React 19
+    prerenderEarlyExit: false,
+  },
   async headers() {
     return [
       {
