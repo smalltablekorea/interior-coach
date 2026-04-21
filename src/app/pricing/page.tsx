@@ -891,10 +891,11 @@ function CTASection() {
             <ArrowRight size={18} />
           </Link>
           <Link
-            href="/auth/login"
+            href="/demo-request"
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl border border-[var(--border)] text-sm hover:bg-[var(--border)] transition-colors"
           >
-            도입 문의하기
+            <MessageSquare size={16} />
+            데모 요청하기
           </Link>
         </div>
       </div>
