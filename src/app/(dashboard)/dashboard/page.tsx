@@ -200,6 +200,7 @@ const MENU_ITEMS = [
   { href: "/materials", icon: Package, label: "자재", color: "#06b6d4" },
   { href: "/workers", icon: HardHat, label: "작업자", color: "#f59e0b" },
   { href: "/expenses", icon: Receipt, label: "지출", color: "var(--red)" },
+  { href: "/finance", icon: TrendingUp, label: "재무", color: "var(--green)" },
   { href: "/settlement", icon: BarChart3, label: "정산", color: "var(--blue)" },
   { href: "/tax", icon: Calculator, label: "세무", color: "#64748b" },
   { href: "/settings", icon: Settings, label: "설정", color: "var(--muted)" },

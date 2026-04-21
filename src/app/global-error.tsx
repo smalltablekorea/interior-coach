@@ -1,5 +1,9 @@
 "use client";
 
+// Next.js 16 requires global-error to be a client component that provides its own <html>/<body>.
+// The useContext prerender crash is a known Next.js 16 + React 19 issue.
+// Using inline styles only (no providers/context/fonts) to avoid the prerender error.
+
 export default function GlobalError({
   error,
   reset,
@@ -8,8 +12,8 @@ export default function GlobalError({
   reset: () => void;
 }) {
   return (
-    <html lang="ko">
-      <body>
+    <html lang="ko" suppressHydrationWarning>
+      <body style={{ margin: 0 }}>
         <div
           style={{
             display: "flex",

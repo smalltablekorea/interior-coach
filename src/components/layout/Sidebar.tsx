@@ -28,6 +28,7 @@ import {
   MoreHorizontal,
   ClipboardList,
   Wrench,
+  TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: Wallet,
     defaultOpen: true,
     items: [
+      { href: "/finance", icon: TrendingUp, label: "재무 대시보드" },
       { href: "/contracts", icon: FileCheck, label: "계약 관리" },
       { href: "/expenses", icon: Receipt, label: "지출 관리" },
       { href: "/settlement", icon: BarChart3, label: "정산 리포트" },

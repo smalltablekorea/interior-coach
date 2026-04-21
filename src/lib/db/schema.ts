@@ -624,6 +624,7 @@ export const subscriptions = pgTable("subscriptions", {
   tossBillingKey: text("toss_billing_key"),
   tossCustomerKey: text("toss_customer_key"),
   trialEndsAt: timestamp("trial_ends_at"),
+  trialNotifiedDays: jsonb("trial_notified_days").$type<number[]>(), // 이메일 발송된 D-day 기록 [7, 3, 1, 0]
   currentPeriodStart: timestamp("current_period_start"),
   currentPeriodEnd: timestamp("current_period_end"),
   canceledAt: timestamp("canceled_at"),

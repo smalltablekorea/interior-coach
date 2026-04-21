@@ -195,6 +195,21 @@ function getUrgencyData(daysLeft: number) {
         ctaColor: "#f59e0b",
         ctaShadow: "rgba(245, 158, 11, 0.3)"
       };
+    case 0:
+      return {
+        emoji: "🔒",
+        subjectPrefix: "무료 체험이 오늘 종료됩니다",
+        headerColor: "#dc2626",
+        headerSubtext: "체험 기간이 만료되었습니다",
+        badge: "체험 종료",
+        badgeColor: "#fecaca",
+        badgeTextColor: "#dc2626",
+        mainMessage: "오늘 무료 체험이 종료됩니다. 지금 구독하시면 데이터를 그대로 유지하며 모든 기능을 계속 사용하실 수 있습니다.",
+        benefitsTitle: "마지막 기회 — 데이터가 보존됩니다",
+        ctaText: "지금 구독하고 데이터 보존하기",
+        ctaColor: "#dc2626",
+        ctaShadow: "rgba(220, 38, 38, 0.3)"
+      };
     case 1:
       return {
         emoji: "🚨",

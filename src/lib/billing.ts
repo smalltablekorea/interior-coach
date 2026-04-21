@@ -359,7 +359,7 @@ export async function processRetries() {
   return results;
 }
 
-/** 트라이얼 만료 체크 + 알림 */
+/** 트라이얼 만료 체크 + 이메일/인앱 알림 + 자동 전환 */
 export async function processTrialExpirations() {
   const now = new Date();
   const results = [];
@@ -374,21 +374,90 @@ export async function processTrialExpirations() {
     if (!sub.trialEndsAt) continue;
 
     const daysLeft = Math.ceil((sub.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    const notifiedDays: number[] = (sub.trialNotifiedDays as number[]) || [];
 
-    // 3일 전 알림
-    if (daysLeft === 3) {
+    // 7일, 3일, 1일 전 + 당일(0일) 알림
+    const NOTIFY_DAYS = [7, 3, 1, 0];
+    const shouldNotify = NOTIFY_DAYS.includes(daysLeft) && !notifiedDays.includes(daysLeft);
+
+    if (shouldNotify && daysLeft > 0) {
+      const notifTitleMap: Record<number, string> = {
+        7: "무료 체험 종료 7일 전",
+        3: "무료 체험 종료 3일 전",
+        1: "무료 체험 내일 종료",
+      };
+      const notifMsgMap: Record<number, string> = {
+        7: "무료 체험이 7일 후 종료됩니다. 유료 플랜으로 전환하시면 데이터가 유지됩니다.",
+        3: "무료 체험이 3일 후 종료됩니다. 지금까지 쌓은 데이터를 잃지 마세요!",
+        1: "무료 체험이 내일 종료됩니다! 지금 구독하지 않으면 기능이 제한됩니다.",
+      };
+
+      // 인앱 알림
       await createNotification({
         userId: sub.userId,
         type: "system",
-        title: "무료 체험 종료 3일 전",
-        message: "무료 체험이 3일 후 종료됩니다. 유료 플랜으로 전환하시면 데이터가 유지됩니다.",
+        title: notifTitleMap[daysLeft] || `무료 체험 ${daysLeft}일 남음`,
+        message: notifMsgMap[daysLeft] || `무료 체험이 ${daysLeft}일 후 종료됩니다.`,
         link: "/pricing",
       });
-      results.push({ userId: sub.userId, action: "trial_3day_notice" });
+
+      // 이메일 알림 (Resend)
+      const userInfo = await getUserInfo(sub.userId);
+      if (userInfo?.email) {
+        const { sendTrialNudgeEmail } = await import("@/lib/trial-emails");
+        await sendTrialNudgeEmail({
+          to: userInfo.email,
+          userName: userInfo.name || "고객",
+          daysLeft,
+          plan: (sub.plan || "starter") as keyof typeof PLANS,
+          userId: sub.userId,
+        }).catch((err) => console.error(`[Billing] Trial nudge email error (D-${daysLeft}):`, err));
+      }
+
+      // 발송 기록 업데이트
+      const updatedNotified = [...notifiedDays, daysLeft];
+      await db
+        .update(subscriptions)
+        .set({ trialNotifiedDays: updatedNotified, updatedAt: now })
+        .where(eq(subscriptions.id, sub.id));
+
+      results.push({ userId: sub.userId, action: `trial_${daysLeft}day_notice`, emailSent: !!userInfo?.email });
     }
 
-    // 만료됨
-    if (daysLeft <= 0) {
+    // 당일 알림 (daysLeft === 0) — 알림 발송 후 만료 처리
+    if (daysLeft === 0 && !notifiedDays.includes(0)) {
+      // 만료 당일 이메일
+      const userInfo = await getUserInfo(sub.userId);
+      if (userInfo?.email) {
+        const { sendTrialNudgeEmail } = await import("@/lib/trial-emails");
+        await sendTrialNudgeEmail({
+          to: userInfo.email,
+          userName: userInfo.name || "고객",
+          daysLeft: 0,
+          plan: (sub.plan || "starter") as keyof typeof PLANS,
+          userId: sub.userId,
+        }).catch((err) => console.error(`[Billing] Trial expiry email error:`, err));
+      }
+
+      await createNotification({
+        userId: sub.userId,
+        type: "system",
+        title: "무료 체험 종료",
+        message: "오늘 무료 체험이 종료됩니다. 유료 플랜을 구독하시면 모든 기능을 계속 이용할 수 있습니다.",
+        link: "/pricing",
+      });
+
+      const updatedNotified = [...notifiedDays, 0];
+      await db
+        .update(subscriptions)
+        .set({ trialNotifiedDays: updatedNotified, updatedAt: now })
+        .where(eq(subscriptions.id, sub.id));
+
+      results.push({ userId: sub.userId, action: "trial_0day_notice", emailSent: !!userInfo?.email });
+    }
+
+    // 만료됨 (daysLeft < 0)
+    if (daysLeft < 0) {
       if (sub.tossBillingKey) {
         // 카드 등록됨 → 유료 전환 시도
         const planConfig = PLANS[sub.plan as PlanId];
@@ -441,6 +510,7 @@ export async function processTrialExpirations() {
             currentPeriodStart: now,
             currentPeriodEnd: periodEnd,
             trialEndsAt: null,
+            trialNotifiedDays: null,
             updatedAt: now,
           }).where(eq(subscriptions.id, sub.id));
 
@@ -454,6 +524,7 @@ export async function processTrialExpirations() {
 
           await db.update(subscriptions).set({
             status: "past_due",
+            trialNotifiedDays: null,
             updatedAt: now,
           }).where(eq(subscriptions.id, sub.id));
 
@@ -467,6 +538,7 @@ export async function processTrialExpirations() {
             plan: "free",
             status: "active",
             trialEndsAt: null,
+            trialNotifiedDays: null,
             currentPeriodStart: null,
             currentPeriodEnd: null,
             updatedAt: now,
