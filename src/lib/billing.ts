@@ -6,6 +6,7 @@ import { eq, and, lte, desc, sql } from "drizzle-orm";
 import { executeBillingPayment, generateOrderId } from "@/lib/toss";
 import { type PlanId, PLANS } from "@/lib/plans";
 import { createNotification } from "@/lib/notifications";
+import { isRetryableError, calculateNextRetryTime } from "@/lib/billing-retry";
 
 /** 결제 재시도 간격 (일) — 1일, 3일, 5일 후 재시도 */
 const RETRY_INTERVALS_DAYS = [1, 3, 5];
@@ -113,12 +114,21 @@ export async function processRenewals() {
 
       results.push({ userId: sub.userId, action: "renewed", amount });
     } else {
+      // 에러가 재시도 가능한지 확인
+      const errorCode = result.error.code || '';
+      const errorMessage = result.error.message || '';
+      const canRetry = isRetryableError(errorCode, errorMessage);
+      const nextRetryTime = canRetry ? calculateNextRetryTime(1) : null; // 첫 번째 재시도 시간
+
       await db
         .update(billingRecords)
         .set({
           status: "failed",
-          failReason: result.error.message,
+          failReason: `${errorCode}: ${errorMessage}`,
           tossResponse: result.error,
+          retryCount: 0,
+          nextRetryAt: nextRetryTime,
+          maxRetries: canRetry ? 3 : 0, // 재시도 불가능하면 maxRetries를 0으로 설정
         })
         .where(eq(billingRecords.id, record.id));
 
@@ -128,7 +138,13 @@ export async function processRenewals() {
         .set({ status: "past_due", updatedAt: now })
         .where(eq(subscriptions.id, sub.id));
 
-      results.push({ userId: sub.userId, action: "failed", error: result.error.message });
+      results.push({
+        userId: sub.userId,
+        action: "failed",
+        error: result.error.message,
+        retryable: canRetry,
+        nextRetryAt: nextRetryTime?.toISOString() || null,
+      });
     }
   }
 

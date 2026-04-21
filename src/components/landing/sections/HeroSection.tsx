@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { motion, useInView } from "framer-motion";
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import { landingCopy } from "@/content/landing";
 import BeforeAfterSlider from "../BeforeAfterSlider";
 
@@ -73,7 +73,7 @@ const fadeUp = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] as const },
   },
 };
 
@@ -82,7 +82,7 @@ const fadeUpSlow = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.75, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { duration: 0.75, ease: [0.25, 0.46, 0.45, 0.94] as const },
   },
 };
 
@@ -377,7 +377,7 @@ export default function HeroSection() {
         ref={statsRef}
         initial={{ opacity: 0, y: 30 }}
         animate={statsInView ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+        transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] as const }}
         className="relative max-w-3xl mx-auto mt-20 md:mt-28 px-6"
       >
         <div

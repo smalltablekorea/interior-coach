@@ -16,6 +16,14 @@
     {
       "path": "/api/notifications/check-payments",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/billing/cron",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/billing/cron/retry",
+      "schedule": "30 */6 * * *"
     }
   ]
 }

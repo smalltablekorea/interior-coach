@@ -8,54 +8,77 @@ import FadeIn from "../FadeIn";
 export default function FinalCTASection() {
   const c = landingCopy.finalCta;
   return (
-    <section className="py-20 md:py-32">
-      <div className="max-w-5xl mx-auto px-6">
+    <section
+      className="relative overflow-hidden py-28 md:py-40"
+      style={{ backgroundColor: "var(--landing-dark-section)" }}
+    >
+      {/* Ruby → Magenta gradient decorative blob */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{
+          width: "min(900px, 90vw)",
+          height: "420px",
+          background:
+            "radial-gradient(ellipse at 40% 50%, var(--landing-ruby) 0%, var(--landing-magenta) 55%, transparent 80%)",
+          opacity: 0.18,
+          filter: "blur(80px)",
+        }}
+      />
+
+      {/* Subtle top-left accent glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-32 -top-32 h-[480px] w-[480px] rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(83,58,253,0.2) 0%, transparent 70%)",
+        }}
+      />
+
+      <div className="relative mx-auto max-w-3xl px-6 text-center">
         <FadeIn>
-          <div
-            className="relative overflow-hidden rounded-xl p-12 md:p-20 text-center"
-            style={{
-              background:
-                "linear-gradient(135deg, #1c1e54 0%, #2e2b8c 50%, #1c1e54 100%)",
-            }}
-          >
-            {/* Ambient glow */}
-            <div
-              aria-hidden
-              className="absolute inset-0 opacity-50 pointer-events-none"
-              style={{
-                background:
-                  "radial-gradient(600px 300px at 50% 0%, rgba(83,58,253,0.25), transparent 60%), radial-gradient(400px 200px at 30% 100%, rgba(249,107,238,0.1), transparent 50%)",
-              }}
-            />
-            <div className="relative">
-              <h2 className="text-3xl md:text-[44px] font-light leading-tight tracking-[-0.02em] text-white">
-                {c.title}
-              </h2>
-              <p className="mt-6 text-base md:text-lg text-white/60 whitespace-pre-line leading-relaxed max-w-xl mx-auto font-light">
-                {c.subtitle}
-              </p>
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Link
-                  href={c.primary.href}
-                  aria-label={`${c.primary.label} — 회원가입 이동`}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-md bg-white text-[var(--landing-dark-section)] font-medium hover:bg-white/90 transition-colors shadow-[rgba(50,50,93,0.25)_0px_6px_12px_-2px,rgba(0,0,0,0.3)_0px_3px_7px_-3px]"
-                >
-                  {c.primary.label} <ArrowRight size={18} />
-                </Link>
-                <Link
-                  href={c.secondary.href}
-                  aria-label={`${c.secondary.label} — 데모 신청 이동`}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-md border border-white/20 text-white font-medium hover:bg-white/10 transition-colors"
-                >
-                  {c.secondary.label}
-                </Link>
-              </div>
-              {/* Trust signals */}
-              <p className="mt-6 text-sm text-white/40">
-                ✓ 14일 무료 체험 &nbsp;·&nbsp; ✓ 카드 등록 불필요 &nbsp;·&nbsp; ✓ 언제든 해지 가능
-              </p>
-            </div>
+          <h2 className="text-3xl leading-tight tracking-[-0.02em] text-white md:text-[46px] md:leading-[1.15]" style={{ fontWeight: 300 }}>
+            {c.title}
+          </h2>
+        </FadeIn>
+
+        <FadeIn delay={0.1}>
+          <p className="mx-auto mt-6 max-w-xl whitespace-pre-line text-base leading-relaxed text-white/55 md:text-lg" style={{ fontWeight: 300 }}>
+            {c.subtitle}
+          </p>
+        </FadeIn>
+
+        <FadeIn delay={0.2}>
+          <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            {/* Primary — inverted: white bg, accent text */}
+            <Link
+              href={c.primary.href}
+              aria-label={`${c.primary.label} — 회원가입 이동`}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-8 py-4 text-[15px] text-[var(--landing-accent)] shadow-[rgba(50,50,93,0.25)_0px_6px_12px_-2px,rgba(0,0,0,0.3)_0px_3px_7px_-3px] transition-all hover:bg-white/90 hover:shadow-[rgba(50,50,93,0.3)_0px_8px_16px_-4px,rgba(0,0,0,0.3)_0px_4px_8px_-4px]"
+              style={{ fontWeight: 400 }}
+            >
+              {c.primary.label}
+              <ArrowRight size={18} strokeWidth={2} />
+            </Link>
+
+            {/* Secondary — ghost with white border */}
+            <Link
+              href={c.secondary.href}
+              aria-label={`${c.secondary.label} — 데모 신청 이동`}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 px-8 py-4 text-[15px] text-white transition-colors hover:border-white/40 hover:bg-white/[0.06]"
+              style={{ fontWeight: 400 }}
+            >
+              {c.secondary.label}
+            </Link>
           </div>
+        </FadeIn>
+
+        <FadeIn delay={0.3}>
+          <p className="mt-8 text-sm text-white/35" style={{ fontWeight: 300 }}>
+            ✓ 14일 무료 체험 &nbsp;·&nbsp; ✓ 카드 등록 불필요 &nbsp;·&nbsp; ✓
+            언제든 해지 가능
+          </p>
         </FadeIn>
       </div>
     </section>
