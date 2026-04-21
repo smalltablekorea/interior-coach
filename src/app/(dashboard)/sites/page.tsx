@@ -86,6 +86,15 @@ export default function SitesPage() {
       }),
     });
     if (res.ok) {
+      // Check if this was the first real site — trigger congratulations
+      const result = await res.json().catch(() => null);
+      if (sites.length === 0) {
+        localStorage.setItem("first-site-created", JSON.stringify({
+          name: form.name,
+          id: result?.id || "",
+          timestamp: Date.now(),
+        }));
+      }
       setShowModal(false);
       setForm({
         name: "",

@@ -42,6 +42,9 @@ import { fmtShort, fmtDate, cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-client";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
 import TrialBanner from "@/components/onboarding/TrialBanner";
+import FirstRoomChecklist from "@/components/onboarding/FirstRoomChecklist";
+import WelcomeModal from "@/components/onboarding/WelcomeModal";
+import CongratulationsModal from "@/components/onboarding/CongratulationsModal";
 import { useSubscription } from "@/hooks/useSubscription";
 import Link from "next/link";
 
@@ -298,6 +301,10 @@ export default function DashboardPage() {
   const [drilldownLoading, setDrilldownLoading] = useState(false);
   const [showAllMenu, setShowAllMenu] = useState(false);
   const { plan, status, billingCycle, trialEndsAt } = useSubscription();
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [checklistItems, setChecklistItems] = useState<{ id: string; done: boolean }[]>([]);
+  const [checklistAllDone, setChecklistAllDone] = useState(false);
+  const [showCongrats, setShowCongrats] = useState(false);
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     const key = `dashboard-tasks-${new Date().toISOString().slice(0, 10)}`;
@@ -322,10 +329,38 @@ export default function DashboardPage() {
       apiFetch("/api/dashboard/today").then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([siteData, dashData, todayResult]) => {
-        setSites(Array.isArray(siteData) ? siteData : []);
+        const siteArray = Array.isArray(siteData) ? siteData : [];
+        setSites(siteArray);
         if (dashData?.kpi) setDashboard(dashData);
         if (todayResult?.alerts) setTodayData(todayResult);
         setLoading(false);
+        // Show welcome modal if user has no real sites (non-sample)
+        const realSites = siteArray.filter((s: any) => !s.isSample);
+        if (realSites.length === 0 && !localStorage.getItem("welcome-dismissed")) {
+          setShowWelcome(true);
+        }
+        // Fetch onboarding checklist status
+        apiFetch("/api/onboarding/checklist")
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => {
+            if (data?.items) {
+              setChecklistItems(data.items);
+              setChecklistAllDone(data.allDone);
+            }
+          })
+          .catch(() => {});
+        // Check if first site was just created (from sites page)
+        const firstSiteData = localStorage.getItem("first-site-created");
+        if (firstSiteData && !localStorage.getItem("first-site-congrats-shown")) {
+          try {
+            const parsed = JSON.parse(firstSiteData);
+            // Only show if created within last 5 minutes
+            if (Date.now() - parsed.timestamp < 5 * 60 * 1000) {
+              setShowCongrats(true);
+            }
+          } catch { /* ignore */ }
+          localStorage.removeItem("first-site-created");
+        }
       })
       .catch(() => setLoading(false));
   }, []);
@@ -433,6 +468,55 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <OnboardingModal />
       <TrialBanner trialEndsAt={trialEndsAt} plan={plan} status={status} />
+
+      {/* Onboarding checklist — shown until all tasks done */}
+      {!checklistAllDone && checklistItems.length > 0 && (
+        <div className="animate-fade-up stagger-1">
+          <FirstRoomChecklist
+            items={checklistItems.map((item) => ({
+              id: item.id,
+              label: item.id === "create" ? "현장 만들기 완료" :
+                     item.id === "photo" ? "첫 사진 올려보기" :
+                     item.id === "message" ? "첫 메시지 보내기" :
+                     "고객 포털 공유 URL 만들기",
+              icon: <></>,
+              done: item.done,
+              action: item.done ? undefined : () => {
+                const links: Record<string, string> = {
+                  create: "/sites/new",
+                  photo: "/sites",
+                  message: "/sites",
+                  portal: "/sites",
+                };
+                window.location.href = links[item.id] || "/sites";
+              },
+            }))}
+          />
+        </div>
+      )}
+
+      {/* Congratulations modal for first site registration */}
+      <CongratulationsModal
+        show={showCongrats}
+        onClose={() => setShowCongrats(false)}
+      />
+
+      {/* Welcome modal for users with no sites */}
+      <WelcomeModal
+        open={showWelcome}
+        onOpenSample={async () => {
+          setShowWelcome(false);
+          localStorage.setItem("welcome-dismissed", "true");
+          try {
+            await apiFetch("/api/site-chat/onboarding", { method: "POST" });
+            window.location.reload();
+          } catch { /* ignore */ }
+        }}
+        onSkip={() => {
+          setShowWelcome(false);
+          localStorage.setItem("welcome-dismissed", "true");
+        }}
+      />
 
       {/* ══════════════════════════════════════════════
           1. HEADER
