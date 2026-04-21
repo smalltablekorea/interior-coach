@@ -1,0 +1,121 @@
+name: PR Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for secrets in code
+        run: |
+          # Pattern-based secret detection
+          PATTERNS='(AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|sk-[0-9a-zA-Z]{48}|ghp_[0-9a-zA-Z]{36}|-----BEGIN (RSA |EC )?PRIVATE KEY-----)'
+          if grep -rEn "$PATTERNS" --include='*.ts' --include='*.tsx' --include='*.js' --include='*.json' --include='*.env*' . 2>/dev/null | grep -v node_modules | grep -v '.git/'; then
+            echo "🚨 Potential secrets detected in code!"
+            exit 1
+          fi
+          echo "✅ No secrets detected"
+
+      - name: Check for vulnerable patterns
+        run: |
+          # Check for common security anti-patterns
+          ISSUES=0
+          
+          # eval() usage
+          if grep -rn 'eval(' --include='*.ts' --include='*.tsx' --include='*.js' . 2>/dev/null | grep -v node_modules | grep -v '.git/'; then
+            echo "⚠️  eval() usage detected"
+            ISSUES=$((ISSUES+1))
+          fi
+          
+          # innerHTML without sanitization
+          if grep -rn 'dangerouslySetInnerHTML' --include='*.tsx' --include='*.jsx' . 2>/dev/null | grep -v node_modules; then
+            echo "⚠️  dangerouslySetInnerHTML usage detected — verify sanitization"
+            ISSUES=$((ISSUES+1))
+          fi
+          
+          if [ $ISSUES -gt 0 ]; then
+            echo "⚠️  Found $ISSUES potential security concerns — review recommended"
+          else
+            echo "✅ No common security anti-patterns found"
+          fi
+
+  quality-check:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check diff size
+        run: |
+          ADDITIONS=$(git diff --numstat origin/main...HEAD | awk '{s+=$1} END {print s+0}')
+          DELETIONS=$(git diff --numstat origin/main...HEAD | awk '{s+=$2} END {print s+0}')
+          TOTAL=$((ADDITIONS + DELETIONS))
+          echo "📊 PR Size: +$ADDITIONS / -$DELETIONS ($TOTAL total lines)"
+          
+          if [ "$TOTAL" -gt 1000 ]; then
+            echo "⚠️  Large PR detected ($TOTAL lines). Consider breaking into smaller PRs."
+          fi
+
+      - name: Check for debug artifacts
+        run: |
+          if grep -rn 'console\.log\|debugger\|TODO.*HACK\|FIXME.*URGENT' --include='*.ts' --include='*.tsx' --include='*.js' . 2>/dev/null | grep -v node_modules | grep -v '.git/'; then
+            echo "⚠️  Debug artifacts or urgent TODOs found — clean up before merge"
+          else
+            echo "✅ No debug artifacts found"
+          fi
+
+  pr-summary:
+    name: PR Summary
+    runs-on: ubuntu-latest
+    needs: [security-scan, quality-check]
+    if: always()
+    steps:
+      - name: Post review summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const secResult = '${{ needs.security-scan.result }}';
+            const qualResult = '${{ needs.quality-check.result }}';
+            
+            let body = '## 🤖 자동 코드리뷰 결과\n\n';
+            body += `| 검사 | 결과 |\n|------|------|\n`;
+            body += `| 🔒 보안 스캔 | ${secResult === 'success' ? '✅ 통과' : '❌ 실패'} |\n`;
+            body += `| 📊 코드 품질 | ${qualResult === 'success' ? '✅ 통과' : '⚠️ 확인 필요'} |\n`;
+            body += '\n---\n*자동 생성된 리뷰입니다.*';
+            
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(c => 
+              c.user.type === 'Bot' && c.body.includes('자동 코드리뷰 결과')
+            );
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body,
+              });
+            }
