@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Check, X, ChevronDown, ArrowRight, Wallet, Clock, FileText, Lightbulb, MessageSquare } from "lucide-react";
+import { Check, X, ChevronDown, ArrowRight, Wallet, Clock, FileText, Lightbulb, MessageSquare, CreditCard, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/plans";
 
 // ─── Plan Data ───
@@ -313,6 +314,68 @@ function BillingToggle({ yearly, setYearly }: { yearly: boolean; setYearly: (v: 
 function PlanCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
   const price = yearly ? plan.yearlyMonthlyPrice : plan.monthlyPrice;
   const originalPrice = plan.monthlyPrice;
+  const router = useRouter();
+  const [isAuthChecking, setIsAuthChecking] = useState(false);
+
+  // Handle paid plan CTA click — check auth, then start billing flow
+  const handlePaidPlanClick = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsAuthChecking(true);
+    try {
+      // Check if user is logged in
+      const res = await fetch("/api/subscription");
+      if (!res.ok) {
+        // Not logged in — redirect to login, then come back
+        sessionStorage.setItem("pendingPlanUpgrade", plan.id);
+        router.push("/auth/login");
+        return;
+      }
+      const data = await res.json();
+      const hasBillingKey = data?.subscription?.tossBillingKey;
+
+      if (hasBillingKey) {
+        // Already has card — go straight to plan change
+        const changeRes = await fetch("/api/billing/payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            plan: plan.id,
+            billingCycle: yearly ? "yearly" : "monthly",
+          }),
+        });
+        if (changeRes.ok) {
+          router.push("/settings?upgraded=true");
+        } else {
+          const err = await changeRes.json();
+          alert(err?.error || "결제에 실패했습니다. 다시 시도해주세요.");
+        }
+      } else {
+        // No card — need to register card first
+        sessionStorage.setItem("pendingPlanUpgrade", plan.id);
+        sessionStorage.setItem("pendingBillingCycle", yearly ? "yearly" : "monthly");
+        // Load Toss SDK and start billing auth
+        const { loadTossPayments } = await import("@tosspayments/tosspayments-sdk");
+        const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+        if (!clientKey) {
+          alert("결제 설정이 완료되지 않았습니다. 관리자에게 문의하세요.");
+          return;
+        }
+        const customerKey = `customer_${data.subscription?.userId || "anonymous"}`;
+        const tossPayments = await loadTossPayments(clientKey);
+        const payment = tossPayments.payment({ customerKey });
+        await payment.requestBillingAuth({
+          method: "CARD",
+          successUrl: `${window.location.origin}/payment/billing`,
+          failUrl: `${window.location.origin}/payment/fail`,
+        });
+      }
+    } catch {
+      // If subscription API fails, just go to login
+      router.push("/auth/login");
+    } finally {
+      setIsAuthChecking(false);
+    }
+  }, [plan.id, yearly, router]);
 
   const cardBg = plan.darkTheme
     ? "bg-[#0a0a0a] text-white"
@@ -401,12 +464,29 @@ function PlanCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
       )}
 
       {/* CTA */}
-      <Link
-        href={plan.ctaHref}
-        className={`w-full rounded-xl text-sm text-center block transition-all ${ctaClass}`}
-      >
-        {plan.ctaText}
-      </Link>
+      {plan.id === "free" ? (
+        <Link
+          href={plan.ctaHref}
+          className={`w-full rounded-xl text-sm text-center block transition-all ${ctaClass}`}
+        >
+          {plan.ctaText}
+        </Link>
+      ) : (
+        <button
+          onClick={handlePaidPlanClick}
+          disabled={isAuthChecking}
+          className={`w-full rounded-xl text-sm text-center transition-all disabled:opacity-50 ${ctaClass}`}
+        >
+          {isAuthChecking ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 size={14} className="animate-spin" />
+              처리 중...
+            </span>
+          ) : (
+            plan.ctaText
+          )}
+        </button>
+      )}
       {plan.highlighted && (
         <p className="text-[10px] text-center text-[var(--muted)] mt-1.5">카드 등록 후 14일 무료, 언제든 해지</p>
       )}

@@ -118,6 +118,20 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const changePlan = useCallback(async (newPlan: PlanId): Promise<boolean> => {
     try {
+      // For paid plans, use billing/payment endpoint for actual payment
+      if (newPlan !== "free") {
+        const res = await fetch("/api/billing/payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: newPlan, billingCycle }),
+        });
+        if (res.ok) {
+          fetchSubscription();
+          return true;
+        }
+        return false;
+      }
+      // Downgrade to free — just update subscription
       const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -131,7 +145,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     } catch {
       return false;
     }
-  }, [fetchSubscription]);
+  }, [fetchSubscription, billingCycle]);
 
   return (
     <SubscriptionContext.Provider
