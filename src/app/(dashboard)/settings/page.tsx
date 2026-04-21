@@ -1,20 +1,71 @@
 "use client";
 
+import { useEffect, useState, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
 import PlanBadge from "@/components/subscription/PlanBadge";
-import { PLANS, formatPrice, formatLimit } from "@/lib/plans";
-import { Crown, ExternalLink, Bell, ChevronRight, Users } from "lucide-react";
+import { PLANS, formatPrice, formatLimit, type PlanId } from "@/lib/plans";
+import { Crown, ExternalLink, Bell, ChevronRight, Users, Loader2, Check } from "lucide-react";
 import Link from "next/link";
 
 export default function SettingsPage() {
   const { user } = useAuth();
-  const { plan, status, billingCycle, limits, usage, loading } = useSubscription();
+  const { plan, status, billingCycle, limits, usage, loading, changePlan } = useSubscription();
+  const searchParams = useSearchParams();
+  const [upgradeStatus, setUpgradeStatus] = useState<"idle" | "upgrading" | "success" | "error">("idle");
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
+  const upgradeAttempted = useRef(false);
   const planConfig = PLANS[plan];
+
+  // Auto-complete upgrade after card registration redirect
+  useEffect(() => {
+    if (loading || upgradeAttempted.current) return;
+    const upgradePlan = searchParams.get("upgrade") as PlanId | null;
+    if (!upgradePlan || !["starter", "pro"].includes(upgradePlan)) return;
+    if (plan === upgradePlan) return; // Already on this plan
+
+    upgradeAttempted.current = true;
+    setUpgradeStatus("upgrading");
+
+    const cycle = searchParams.get("billingCycle") || undefined;
+    changePlan(upgradePlan, cycle).then((result) => {
+      if (result.success) {
+        setUpgradeStatus("success");
+        // Clean up the URL params
+        const url = new URL(window.location.href);
+        url.searchParams.delete("upgrade");
+        url.searchParams.delete("billingCycle");
+        window.history.replaceState({}, "", url.toString());
+      } else {
+        setUpgradeStatus("error");
+        setUpgradeError(result.error || "업그레이드에 실패했습니다");
+      }
+    });
+  }, [loading, searchParams, plan, changePlan]);
 
   return (
     <div className="space-y-6 animate-fade-up">
       <h1 className="text-2xl font-bold">설정</h1>
+
+      {/* Upgrade status banner */}
+      {upgradeStatus === "upgrading" && (
+        <div className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--green)]/30 bg-[var(--green)]/5">
+          <Loader2 size={20} className="animate-spin text-[var(--green)]" />
+          <p className="text-sm">플랜 업그레이드 진행 중...</p>
+        </div>
+      )}
+      {upgradeStatus === "success" && (
+        <div className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--green)]/30 bg-[var(--green)]/5">
+          <Check size={20} className="text-[var(--green)]" />
+          <p className="text-sm">플랜이 성공적으로 업그레이드 되었습니다!</p>
+        </div>
+      )}
+      {upgradeStatus === "error" && (
+        <div className="flex items-center gap-3 p-4 rounded-2xl border border-red-500/30 bg-red-500/5">
+          <p className="text-sm text-red-400">업그레이드 실패: {upgradeError}</p>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
         <h2 className="text-lg font-semibold mb-4">계정 정보</h2>

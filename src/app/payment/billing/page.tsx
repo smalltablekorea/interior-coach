@@ -41,9 +41,11 @@ export default function BillingCallbackPage() {
           const pendingPlan = sessionStorage.getItem("pendingPlanUpgrade");
           if (pendingPlan) {
             sessionStorage.removeItem("pendingPlanUpgrade");
+            const pendingCycle = sessionStorage.getItem("pendingBillingCycle") || "monthly";
+            sessionStorage.removeItem("pendingBillingCycle");
             // Redirect to complete the plan change
             setTimeout(() => {
-              router.push(`/settings?upgrade=${pendingPlan}`);
+              router.push(`/settings?upgrade=${pendingPlan}&billingCycle=${pendingCycle}`);
             }, 2000);
           }
         } else {

@@ -25,17 +25,25 @@ interface FeatureCheck {
   limit?: number;
 }
 
+interface ChangePlanResult {
+  success: boolean;
+  needsCard?: boolean;
+  error?: string;
+}
+
 interface SubscriptionContextType {
   plan: PlanId;
   status: string;
   billingCycle: string;
   trialEndsAt: string | null;
+  hasCard: boolean;
+  userId: string | null;
   planConfig: { name: string; nameKo: string; monthlyPrice: number } | null;
   limits: FeatureLimits | null;
   usage: Record<string, number>;
   loading: boolean;
   checkFeature: (key: FeatureKey) => FeatureCheck;
-  changePlan: (newPlan: PlanId) => Promise<boolean>;
+  changePlan: (newPlan: PlanId, overrideBillingCycle?: string) => Promise<ChangePlanResult>;
   refresh: () => void;
 }
 
@@ -44,12 +52,14 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   status: "active",
   billingCycle: "monthly",
   trialEndsAt: null,
+  hasCard: false,
+  userId: null,
   planConfig: null,
   limits: null,
   usage: {},
   loading: true,
   checkFeature: () => ({ allowed: true }),
-  changePlan: async () => false,
+  changePlan: async () => ({ success: false }),
   refresh: () => {},
 });
 
@@ -78,6 +88,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const status = data?.subscription?.status || "active";
   const billingCycle = data?.subscription?.billingCycle || "monthly";
   const trialEndsAt = data?.subscription?.trialEndsAt || null;
+  const hasCard = !!(data?.subscription as Record<string, unknown>)?.tossBillingKey;
+  const userId = (data?.subscription as Record<string, unknown>)?.userId as string | null ?? null;
 
   const checkFeature = useCallback(
     (key: FeatureKey): FeatureCheck => {
@@ -119,20 +131,27 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     [plan, data]
   );
 
-  const changePlan = useCallback(async (newPlan: PlanId): Promise<boolean> => {
+  const changePlan = useCallback(async (newPlan: PlanId, overrideBillingCycle?: string): Promise<ChangePlanResult> => {
     try {
+      const cycle = overrideBillingCycle || billingCycle;
       // For paid plans, use billing/payment endpoint for actual payment
       if (newPlan !== "free") {
         const res = await fetch("/api/billing/payment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ plan: newPlan, billingCycle }),
+          body: JSON.stringify({ plan: newPlan, billingCycle: cycle }),
         });
+        const body = await res.json();
         if (res.ok) {
           fetchSubscription();
-          return true;
+          return { success: true };
         }
-        return false;
+        // Check if the error is about missing billing key / card
+        const errorMsg: string = body?.error || "";
+        if (errorMsg.includes("결제 수단")) {
+          return { success: false, needsCard: true, error: errorMsg };
+        }
+        return { success: false, error: errorMsg };
       }
       // Downgrade to free — just update subscription
       const res = await fetch("/api/subscription", {
@@ -142,11 +161,12 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       });
       if (res.ok) {
         fetchSubscription();
-        return true;
+        return { success: true };
       }
-      return false;
+      const body = await res.json().catch(() => null);
+      return { success: false, error: body?.error || "플랜 변경에 실패했습니다" };
     } catch {
-      return false;
+      return { success: false, error: "네트워크 오류가 발생했습니다" };
     }
   }, [fetchSubscription, billingCycle]);
 
@@ -157,6 +177,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         status,
         billingCycle,
         trialEndsAt,
+        hasCard,
+        userId,
         planConfig: data?.planConfig || null,
         limits: data?.limits || null,
         usage: data?.usage || {},
