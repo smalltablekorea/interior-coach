@@ -50,6 +50,10 @@ export default function FinalCTASection() {
                   {c.secondary.label}
                 </Link>
               </div>
+              {/* Trust signals */}
+              <p className="mt-6 text-sm text-white/40">
+                ✓ 14일 무료 체험 &nbsp;·&nbsp; ✓ 카드 등록 불필요 &nbsp;·&nbsp; ✓ 언제든 해지 가능
+              </p>
             </div>
           </div>
         </FadeIn>
