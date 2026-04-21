@@ -59,6 +59,9 @@ export async function POST(
           tags: hashtags,
         });
         break;
+      case "x":
+        result = await publishToX(token, content as string, mediaUrls);
+        break;
       default:
         return err(`지원하지 않는 채널: ${channel}`);
     }
@@ -254,4 +257,68 @@ async function updateYouTubeMetadata(
   // YouTube video upload requires binary file — this handles metadata only
   // Full video upload would need resumable upload protocol
   return { postId: undefined, postUrl: undefined };
+}
+
+// ── X (Twitter) Publishing ──
+
+async function publishToX(
+  token: string,
+  text: string,
+  mediaUrls?: string[]
+) {
+  // Upload media first if provided
+  let mediaIds: string[] = [];
+  if (mediaUrls?.length) {
+    for (const url of mediaUrls.slice(0, 4)) {
+      // Download image and upload to X media endpoint
+      const imgResp = await fetch(url);
+      if (!imgResp.ok) continue;
+      const imgBuffer = await imgResp.arrayBuffer();
+      const base64 = Buffer.from(imgBuffer).toString("base64");
+
+      const uploadResp = await fetch(
+        "https://upload.twitter.com/1.1/media/upload.json",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            media_data: base64,
+          }),
+        }
+      );
+      if (uploadResp.ok) {
+        const { media_id_string } = await uploadResp.json();
+        if (media_id_string) mediaIds.push(media_id_string);
+      }
+    }
+  }
+
+  // Create tweet
+  const tweetBody: Record<string, unknown> = { text };
+  if (mediaIds.length > 0) {
+    tweetBody.media = { media_ids: mediaIds };
+  }
+
+  const resp = await fetch("https://api.twitter.com/2/tweets", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(tweetBody),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`X 트윗 발행 실패: ${errText}`);
+  }
+
+  const { data } = await resp.json();
+  return {
+    postId: data?.id,
+    postUrl: data?.id ? `https://x.com/i/status/${data.id}` : undefined,
+  };
 }

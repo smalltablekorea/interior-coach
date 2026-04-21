@@ -125,6 +125,7 @@ export const BILLING_CYCLES = ["monthly", "yearly"] as const;
 export const MARKETING_CHANNELS = [
   { id: "threads", name: "스레드", color: "#000000" },
   { id: "instagram", name: "인스타그램", color: "#E4405F" },
+  { id: "x", name: "X (트위터)", color: "#000000" },
   { id: "naver_blog", name: "네이버 블로그", color: "#03C75A" },
   { id: "youtube", name: "유튜브", color: "#FF0000" },
   { id: "meta_ads", name: "메타 광고", color: "#1877F2" },

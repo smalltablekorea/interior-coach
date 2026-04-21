@@ -60,6 +60,25 @@ export const OAUTH_PROVIDERS: Record<string, MarketingOAuthProvider> = {
     profileUrl:
       "https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true",
   },
+  x: {
+    id: "x",
+    authUrl: "https://twitter.com/i/oauth2/authorize",
+    tokenUrl: "https://api.twitter.com/2/oauth2/token",
+    clientIdEnvKey: "X_CLIENT_ID",
+    clientSecretEnvKey: "X_CLIENT_SECRET",
+    scopes: {
+      x: [
+        "tweet.read",
+        "tweet.write",
+        "users.read",
+        "offline.access",
+      ],
+    },
+    extraAuthParams: {
+      code_challenge_method: "S256",
+    },
+    profileUrl: "https://api.twitter.com/2/users/me",
+  },
 };
 
 export const CHANNEL_TO_PROVIDER: Record<string, string> = {
@@ -67,4 +86,5 @@ export const CHANNEL_TO_PROVIDER: Record<string, string> = {
   instagram: "meta",
   meta_ads: "meta",
   youtube: "google",
+  x: "x",
 };
