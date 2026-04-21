@@ -5,12 +5,14 @@ import FeaturesSection from "./sections/FeaturesSection";
 import CaseStudySection from "./sections/CaseStudySection";
 import WhyUsSection from "./sections/WhyUsSection";
 import PricingSection from "./sections/PricingSection";
+import TestimonialSection from "./sections/TestimonialSection";
 import FAQSection from "./sections/FAQSection";
 import FinalCTASection from "./sections/FinalCTASection";
+import FooterSection from "./sections/FooterSection";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+    <div className="landing-premium min-h-screen">
       <LandingNav />
       <main>
         <HeroSection />
@@ -18,13 +20,12 @@ export default function LandingPage() {
         <FeaturesSection />
         <CaseStudySection />
         <WhyUsSection />
+        <TestimonialSection />
         <PricingSection />
         <FAQSection />
         <FinalCTASection />
       </main>
-      <footer className="py-10 border-t border-[var(--border)] text-center text-xs text-[var(--muted)]">
-        © {new Date().getFullYear()} 인테리어코치 · 스몰테이블디자인그룹
-      </footer>
+      <FooterSection />
     </div>
   );
 }

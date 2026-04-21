@@ -11,42 +11,46 @@ export default function FAQSection() {
   const [open, setOpen] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="py-16 md:py-30" aria-labelledby="faq-heading">
+    <section
+      id="faq"
+      className="py-20 md:py-32 bg-[var(--landing-card-alt)]"
+      aria-labelledby="faq-heading"
+    >
       <div className="max-w-3xl mx-auto px-6">
         <FadeIn className="text-center">
-          <p className="text-sm font-semibold text-[var(--green)] mb-3">
+          <p className="text-sm font-semibold text-[var(--landing-accent)] tracking-wide uppercase mb-4">
             {f.eyebrow}
           </p>
           <h2
             id="faq-heading"
-            className="text-3xl md:text-5xl font-black leading-tight"
+            className="text-3xl md:text-[44px] font-light leading-tight tracking-tight text-[var(--landing-heading)]"
           >
             {f.title}
           </h2>
         </FadeIn>
 
-        <div className="mt-10 md:mt-14 space-y-3">
+        <div className="mt-12 md:mt-16 space-y-3">
           {f.items.map((item, i) => {
             const isOpen = open === i;
             return (
               <FadeIn
                 key={item.q}
                 delay={i * 0.04}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--sidebar)] overflow-hidden"
+                className="rounded-xl border border-[var(--landing-border)] bg-white overflow-hidden"
               >
                 <button
                   aria-expanded={isOpen}
                   aria-controls={`faq-panel-${i}`}
                   onClick={() => setOpen(isOpen ? null : i)}
-                  className="w-full flex items-center justify-between gap-4 px-5 py-4 md:px-6 md:py-5 text-left"
+                  className="w-full flex items-center justify-between gap-4 px-6 py-5 md:px-7 md:py-6 text-left"
                 >
-                  <span className="text-sm md:text-base font-semibold">
+                  <span className="text-sm md:text-base font-semibold text-[var(--landing-heading)]">
                     {item.q}
                   </span>
                   <ChevronDown
                     size={18}
                     className={cn(
-                      "shrink-0 text-[var(--muted)] transition-transform",
+                      "shrink-0 text-[var(--landing-body)] transition-transform duration-200",
                       isOpen && "rotate-180",
                     )}
                   />
@@ -62,7 +66,7 @@ export default function FAQSection() {
                   )}
                 >
                   <div className="overflow-hidden">
-                    <p className="px-5 pb-5 md:px-6 md:pb-6 text-sm text-[var(--muted)] leading-relaxed">
+                    <p className="px-6 pb-6 md:px-7 md:pb-7 text-sm text-[var(--landing-body)] leading-relaxed">
                       {item.a}
                     </p>
                   </div>

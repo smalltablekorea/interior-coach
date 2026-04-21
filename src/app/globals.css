@@ -100,6 +100,35 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* ─── Landing Page Premium Theme ─── */
+.landing-premium {
+  --landing-bg: #ffffff;
+  --landing-fg: #061b31;
+  --landing-heading: #061b31;
+  --landing-body: #64748d;
+  --landing-label: #273951;
+  --landing-accent: #00A85E;
+  --landing-accent-hover: #009652;
+  --landing-accent-light: rgba(0, 168, 94, 0.08);
+  --landing-accent-border: rgba(0, 168, 94, 0.25);
+  --landing-border: #e5edf5;
+  --landing-card: #ffffff;
+  --landing-card-alt: #f8fafc;
+  --landing-dark-section: #061b31;
+  --landing-shadow-blue: rgba(50, 50, 93, 0.25);
+  --landing-shadow-black: rgba(0, 0, 0, 0.1);
+  --landing-shadow-ambient: rgba(23, 23, 23, 0.08);
+  background: var(--landing-bg);
+  color: var(--landing-fg);
+}
+.landing-premium *::selection {
+  background: rgba(0, 168, 94, 0.15);
+}
+@keyframes landing-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
 /* Stagger animation delays */
 .stagger-1 { animation-delay: 0ms; }
 .stagger-2 { animation-delay: 60ms; }

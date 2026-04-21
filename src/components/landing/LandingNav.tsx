@@ -1,43 +1,57 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { landingCopy } from "@/content/landing";
 
 export default function LandingNav() {
   const { nav } = landingCopy;
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
+  }, []);
+
   return (
-    <nav className="sticky top-0 z-50 bg-[var(--background)]/80 backdrop-blur-xl border-b border-[var(--border)]">
+    <nav
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-white/90 backdrop-blur-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)]"
+          : "bg-white"
+      }`}
+    >
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link
           href="/"
-          className="text-lg font-bold text-[var(--green)]"
+          className="text-xl font-bold tracking-tight text-[var(--landing-heading)]"
           aria-label="인테리어코치 홈으로"
         >
-          {nav.logo}
+          <span className="text-[var(--landing-accent)]">인테리어</span>코치
         </Link>
 
-        <div className="hidden md:flex items-center gap-6">
+        <div className="hidden md:flex items-center gap-8">
           {nav.links.map((l) => (
             <a
               key={l.href}
               href={l.href}
-              className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+              className="text-sm font-medium text-[var(--landing-body)] hover:text-[var(--landing-heading)] transition-colors"
             >
               {l.label}
             </a>
           ))}
           <Link
             href={nav.ctaLogin.href}
-            className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+            className="text-sm font-medium text-[var(--landing-body)] hover:text-[var(--landing-heading)] transition-colors"
           >
             {nav.ctaLogin.label}
           </Link>
           <Link
             href={nav.ctaSignup.href}
-            className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="px-5 py-2.5 rounded-lg bg-[var(--landing-accent)] text-white text-sm font-semibold hover:bg-[var(--landing-accent-hover)] transition-colors shadow-[0_1px_3px_rgba(0,168,94,0.3)]"
           >
             {nav.ctaSignup.label}
           </Link>
@@ -49,32 +63,36 @@ export default function LandingNav() {
           aria-label={open ? "메뉴 닫기" : "메뉴 열기"}
           aria-expanded={open}
         >
-          {open ? <X size={22} /> : <Menu size={22} />}
+          {open ? (
+            <X size={22} className="text-[var(--landing-heading)]" />
+          ) : (
+            <Menu size={22} className="text-[var(--landing-heading)]" />
+          )}
         </button>
       </div>
 
       {open && (
-        <div className="md:hidden border-t border-[var(--border)] bg-[var(--background)]">
+        <div className="md:hidden border-t border-[var(--landing-border)] bg-white">
           <div className="px-6 py-4 flex flex-col gap-3">
             {nav.links.map((l) => (
               <a
                 key={l.href}
                 href={l.href}
-                className="py-2 text-sm text-[var(--muted)]"
                 onClick={() => setOpen(false)}
+                className="text-sm font-medium text-[var(--landing-body)] hover:text-[var(--landing-heading)] py-2"
               >
                 {l.label}
               </a>
             ))}
             <Link
               href={nav.ctaLogin.href}
-              className="py-2 text-sm text-[var(--muted)]"
+              className="text-sm font-medium text-[var(--landing-body)] py-2"
             >
               {nav.ctaLogin.label}
             </Link>
             <Link
               href={nav.ctaSignup.href}
-              className="mt-1 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-semibold text-center"
+              className="mt-2 py-3 rounded-lg bg-[var(--landing-accent)] text-white text-sm font-semibold text-center"
             >
               {nav.ctaSignup.label}
             </Link>

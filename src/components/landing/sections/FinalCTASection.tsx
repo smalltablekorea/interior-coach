@@ -8,43 +8,44 @@ import FadeIn from "../FadeIn";
 export default function FinalCTASection() {
   const c = landingCopy.finalCta;
   return (
-    <section className="py-16 md:py-30">
+    <section className="py-20 md:py-32">
       <div className="max-w-5xl mx-auto px-6">
         <FadeIn>
           <div
-            className="relative overflow-hidden rounded-[32px] border border-[var(--green)]/30 p-10 md:p-16 text-center"
+            className="relative overflow-hidden rounded-2xl p-12 md:p-20 text-center"
             style={{
               background:
-                "linear-gradient(135deg, rgba(45,60,100,0.35) 0%, rgba(211,167,119,0.15) 100%)",
+                "linear-gradient(135deg, #061b31 0%, #0d3b2d 50%, #061b31 100%)",
             }}
           >
+            {/* Ambient glow */}
             <div
               aria-hidden
               className="absolute inset-0 opacity-60 pointer-events-none"
               style={{
                 background:
-                  "radial-gradient(500px 300px at 50% 0%, rgba(16,185,129,0.18), transparent 70%)",
+                  "radial-gradient(600px 300px at 50% 0%, rgba(0,168,94,0.2), transparent 60%)",
               }}
             />
             <div className="relative">
-              <h2 className="text-3xl md:text-5xl font-black leading-tight">
+              <h2 className="text-3xl md:text-[44px] font-light leading-tight tracking-tight text-white">
                 {c.title}
               </h2>
-              <p className="mt-5 text-base md:text-lg text-[var(--muted)] whitespace-pre-line leading-relaxed">
+              <p className="mt-6 text-base md:text-lg text-white/60 whitespace-pre-line leading-relaxed max-w-xl mx-auto">
                 {c.subtitle}
               </p>
-              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   href={c.primary.href}
                   aria-label={`${c.primary.label} — 회원가입 이동`}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-[var(--green)] text-black font-bold hover:opacity-90 transition-opacity"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg bg-[var(--landing-accent)] text-white font-semibold hover:bg-[var(--landing-accent-hover)] transition-colors shadow-[0_4px_14px_rgba(0,168,94,0.3)]"
                 >
                   {c.primary.label} <ArrowRight size={18} />
                 </Link>
                 <Link
                   href={c.secondary.href}
                   aria-label={`${c.secondary.label} — 데모 신청 이동`}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl border border-[var(--border)] font-semibold hover:bg-white/[0.04] transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-lg border border-white/20 text-white font-semibold hover:bg-white/10 transition-colors"
                 >
                   {c.secondary.label}
                 </Link>

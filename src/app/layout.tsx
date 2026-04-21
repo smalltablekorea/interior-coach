@@ -1,3 +1,6 @@
+// Force dynamic rendering for all pages — this SaaS app uses auth/hooks on every page
+export const dynamic = "force-dynamic";
+
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";

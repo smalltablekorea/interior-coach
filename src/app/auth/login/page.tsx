@@ -3,11 +3,12 @@
 import { useState, Suspense } from "react";
 import { signIn, signUp } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p>로딩 중...</p></div>}>
       <LoginForm />
     </Suspense>
   );
