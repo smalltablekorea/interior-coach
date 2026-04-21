@@ -28,14 +28,10 @@ const NON_RETRYABLE_ERROR_CODES = [
   "EXCEEDED_DAILY_PAYMENT_LIMIT", // Daily limit exceeded (unlikely to change soon)
 ];
 
-/** 재시도 스케줄 계산 (시간 단위) */
+/** 재시도 스케줄 계산 (시간 단위) — 3일 간격 3회 */
 export function getRetryDelayHours(attempt: number): number {
-  switch (attempt) {
-    case 1: return 6;    // 첫 재시도: 6시간 후
-    case 2: return 24;   // 두 번째 재시도: 24시간 후
-    case 3: return 72;   // 세 번째 재시도: 72시간 후
-    default: return 0;   // 재시도 횟수 초과
-  }
+  if (attempt >= 1 && attempt <= 3) return 72; // 3일(72시간) 간격
+  return 0; // 재시도 횟수 초과
 }
 
 /** 다음 재시도 시간 계산 */

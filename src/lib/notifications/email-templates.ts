@@ -207,6 +207,170 @@ export function buildScheduleReminderSms(params: {
   ].join("\n");
 }
 
+// ─── 결제 실패 알림 이메일 ───
+
+export async function sendPaymentFailedEmail(params: {
+  to: string;
+  customerName: string;
+  planName: string;
+  amount: string;
+  retryCount: number;
+  maxRetries: number;
+  nextRetryDate?: string;
+}): Promise<SendResult> {
+  const guard = guardResend();
+  if (guard) return guard;
+
+  const isLastAttempt = params.retryCount >= params.maxRetries;
+  const subject = isLastAttempt
+    ? `[인테리어코치] 결제 최종 실패 — 무료 플랜으로 전환됩니다`
+    : `[인테리어코치] 결제 재시도 실패 (${params.retryCount}/${params.maxRetries}차)`;
+
+  try {
+    const { data, error } = await getResend().emails.send({
+      from: `인테리어코치 <${FROM_EMAIL}>`,
+      to: params.to,
+      subject,
+      html: buildPaymentFailedHtml(params),
+    });
+    if (error) return { success: false, error: error.message };
+    return { success: true, messageId: data?.id };
+  } catch (err) {
+    return { success: false, error: `이메일 발송 실패: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+export async function sendDowngradeEmail(params: {
+  to: string;
+  customerName: string;
+  planName: string;
+  maxRetries: number;
+}): Promise<SendResult> {
+  const guard = guardResend();
+  if (guard) return guard;
+
+  try {
+    const { data, error } = await getResend().emails.send({
+      from: `인테리어코치 <${FROM_EMAIL}>`,
+      to: params.to,
+      subject: `[인테리어코치] 무료 플랜으로 전환 완료`,
+      html: buildDowngradeHtml(params),
+    });
+    if (error) return { success: false, error: error.message };
+    return { success: true, messageId: data?.id };
+  } catch (err) {
+    return { success: false, error: `이메일 발송 실패: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+function buildPaymentFailedHtml(params: {
+  customerName: string;
+  planName: string;
+  amount: string;
+  retryCount: number;
+  maxRetries: number;
+  nextRetryDate?: string;
+}): string {
+  const isLastAttempt = params.retryCount >= params.maxRetries;
+  const remaining = params.maxRetries - params.retryCount;
+
+  const bodyContent = isLastAttempt
+    ? `<p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6">
+        <strong>${params.maxRetries}회</strong> 결제 재시도가 모두 실패하여 <strong>무료(Free) 플랜</strong>으로 전환됩니다.<br>
+        기존 데이터는 보존되며, 카드를 변경한 후 다시 구독하시면 서비스를 이용하실 수 있습니다.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td align="center" style="padding:8px 0 32px">
+          <a href="${BASE_URL}/pricing" style="display:inline-block;background:#ef4444;color:#fff;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none">결제 수단 변경하기</a>
+        </td></tr>
+      </table>`
+    : `<p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6">
+        결제가 실패했습니다 (${params.retryCount}/${params.maxRetries}차).<br>
+        남은 재시도 횟수: <strong>${remaining}회</strong>
+        ${params.nextRetryDate ? `<br>다음 재시도: <strong>${params.nextRetryDate}</strong>` : ""}
+        <br><br>
+        모든 재시도가 실패하면 무료 플랜으로 전환됩니다. 카드 정보를 확인해주세요.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr><td align="center" style="padding:8px 0 32px">
+          <a href="${BASE_URL}/settings/billing" style="display:inline-block;background:#f59e0b;color:#fff;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none">결제 수단 확인하기</a>
+        </td></tr>
+      </table>`;
+
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+        <tr><td style="background:${isLastAttempt ? "#ef4444" : "#f59e0b"};padding:32px 40px;text-align:center">
+          <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700">${isLastAttempt ? "결제 최종 실패" : "결제 재시도 실패"}</h1>
+          <p style="margin:8px 0 0;color:rgba(255,255,255,0.8);font-size:14px">인테리어코치</p>
+        </td></tr>
+        <tr><td style="padding:40px">
+          <p style="margin:0 0 8px;color:#111;font-size:18px;font-weight:600">${esc(params.customerName)}님, 안녕하세요.</p>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef3c7;border-radius:8px;padding:16px;margin:0 0 24px">
+            <tr><td>
+              <p style="margin:0 0 4px;color:#888;font-size:13px">플랜</p>
+              <p style="margin:0;color:#111;font-size:16px;font-weight:600">${esc(params.planName)}</p>
+            </td><td style="text-align:right">
+              <p style="margin:0 0 4px;color:#888;font-size:13px">결제 금액</p>
+              <p style="margin:0;color:#ef4444;font-size:20px;font-weight:700">${esc(params.amount)}</p>
+            </td></tr>
+          </table>
+          ${bodyContent}
+          <hr style="border:0;border-top:1px solid #eee;margin:0 0 16px">
+          <p style="margin:0;color:#aaa;font-size:12px">궁금한 사항이 있으시면 언제든 문의해주세요.</p>
+        </td></tr>
+        <tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center">
+          <p style="margin:0;color:#aaa;font-size:12px">인테리어코치 | 인테리어 현장 관리 솔루션</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+function buildDowngradeHtml(params: {
+  customerName: string;
+  planName: string;
+  maxRetries: number;
+}): string {
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:40px 0">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06)">
+        <tr><td style="background:#6b7280;padding:32px 40px;text-align:center">
+          <h1 style="margin:0;color:#fff;font-size:22px;font-weight:700">플랜 변경 안내</h1>
+          <p style="margin:8px 0 0;color:rgba(255,255,255,0.8);font-size:14px">인테리어코치</p>
+        </td></tr>
+        <tr><td style="padding:40px">
+          <p style="margin:0 0 8px;color:#111;font-size:18px;font-weight:600">${esc(params.customerName)}님, 안녕하세요.</p>
+          <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6">
+            ${params.maxRetries}회 결제 재시도가 모두 실패하여 <strong>${esc(params.planName)}</strong> 플랜에서 <strong>Free 플랜</strong>으로 전환되었습니다.<br><br>
+            기존 데이터는 모두 보존됩니다. 새로운 카드를 등록하시면 언제든 다시 유료 플랜을 이용하실 수 있습니다.
+          </p>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td align="center" style="padding:8px 0 32px">
+              <a href="${BASE_URL}/pricing" style="display:inline-block;background:#2563eb;color:#fff;padding:14px 32px;border-radius:8px;font-size:15px;font-weight:600;text-decoration:none">다시 구독하기</a>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="background:#f9f9f9;padding:20px 40px;text-align:center">
+          <p style="margin:0;color:#aaa;font-size:12px">인테리어코치 | 인테리어 현장 관리 솔루션</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 function esc(text: string): string {
   return text
     .replace(/&/g, "&amp;")

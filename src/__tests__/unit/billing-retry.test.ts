@@ -6,9 +6,9 @@ import {
 } from "@/lib/billing-retry";
 
 describe("getRetryDelayHours — 재시도 딜레이 계산", () => {
-  it("attempt 1 → 6시간", () => expect(getRetryDelayHours(1)).toBe(6));
-  it("attempt 2 → 24시간", () => expect(getRetryDelayHours(2)).toBe(24));
-  it("attempt 3 → 72시간", () => expect(getRetryDelayHours(3)).toBe(72));
+  it("attempt 1 → 72시간 (3일)", () => expect(getRetryDelayHours(1)).toBe(72));
+  it("attempt 2 → 72시간 (3일)", () => expect(getRetryDelayHours(2)).toBe(72));
+  it("attempt 3 → 72시간 (3일)", () => expect(getRetryDelayHours(3)).toBe(72));
   it("attempt 4+ → 0 (재시도 불가)", () => {
     expect(getRetryDelayHours(4)).toBe(0);
     expect(getRetryDelayHours(100)).toBe(0);
@@ -17,14 +17,14 @@ describe("getRetryDelayHours — 재시도 딜레이 계산", () => {
 });
 
 describe("calculateNextRetryTime — 다음 재시도 시각", () => {
-  it("attempt 1 → 6시간 후", () => {
+  it("attempt 1 → 72시간(3일) 후", () => {
     const before = Date.now();
     const result = calculateNextRetryTime(1);
     expect(result).not.toBeNull();
     const diff = result!.getTime() - before;
-    // 6시간 ± 1초 범위
-    expect(diff).toBeGreaterThan(6 * 3600 * 1000 - 1000);
-    expect(diff).toBeLessThan(6 * 3600 * 1000 + 1000);
+    // 72시간 ± 1초 범위
+    expect(diff).toBeGreaterThan(72 * 3600 * 1000 - 1000);
+    expect(diff).toBeLessThan(72 * 3600 * 1000 + 1000);
   });
 
   it("attempt 4 → null (재시도 불가)", () => {

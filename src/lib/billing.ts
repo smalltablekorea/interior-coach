@@ -7,9 +7,11 @@ import { executeBillingPayment, generateOrderId } from "@/lib/toss";
 import { type PlanId, PLANS } from "@/lib/plans";
 import { createNotification } from "@/lib/notifications";
 import { isRetryableError, calculateNextRetryTime } from "@/lib/billing-retry";
+import { sendPaymentFailedEmail, sendDowngradeEmail } from "@/lib/notifications/email-templates";
+import { user } from "@/lib/db/schema";
 
-/** 결제 재시도 간격 (일) — 1일, 3일, 5일 후 재시도 */
-const RETRY_INTERVALS_DAYS = [1, 3, 5];
+/** 결제 재시도 간격 (일) — 3일 간격 3회 재시도 */
+const RETRY_INTERVALS_DAYS = [3, 3, 3];
 const MAX_RETRY_COUNT = RETRY_INTERVALS_DAYS.length;
 
 /** 만료된 구독 자동 갱신 (CRON 용) */
@@ -151,7 +153,17 @@ export async function processRenewals() {
   return results;
 }
 
-/** 결제 실패 재시도 (past_due 구독 대상, 1/3/5일 간격) */
+/** 사용자 이메일/이름 조회 헬퍼 */
+async function getUserInfo(userId: string) {
+  const [u] = await db
+    .select({ email: user.email, name: user.name })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  return u;
+}
+
+/** 결제 실패 재시도 (past_due 구독 대상, 3일 간격 3회) */
 export async function processRetries() {
   const now = new Date();
 
@@ -182,7 +194,7 @@ export async function processRetries() {
 
     const retryCount = failedRecords.length;
 
-    // 최대 재시도 횟수 초과 시 → 구독 해지
+    // 최대 재시도 횟수 초과 시 → 구독 해지 + 이메일
     if (retryCount >= MAX_RETRY_COUNT) {
       await db
         .update(subscriptions)
@@ -195,6 +207,8 @@ export async function processRetries() {
         })
         .where(eq(subscriptions.id, sub.id));
 
+      const planConfig = PLANS[sub.plan as PlanId];
+
       await createNotification({
         userId: sub.userId,
         type: "payment_overdue",
@@ -202,6 +216,17 @@ export async function processRetries() {
         message: `${MAX_RETRY_COUNT}회 결제 재시도 후에도 결제가 실패하여 무료 플랜으로 전환되었습니다. 카드를 변경한 후 다시 구독해주세요.`,
         link: "/pricing",
       });
+
+      // 다운그레이드 이메일 발송
+      const userInfo = await getUserInfo(sub.userId);
+      if (userInfo) {
+        await sendDowngradeEmail({
+          to: userInfo.email,
+          customerName: userInfo.name,
+          planName: planConfig.nameKo,
+          maxRetries: MAX_RETRY_COUNT,
+        }).catch((err) => console.error(`[Billing] Downgrade email failed:`, err));
+      }
 
       results.push({ userId: sub.userId, action: "downgraded_max_retry", retryCount });
       continue;
@@ -309,6 +334,23 @@ export async function processRetries() {
           : `마지막 결제 재시도가 실패했습니다. 다음 CRON에서 무료 플랜으로 전환됩니다.`,
         link: "/settings",
       });
+
+      // 결제 실패 이메일 발송
+      const userInfo = await getUserInfo(sub.userId);
+      if (userInfo) {
+        const nextRetryDate = remaining > 0
+          ? new Date(Date.now() + RETRY_INTERVALS_DAYS[retryCount] * 24 * 60 * 60 * 1000).toLocaleDateString("ko-KR")
+          : undefined;
+        await sendPaymentFailedEmail({
+          to: userInfo.email,
+          customerName: userInfo.name,
+          planName: planConfig.nameKo,
+          amount: `₩${amount.toLocaleString()}`,
+          retryCount: retryCount + 1,
+          maxRetries: MAX_RETRY_COUNT,
+          nextRetryDate,
+        }).catch((err) => console.error(`[Billing] Payment failed email error:`, err));
+      }
 
       results.push({ userId: sub.userId, action: "retry_failed", retryCount: retryCount + 1 });
     }
