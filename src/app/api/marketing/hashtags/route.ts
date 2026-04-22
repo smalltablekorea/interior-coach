@@ -139,8 +139,8 @@ function generateOptimizedHashtags(input: HashtagInput): HashtagResult {
 
   // Build secondary tags based on context
   const secondary: string[] = [];
-  if (buildingType && HASHTAG_DB.buildingType[buildingType]) {
-    secondary.push(...HASHTAG_DB.buildingType[buildingType]);
+  if (buildingType && HASHTAG_DB.buildingType[buildingType as keyof typeof HASHTAG_DB.buildingType]) {
+    secondary.push(...HASHTAG_DB.buildingType[buildingType as keyof typeof HASHTAG_DB.buildingType]);
   }
   if (areaPyeong) {
     if (areaPyeong <= 15) secondary.push(...HASHTAG_DB.area.small);
@@ -148,8 +148,8 @@ function generateOptimizedHashtags(input: HashtagInput): HashtagResult {
     else if (areaPyeong <= 35) secondary.push(...HASHTAG_DB.area.medium30);
     else secondary.push(...HASHTAG_DB.area.large);
   }
-  if (contentType && HASHTAG_DB.contentType[contentType]) {
-    secondary.push(...HASHTAG_DB.contentType[contentType]);
+  if (contentType && HASHTAG_DB.contentType[contentType as keyof typeof HASHTAG_DB.contentType]) {
+    secondary.push(...HASHTAG_DB.contentType[contentType as keyof typeof HASHTAG_DB.contentType]);
   }
 
   // Build niche tags
@@ -159,7 +159,7 @@ function generateOptimizedHashtags(input: HashtagInput): HashtagResult {
       (k) => location.includes(k)
     );
     if (locationKey) {
-      niche.push(...HASHTAG_DB.locations[locationKey]);
+      niche.push(...HASHTAG_DB.locations[locationKey as keyof typeof HASHTAG_DB.locations]);
     }
   }
   niche.push(...HASHTAG_DB.style.slice(0, 3));

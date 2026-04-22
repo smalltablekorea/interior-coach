@@ -130,13 +130,13 @@ export async function POST(request: NextRequest) {
             userId: uid,
             workspaceId: wid,
             siteId,
-            channel,
+            targetChannels: [channel],
             contentType:
               triggerType === "site_complete" ? "시공완료" : "시공사진",
             title: `${site.name} ${phaseName || "시공완료"}`,
             body: caption.body,
-            hashtags: caption.hashtags,
-            status: "작성중",
+            tags: caption.hashtags,
+            status: "draft",
           })
           .returning();
 
@@ -148,7 +148,8 @@ export async function POST(request: NextRequest) {
             workspaceId: wid,
             contentId: content.id,
             channel,
-            caption: `${caption.body}\n\n${caption.hashtags.map((h: string) => `#${h}`).join(" ")}`,
+            body: `${caption.body}\n\n${caption.hashtags.map((h: string) => `#${h}`).join(" ")}`,
+            hashtags: caption.hashtags,
             mediaUrls: bestPhotos.slice(0, 4).map((p) => p.url),
             status: "draft",
           })

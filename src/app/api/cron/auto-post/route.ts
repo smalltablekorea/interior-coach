@@ -113,12 +113,12 @@ export async function POST(request: NextRequest) {
             .values({
               userId: rule.userId,
               workspaceId: rule.workspaceId,
-              channel: "threads",
+              targetChannels: ["threads"],
               contentType: "인테리어팁",
               title: `자동 포스팅 - ${template.name}`,
               body: content.body,
-              hashtags: content.hashtags,
-              status: "작성중",
+              tags: content.hashtags,
+              status: "draft",
             })
             .returning();
 
@@ -129,7 +129,8 @@ export async function POST(request: NextRequest) {
               workspaceId: rule.workspaceId,
               contentId: newContent.id,
               channel: "threads",
-              caption: `${content.body}\n\n${content.hashtags.map((h: string) => `#${h}`).join(" ")}`,
+              body: `${content.body}\n\n${content.hashtags.map((h: string) => `#${h}`).join(" ")}`,
+              hashtags: content.hashtags,
               status: "draft",
             })
             .returning();
