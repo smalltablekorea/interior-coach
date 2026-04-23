@@ -61,7 +61,7 @@ export function createRequest(
   if (body && method !== "GET") {
     init.body = JSON.stringify(body);
   }
-  return new NextRequest(new URL(url, "http://localhost:3000"), init);
+  return new NextRequest(new URL(url, "http://localhost:3000"), init as unknown as ConstructorParameters<typeof NextRequest>[1]);
 }
 
 // ─── XSS payloads for security testing ───
