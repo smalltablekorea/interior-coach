@@ -160,3 +160,56 @@ export async function getWorkspaceMemberIds(workspaceId: string): Promise<string
     .where(eq(workspaceMembers.workspaceId, workspaceId));
   return members.map((m) => m.userId);
 }
+
+/** 시스템 관리자 이메일 — 랜딩/운영 지표, 데모 신청 등 글로벌 콘솔 접근용 */
+const SYSTEM_ADMIN_EMAILS = new Set(
+  (process.env.SYSTEM_ADMIN_EMAILS || "smalltablekorea@gmail.com")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+/**
+ * 시스템 관리자 여부를 확인한다.
+ * - Better Auth 세션 + SYSTEM_ADMIN_EMAILS 환경변수(쉼표 구분)로 검증
+ * - 워크스페이스 RBAC와 별개: 플랫폼 운영자만 접근하는 라우트(/api/admin/*)에 사용
+ */
+export async function requireSystemAdmin(): Promise<
+  | { ok: true; userId: string; email: string }
+  | { ok: false; response: NextResponse }
+> {
+  const authResult = await requireAuth();
+  if (!authResult.ok) return authResult;
+
+  try {
+    const [row] = await db
+      .select({ email: userTable.email, role: userTable.role })
+      .from(userTable)
+      .where(eq(userTable.id, authResult.userId))
+      .limit(1);
+
+    const email = (row?.email || "").toLowerCase();
+    const isAdmin =
+      SYSTEM_ADMIN_EMAILS.has(email) || row?.role === "admin";
+
+    if (!isAdmin) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { success: false, error: "시스템 관리자 권한이 필요합니다." },
+          { status: 403 },
+        ),
+      };
+    }
+
+    return { ok: true, userId: authResult.userId, email };
+  } catch {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "관리자 확인 실패" },
+        { status: 500 },
+      ),
+    };
+  }
+}

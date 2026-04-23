@@ -150,3 +150,53 @@ export const portalChatMessageSchema = z.object({
     .refine((s) => s.length > 0, { message: "displayName은 비어있을 수 없습니다" }),
   password: z.string().optional(),
 });
+
+// ─── 랜딩페이지: 데모 신청 ───
+// 한국 전화번호: 휴대전화(010) + 지역번호(02, 031~064) 허용.
+const KR_PHONE_REGEX = /^(01[016789]\d{7,8}|02\d{7,8}|0[3-6]\d{1,2}\d{7,8})$/;
+
+export const demoRequestSchema = z.object({
+  companyName: safeStringMin(1, "회사명은 필수입니다"),
+  ownerName: safeStringMin(1, "신청자명은 필수입니다"),
+  phone: z
+    .string()
+    .min(1, "연락처는 필수입니다")
+    .transform((s) => s.replace(/[^0-9]/g, ""))
+    .refine((s) => KR_PHONE_REGEX.test(s), {
+      message: "유효한 한국 전화번호가 아닙니다",
+    }),
+  email: z.string().email("이메일 형식이 올바르지 않습니다"),
+  companySize: z.enum(["solo", "small", "medium", "large"], {
+    message: "회사 규모는 solo/small/medium/large 중 하나여야 합니다",
+  }),
+  currentPain: safeStringNullable(),
+  source: safeStringNullable(),
+});
+
+// ─── 랜딩페이지: 이벤트 트래킹 ───
+const TRACK_STRING_MAX = 200;
+const safeTrackString = () =>
+  z
+    .string()
+    .nullable()
+    .optional()
+    .transform((s) => (s ? stripHtml(s.trim()).slice(0, TRACK_STRING_MAX) : s));
+
+export const landingEventSchema = z.object({
+  sessionId: z
+    .string()
+    .min(1, "sessionId는 필수입니다")
+    .max(100, "sessionId가 너무 깁니다")
+    .transform((s) => stripHtml(s.trim())),
+  eventType: z.enum(
+    ["page_view", "section_view", "cta_click", "scroll_depth"],
+    { message: "eventType이 올바르지 않습니다" },
+  ),
+  sectionName: safeTrackString(),
+  ctaName: safeTrackString(),
+  scrollDepth: z.number().int().min(0).max(100).nullable().optional(),
+  utmSource: safeTrackString(),
+  utmMedium: safeTrackString(),
+  utmCampaign: safeTrackString(),
+  referrer: safeTrackString(),
+});

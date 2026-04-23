@@ -1558,3 +1558,41 @@ export const cronExecutionLogs = pgTable("cron_execution_logs", {
   startedAt: timestamp("started_at").notNull(),
   completedAt: timestamp("completed_at").notNull().defaultNow(),
 });
+
+// ─── 랜딩페이지: 데모 신청 ───
+
+export const demoRequests = pgTable("demo_requests", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyName: text("company_name").notNull(),
+  ownerName: text("owner_name").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email").notNull(),
+  companySize: text("company_size").notNull(), // solo | small | medium | large
+  currentPain: text("current_pain"),
+  source: text("source"),
+  status: text("status").notNull().default("new"), // new | contacted | scheduled | done
+  notifiedAt: timestamp("notified_at"),
+  contactedAt: timestamp("contacted_at"),
+  scheduledAt: timestamp("scheduled_at"),
+  completedAt: timestamp("completed_at"),
+  memo: text("memo"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ─── 랜딩페이지: 이벤트 트래킹 ───
+
+export const landingEvents = pgTable("landing_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: text("session_id").notNull(),
+  eventType: text("event_type").notNull(), // page_view | section_view | cta_click | scroll_depth
+  sectionName: text("section_name"),
+  ctaName: text("cta_name"),
+  scrollDepth: integer("scroll_depth"),
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  referrer: text("referrer"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
