@@ -6,114 +6,209 @@ import { cn } from "@/lib/utils";
 import { landingCopy } from "@/content/landing";
 import FadeIn from "../FadeIn";
 
-// Part B: 4티어 → 3티어로 개편. 플랜 자체가 주기를 의미(월간/연간 별도 플랜)이므로 기존 cycle 토글 제거.
+const { pricing } = landingCopy;
 
-type Plan = (typeof landingCopy.pricing.plans)[number];
-
-function priceLabel(plan: Plan): { primary: string; suffix: string; sub?: string } {
-  if (plan.monthly === 0 && plan.yearly === 0) {
-    return { primary: "무료", suffix: "" };
-  }
-  if (plan.monthly !== null && plan.monthly > 0) {
-    return {
-      primary: `₩${plan.monthly.toLocaleString("ko-KR")}`,
-      suffix: "/월",
-      sub: "매월 결제 · 언제든 해지",
-    };
-  }
-  if (plan.yearly !== null && plan.yearly > 0) {
-    const monthlyEq = Math.round(plan.yearly / 12);
-    return {
-      primary: `₩${monthlyEq.toLocaleString("ko-KR")}`,
-      suffix: "/월",
-      sub: `연 ₩${plan.yearly.toLocaleString("ko-KR")} 일시 결제 · 2개월 무료`,
-    };
-  }
-  return { primary: "맞춤 견적", suffix: "" };
+function formatPrice(price: number) {
+  return new Intl.NumberFormat("ko-KR").format(price);
 }
 
 export default function PricingSection() {
-  const p = landingCopy.pricing;
+  const [yearly, setYearly] = useState(false);
 
   return (
     <section
       id="pricing"
-      className="py-16 md:py-30 bg-white/[0.015]"
-      aria-labelledby="pricing-heading"
+      className="relative overflow-hidden py-24 sm:py-32"
+      style={{
+        background:
+          "radial-gradient(ellipse 80% 60% at 50% 40%, rgba(83,58,253,0.04) 0%, transparent 70%)",
+      }}
     >
-      <div className="max-w-6xl mx-auto px-6">
-        <FadeIn className="text-center max-w-2xl mx-auto">
-          <p className="text-sm font-semibold text-[var(--green)] mb-3">{p.eyebrow}</p>
+      {/* header */}
+      <div className="mx-auto max-w-3xl text-center px-6">
+        <FadeIn>
+          <p className="text-sm font-semibold tracking-wide uppercase text-[var(--landing-accent)]">
+            {pricing.eyebrow}
+          </p>
           <h2
-            id="pricing-heading"
-            className="text-3xl md:text-5xl font-black leading-tight"
+            className="mt-3 text-3xl sm:text-4xl lg:text-5xl leading-tight"
+            style={{
+              fontWeight: 300,
+              color: "var(--landing-heading)",
+            }}
           >
-            {p.title}
+            {pricing.title}
           </h2>
-          <p className="mt-3 text-[var(--muted)]">{p.subtitle}</p>
+          <p className="mt-4 text-base text-[var(--landing-body)]">
+            {pricing.subtitle}
+          </p>
         </FadeIn>
 
-        <div className="mt-12 md:mt-14 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {p.plans.map((plan, i) => {
-            const price = priceLabel(plan);
-            return (
-              <FadeIn
-                key={plan.name}
-                delay={i * 0.08}
+        {/* toggle */}
+        <FadeIn delay={0.1}>
+          <div className="mt-10 inline-flex items-center gap-3 rounded-full border border-[var(--landing-border)] bg-white px-1.5 py-1.5">
+            <button
+              onClick={() => setYearly(false)}
+              className={cn(
+                "rounded-full px-5 py-2 text-sm transition-all",
+                !yearly
+                  ? "bg-[var(--landing-accent)] text-white shadow-sm"
+                  : "text-[var(--landing-body)] hover:text-[var(--landing-heading)]"
+              )}
+              style={{ fontWeight: 400 }}
+            >
+              월간
+            </button>
+            <button
+              onClick={() => setYearly(true)}
+              className={cn(
+                "rounded-full px-5 py-2 text-sm transition-all",
+                yearly
+                  ? "bg-[var(--landing-accent)] text-white shadow-sm"
+                  : "text-[var(--landing-body)] hover:text-[var(--landing-heading)]"
+              )}
+              style={{ fontWeight: 400 }}
+            >
+              연간&nbsp;
+              <span className="text-xs opacity-80">(-17%)</span>
+            </button>
+          </div>
+        </FadeIn>
+      </div>
+
+      {/* cards */}
+      <div className="mx-auto mt-14 grid max-w-6xl gap-8 px-6 lg:grid-cols-3">
+        {pricing.plans.map((plan, i) => {
+          const price = yearly ? plan.yearly : plan.monthly;
+          const isHighlight = plan.highlight;
+
+          return (
+            <FadeIn key={plan.name} delay={0.1 + i * 0.1}>
+              <div
                 className={cn(
-                  "relative p-6 rounded-3xl border flex flex-col",
-                  plan.highlight
-                    ? "border-[var(--green)]/60 bg-[var(--green)]/[0.06] shadow-lg shadow-[var(--green)]/10"
-                    : "border-[var(--border)] bg-[var(--sidebar)]",
+                  "relative flex flex-col rounded-xl p-[1px]",
+                  isHighlight
+                    ? "shadow-xl"
+                    : "shadow-sm"
                 )}
+                style={
+                  isHighlight
+                    ? {
+                        background:
+                          "linear-gradient(135deg, var(--landing-accent), var(--landing-magenta))",
+                      }
+                    : {}
+                }
               >
-                {plan.highlight && "badge" in plan && plan.badge && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[var(--green)] text-black text-[11px] font-bold">
-                    {plan.badge}
-                  </span>
-                )}
-
-                <p className="text-sm font-semibold text-[var(--muted)]">{plan.name}</p>
-                <p className="mt-1 text-xs text-[var(--muted)]">{plan.tagline}</p>
-
-                <div className="mt-5 flex items-baseline gap-1">
-                  <span className="text-3xl font-black">{price.primary}</span>
-                  {price.suffix && (
-                    <span className="text-xs text-[var(--muted)]">{price.suffix}</span>
-                  )}
-                </div>
-                {price.sub && (
-                  <p className="mt-1 text-[11px] text-[var(--muted)]">{price.sub}</p>
-                )}
-
-                <ul className="mt-6 space-y-2.5 flex-1">
-                  {plan.features.map((feat) => (
-                    <li
-                      key={feat}
-                      className="flex items-start gap-2.5 text-sm text-[var(--foreground)]"
-                    >
-                      <Check size={16} className="text-[var(--green)] mt-0.5 shrink-0" />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  href={plan.ctaHref}
-                  aria-label={`${plan.name} 플랜 선택`}
+                <div
                   className={cn(
-                    "mt-7 py-3 rounded-xl text-sm font-bold text-center transition-opacity",
-                    plan.highlight
-                      ? "bg-[var(--green)] text-black hover:opacity-90"
-                      : "border border-[var(--border)] hover:bg-white/[0.04]",
+                    "relative flex flex-1 flex-col rounded-xl px-7 py-8",
+                    isHighlight
+                      ? "bg-white"
+                      : "border border-[var(--landing-border)] bg-white"
                   )}
                 >
-                  {plan.ctaLabel}
-                </Link>
-              </FadeIn>
-            );
-          })}
-        </div>
+                  {/* Recommended / badge */}
+                  {isHighlight && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                      <span
+                        className="inline-flex items-center rounded-full bg-[var(--landing-accent)] px-4 py-1 text-xs font-semibold text-white"
+                        style={{
+                          boxShadow: "0 4px 14px rgba(83,58,253,0.35)",
+                        }}
+                      >
+                        {plan.badge ?? "Recommended"}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* plan name */}
+                  <h3
+                    className="text-lg"
+                    style={{
+                      fontWeight: 300,
+                      color: "var(--landing-heading)",
+                    }}
+                  >
+                    {plan.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-[var(--landing-body)]">
+                    {plan.tagline}
+                  </p>
+
+                  {/* price */}
+                  <div className="mt-6 flex items-baseline gap-1">
+                    {price !== null ? (
+                      <>
+                        <span
+                          className="text-4xl tracking-tight"
+                          style={{
+                            fontWeight: 300,
+                            fontVariantNumeric: "tabular-nums",
+                            color: "var(--landing-heading)",
+                          }}
+                        >
+                          ₩{formatPrice(price)}
+                        </span>
+                        <span className="text-sm text-[var(--landing-body)]">
+                          /{yearly ? "년" : "월"}
+                        </span>
+                      </>
+                    ) : (
+                      <span
+                        className="text-4xl tracking-tight"
+                        style={{
+                          fontWeight: 300,
+                          color: "var(--landing-heading)",
+                        }}
+                      >
+                        맞춤 견적
+                      </span>
+                    )}
+                  </div>
+
+                  {/* feature list */}
+                  <ul className="mt-8 flex-1 space-y-3">
+                    {plan.features.map((feat) => (
+                      <li key={feat} className="flex items-start gap-2.5">
+                        <Check
+                          className={cn(
+                            "mt-0.5 shrink-0",
+                            isHighlight
+                              ? "text-[var(--landing-accent)]"
+                              : "text-[var(--landing-green)]"
+                          )}
+                          size={20}
+                          strokeWidth={2.5}
+                        />
+                        <span className="text-sm text-[var(--landing-body)]">
+                          {feat}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* CTA */}
+                  <Link
+                    href={plan.ctaHref}
+                    className={cn(
+                      "mt-8 block w-full rounded-lg py-3 text-center text-sm transition-colors",
+                      isHighlight
+                        ? "bg-[var(--landing-accent)] text-white hover:bg-[var(--landing-accent-hover)]"
+                        : "border border-[var(--landing-accent)] text-[var(--landing-accent)] hover:bg-[var(--landing-accent)] hover:text-white"
+                    )}
+                    style={{
+                      fontWeight: 400,
+                      borderRadius: 8,
+                    }}
+                  >
+                    {plan.ctaLabel}
+                  </Link>
+                </div>
+              </div>
+            </FadeIn>
+          );
+        })}
       </div>
     </section>
   );

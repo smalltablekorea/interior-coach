@@ -29,6 +29,7 @@ interface SubscriptionContextType {
   plan: PlanId;
   status: string;
   billingCycle: string;
+  trialEndsAt: string | null;
   planConfig: { name: string; nameKo: string; monthlyPrice: number } | null;
   limits: FeatureLimits | null;
   usage: Record<string, number>;
@@ -42,6 +43,7 @@ const SubscriptionContext = createContext<SubscriptionContextType>({
   plan: "free",
   status: "active",
   billingCycle: "monthly",
+  trialEndsAt: null,
   planConfig: null,
   limits: null,
   usage: {},
@@ -75,6 +77,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const plan = (data?.subscription?.plan || "free") as PlanId;
   const status = data?.subscription?.status || "active";
   const billingCycle = data?.subscription?.billingCycle || "monthly";
+  const trialEndsAt = data?.subscription?.trialEndsAt || null;
 
   const checkFeature = useCallback(
     (key: FeatureKey): FeatureCheck => {
@@ -118,6 +121,20 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const changePlan = useCallback(async (newPlan: PlanId): Promise<boolean> => {
     try {
+      // For paid plans, use billing/payment endpoint for actual payment
+      if (newPlan !== "free") {
+        const res = await fetch("/api/billing/payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ plan: newPlan, billingCycle }),
+        });
+        if (res.ok) {
+          fetchSubscription();
+          return true;
+        }
+        return false;
+      }
+      // Downgrade to free — just update subscription
       const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -131,7 +148,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     } catch {
       return false;
     }
-  }, [fetchSubscription]);
+  }, [fetchSubscription, billingCycle]);
 
   return (
     <SubscriptionContext.Provider
@@ -139,6 +156,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         plan,
         status,
         billingCycle,
+        trialEndsAt,
         planConfig: data?.planConfig || null,
         limits: data?.limits || null,
         usage: data?.usage || {},

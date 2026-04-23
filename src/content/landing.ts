@@ -202,25 +202,26 @@ export const landingCopy = {
     subtitle: "모든 유료 플랜 14일 무료 · 카드 등록 불필요",
     plans: [
       {
-        name: "무료",
-        monthly: 0,
-        yearly: 0,
-        tagline: "혼자 시작하는 1인 사장님",
+        name: "Starter",
+        monthly: 29000,
+        yearly: 290000,
+        tagline: "작은 업체 · 팀원 2~3명",
         features: [
-          "현장 1개 관리",
-          "기본 견적·계약",
-          "고객 5명",
-          "커뮤니티 지원",
+          "현장 10개",
+          "팀원 3명",
+          "견적코치 AI (월 20건)",
+          "고객 포털",
+          "이메일 지원",
         ],
-        ctaLabel: "무료로 시작",
-        ctaHref: "/auth/signup",
+        ctaLabel: "14일 무료 시작",
+        ctaHref: "/auth/signup?plan=starter",
         highlight: false,
       },
       {
-        name: "월간 결제",
-        monthly: 79000,
-        yearly: 79000 * 12,
-        tagline: "부담 없이 월 단위로",
+        name: "Pro",
+        monthly: 69000,
+        yearly: 690000,
+        tagline: "성장 중인 업체",
         features: [
           "전체 기능",
           "현장 무제한",
@@ -278,6 +279,37 @@ export const landingCopy = {
       {
         q: "도중에 플랜을 바꾸거나 해지할 수 있나요?",
         a: "언제든 가능합니다. 설정 화면에서 버튼 한 번으로 업/다운그레이드·해지가 됩니다.",
+      },
+    ],
+  },
+
+  testimonials: {
+    eyebrow: "고객 후기",
+    title: "현장에서 직접 써본\n사장님들의 이야기",
+    reviews: [
+      {
+        name: "김태현 대표",
+        company: "태현인테리어",
+        role: "주거 인테리어 · 서울",
+        quote:
+          "현장 5개를 카톡방 20개로 관리하다 미칠 뻔했는데, 인테리어코치 도입 후 화면 하나로 정리됐습니다. 특히 고객 포털이 진짜 좋아요.",
+        metric: "관리 시간 60% 감소",
+      },
+      {
+        name: "이수진 실장",
+        company: "모던하우스디자인",
+        role: "상업 인테리어 · 경기",
+        quote:
+          "견적코치 AI로 견적서 만드는 시간이 반나절에서 30분으로 줄었어요. 고객한테도 전문적으로 보이니까 계약 전환율도 올랐습니다.",
+        metric: "견적 작성 시간 80% 단축",
+      },
+      {
+        name: "박준혁 대표",
+        company: "준혁건설",
+        role: "리모델링 전문 · 인천",
+        quote:
+          "공정 매니저가 진짜 현장을 아는 사람이 만든 거라는 게 느껴집니다. 작업자들도 바로 적응하고, 고객 문의도 확 줄었어요.",
+        metric: "고객 문의 40% 감소",
       },
     ],
   },

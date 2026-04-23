@@ -100,6 +100,48 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* ─── Landing Page Premium Theme ─── */
+.landing-premium {
+  --landing-bg: #ffffff;
+  --landing-fg: #061b31;
+  --landing-heading: #061b31;
+  --landing-body: #64748d;
+  --landing-label: #273951;
+  --landing-accent: #533afd;
+  --landing-accent-hover: #4434d4;
+  --landing-accent-light: rgba(83, 58, 253, 0.06);
+  --landing-accent-border: rgba(83, 58, 253, 0.2);
+  --landing-green: #00A85E;
+  --landing-green-light: rgba(0, 168, 94, 0.08);
+  --landing-border: #e5edf5;
+  --landing-card: #ffffff;
+  --landing-card-alt: #f8fafc;
+  --landing-dark-section: #1c1e54;
+  --landing-shadow-blue: rgba(50, 50, 93, 0.25);
+  --landing-shadow-black: rgba(0, 0, 0, 0.1);
+  --landing-shadow-ambient: rgba(23, 23, 23, 0.08);
+  --landing-ruby: #ea2261;
+  --landing-magenta: #f96bee;
+  background: var(--landing-bg);
+  color: var(--landing-fg);
+  font-family: var(--font-source-sans), 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.landing-premium *::selection {
+  background: rgba(83, 58, 253, 0.15);
+}
+.landing-premium h1,
+.landing-premium h2,
+.landing-premium h3,
+.landing-premium h4 {
+  color: var(--landing-heading);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+@keyframes landing-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
 /* Stagger animation delays */
 .stagger-1 { animation-delay: 0ms; }
 .stagger-2 { animation-delay: 60ms; }

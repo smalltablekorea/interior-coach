@@ -659,6 +659,24 @@ export const billingRecords = pgTable("billing_records", {
   tossResponse: jsonb("toss_response"),
   failReason: text("fail_reason"),
   paidAt: timestamp("paid_at"),
+  retryCount: integer("retry_count").notNull().default(0),
+  nextRetryAt: timestamp("next_retry_at"),
+  lastRetryAt: timestamp("last_retry_at"),
+  maxRetries: integer("max_retries").notNull().default(3),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tossEventId: text("toss_event_id").unique(), // For idempotency
+  webhookName: text("webhook_name").notNull().default("toss_payment"),
+  eventType: text("event_type").notNull(), // BILLING.PAYMENT.DONE, etc.
+  status: text("status").notNull().default("pending"), // pending, processed, failed, dead_letter
+  receiptSignature: text("receipt_signature").notNull(),
+  payload: jsonb("payload").notNull(),
+  processedAt: timestamp("processed_at"),
+  errorMessage: text("error_message"),
+  processAttempt: integer("process_attempt").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

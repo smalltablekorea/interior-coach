@@ -8,63 +8,85 @@ import FeatureMockup from "../FeatureMockup";
 export default function FeaturesSection() {
   const f = landingCopy.features;
   return (
-    <section id="features" className="py-16 md:py-30" aria-labelledby="features-heading">
+    <section
+      id="features"
+      className="py-24 md:py-40"
+      aria-labelledby="features-heading"
+    >
       <div className="max-w-6xl mx-auto px-6">
+        {/* Section header */}
         <FadeIn className="text-center max-w-2xl mx-auto">
-          <p className="text-sm font-semibold text-[var(--green)] mb-3">
+          <p className="text-sm font-normal text-[var(--landing-accent)] tracking-wide uppercase mb-4">
             {f.eyebrow}
           </p>
           <h2
             id="features-heading"
-            className="text-3xl md:text-5xl font-black leading-tight whitespace-pre-line"
+            className="text-3xl md:text-[44px] font-light leading-tight tracking-[-0.02em] text-[var(--landing-heading)] whitespace-pre-line"
           >
             {f.title}
           </h2>
         </FadeIn>
 
-        <div className="mt-14 md:mt-24 space-y-20 md:space-y-32">
+        {/* Alternating feature rows */}
+        <div className="mt-20 md:mt-32 space-y-28 md:space-y-40">
           {f.blocks.map((b, i) => {
-            const reverse = i % 2 === 1;
+            const isEven = i % 2 === 1;
+            const stepNum = String(i + 1).padStart(2, "0");
+
             return (
               <div
                 key={b.name}
                 className={cn(
-                  "grid md:grid-cols-2 gap-10 md:gap-16 items-center",
-                  reverse && "md:[&>*:first-child]:col-start-2",
+                  "grid md:grid-cols-2 gap-12 md:gap-20 items-center",
+                  isEven && "md:direction-rtl",
                 )}
               >
-                <FadeIn className="space-y-5">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-block text-xs font-mono text-[var(--green)] tracking-wider">
-                      FEATURE {String(i + 1).padStart(2, "0")}
-                    </span>
-                    {"isNew" in b && b.isNew && (
-                      <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--orange)]/15 text-[var(--orange)]">
-                        NEW
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-2xl md:text-3xl font-bold leading-tight">
+                {/* Text column */}
+                <FadeIn
+                  className={cn(
+                    "space-y-6 md:direction-ltr",
+                    isEven && "md:order-2",
+                  )}
+                >
+                  {/* Step number */}
+                  <span className="inline-block font-mono text-xs tracking-[0.2em] uppercase text-[var(--landing-accent)] border border-[var(--landing-accent-border)] rounded px-3 py-1">
+                    {stepNum}
+                  </span>
+
+                  {/* Feature name */}
+                  <h3 className="text-2xl md:text-[32px] font-light leading-tight tracking-[-0.02em] text-[var(--landing-heading)]">
                     {b.name}
                   </h3>
-                  <div className="space-y-3">
-                    <p className="text-sm text-[var(--muted)] leading-relaxed">
-                      <span className="font-semibold text-[var(--foreground)]">
-                        문제 ·{" "}
-                      </span>
+
+                  {/* Problem / Solution */}
+                  <div className="space-y-4">
+                    <p className="text-[15px] leading-relaxed text-[var(--landing-body)] italic font-light">
                       {b.problem}
                     </p>
-                    <p className="text-sm text-[var(--foreground)] leading-relaxed whitespace-pre-line">
-                      <span className="font-semibold text-[var(--green)]">
-                        해결 ·{" "}
-                      </span>
+                    <div className="w-8 h-px bg-[var(--landing-accent)] opacity-40" />
+                    <p className="text-[15px] leading-relaxed text-[var(--landing-heading)] whitespace-pre-line font-normal">
                       {b.solution}
                     </p>
                   </div>
                 </FadeIn>
 
-                <FadeIn delay={0.1}>
-                  <FeatureMockup kind={b.mockup as never} />
+                {/* Mockup column */}
+                <FadeIn
+                  delay={0.15}
+                  className={cn(
+                    "md:direction-ltr",
+                    isEven && "md:order-1",
+                  )}
+                >
+                  <div
+                    className="rounded-lg overflow-hidden"
+                    style={{
+                      boxShadow:
+                        "rgba(50,50,93,0.25) 0px 30px 45px -30px, rgba(0,0,0,0.1) 0px 18px 36px -18px",
+                    }}
+                  >
+                    <FeatureMockup kind={b.mockup as never} />
+                  </div>
                 </FadeIn>
               </div>
             );
