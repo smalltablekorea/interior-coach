@@ -69,7 +69,7 @@ export const landingCopy = {
         name: "견적코치 AI",
         problem: "견적서 만드는 데 반나절씩 걸립니다.",
         solution:
-          "자재 단가 DB 868건 기반 AI 견적 생성.\n항목만 체크하면 고객용 PDF까지 자동.",
+          "자재 단가 DB 1,247건 기반 AI 견적 생성.\n항목만 체크하면 고객용 PDF까지 자동.",
         mockup: "estimate",
       },
       {
@@ -83,7 +83,7 @@ export const landingCopy = {
         name: "자재 발주·재고",
         problem: "자재 재고가 종이 장부에 있습니다.",
         solution:
-          "868건 단가 DB로 발주서 1분 완성.\n현장별 자재 투입량도 자동 집계.",
+          "1,247건 단가 DB로 발주서 1분 완성.\n현장별 자재 투입량도 자동 집계.",
         mockup: "materials",
       },
       // 신규 8 블록 (Part C — 카피는 마케팅 봇 산출물 대기, placeholder)
@@ -180,7 +180,7 @@ export const landingCopy = {
     title: "현장을 아는 사람이\n만든 도구입니다",
     cards: [
       {
-        headline: "자재 단가 DB 868건",
+        headline: "자재 단가 DB 1,247건",
         body: "실제 공급가 기반으로 구축된 DB.\n견적·발주·원가 계산이 모두 같은 소스로 동작합니다.",
       },
       {
