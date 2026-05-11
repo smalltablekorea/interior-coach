@@ -47,7 +47,7 @@ export default function PricingSection() {
 
         {/* toggle */}
         <FadeIn delay={0.1}>
-          <div className="mt-10 inline-flex items-center gap-3 rounded-full border border-[var(--landing-border)] bg-white px-1.5 py-1.5">
+          <div className="mt-10 inline-flex items-center gap-3 rounded-full border border-[var(--landing-border)] bg-[rgba(255,255,255,0.04)] backdrop-blur-[12px] px-1.5 py-1.5">
             <button
               onClick={() => setYearly(false)}
               className={cn(
@@ -105,8 +105,8 @@ export default function PricingSection() {
                   className={cn(
                     "relative flex flex-1 flex-col rounded-xl px-7 py-8",
                     isHighlight
-                      ? "bg-white"
-                      : "border border-[var(--landing-border)] bg-white"
+                      ? "bg-[rgba(255,255,255,0.04)] backdrop-blur-[12px]"
+                      : "border border-[var(--landing-border)] bg-[rgba(255,255,255,0.04)] backdrop-blur-[12px]"
                   )}
                 >
                   {/* Recommended / badge */}

@@ -18,15 +18,15 @@ export default function PainPointSection() {
   return (
     <section
       className="relative py-24 md:py-36 overflow-hidden"
-      style={{ background: "#1c1e54" }}
+      style={{ background: "var(--landing-dark-section)" }}
       aria-labelledby="pain-heading"
     >
-      {/* Subtle radial gradient overlay for depth */}
+      {/* Subtle emerald radial gradient overlay for depth */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(83,58,253,0.15), transparent)",
+            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(0,196,113,0.10), transparent)",
         }}
       />
 
@@ -41,8 +41,7 @@ export default function PainPointSection() {
           </p>
           <h2
             id="pain-heading"
-            className="text-[32px] md:text-[44px] font-light leading-[1.15] tracking-[-0.02em] text-white whitespace-pre-line"
-            style={{ fontFamily: "var(--font-source-sans), sans-serif" }}
+            className="text-[32px] md:text-[44px] font-bold leading-[1.15] tracking-[-0.02em] text-white whitespace-pre-line"
           >
             {p.title}
           </h2>

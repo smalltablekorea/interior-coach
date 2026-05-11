@@ -347,7 +347,7 @@ export default function HeroSection() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 1.2, duration: 0.5 }}
-            className="absolute -bottom-4 -left-4 md:-left-6 px-4 py-2.5 rounded-md bg-white border border-[var(--landing-border)]"
+            className="absolute -bottom-4 -left-4 md:-left-6 px-4 py-2.5 rounded-md bg-[rgba(255,255,255,0.04)] backdrop-blur-[12px] border border-[var(--landing-border)]"
             style={{
               borderRadius: "6px",
               boxShadow:
@@ -381,7 +381,7 @@ export default function HeroSection() {
         className="relative max-w-3xl mx-auto mt-20 md:mt-28 px-6"
       >
         <div
-          className="flex items-center justify-around py-8 px-6 rounded-lg border border-[var(--landing-border)] bg-white/80 backdrop-blur-sm"
+          className="flex items-center justify-around py-8 px-6 rounded-lg border border-[var(--landing-border)] bg-[rgba(255,255,255,0.04)] backdrop-blur-[12px]"
           style={{
             borderRadius: "8px",
             boxShadow:

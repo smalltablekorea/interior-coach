@@ -12,7 +12,7 @@ export default function FinalCTASection() {
       className="relative overflow-hidden py-28 md:py-40"
       style={{ backgroundColor: "var(--landing-dark-section)" }}
     >
-      {/* Ruby → Magenta gradient decorative blob */}
+      {/* Emerald gradient decorative blob */}
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
@@ -20,19 +20,19 @@ export default function FinalCTASection() {
           width: "min(900px, 90vw)",
           height: "420px",
           background:
-            "radial-gradient(ellipse at 40% 50%, var(--landing-ruby) 0%, var(--landing-magenta) 55%, transparent 80%)",
-          opacity: 0.18,
+            "radial-gradient(ellipse at 40% 50%, var(--landing-accent) 0%, transparent 70%)",
+          opacity: 0.12,
           filter: "blur(80px)",
         }}
       />
 
-      {/* Subtle top-left accent glow */}
+      {/* Subtle top-left emerald glow */}
       <div
         aria-hidden
         className="pointer-events-none absolute -left-32 -top-32 h-[480px] w-[480px] rounded-full"
         style={{
           background:
-            "radial-gradient(circle, rgba(83,58,253,0.2) 0%, transparent 70%)",
+            "radial-gradient(circle, rgba(0,196,113,0.15) 0%, transparent 70%)",
         }}
       />
 
