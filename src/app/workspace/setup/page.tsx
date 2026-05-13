@@ -52,18 +52,44 @@ export default function WorkspaceSetupPage() {
 
   // 마운트 시 워크스페이스 목록 조회
   useEffect(() => {
-    fetch("/api/workspaces", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/workspaces", { credentials: "include" });
+        const data = r.ok ? await r.json() : null;
+        if (cancelled) return;
         const list: WorkspaceItem[] = data?.data?.workspaces ?? data?.workspaces ?? [];
+        const active: string | null = data?.data?.activeWorkspaceId ?? data?.activeWorkspaceId ?? null;
         setWorkspaces(list);
-        setActiveId(data?.data?.activeWorkspaceId ?? data?.activeWorkspaceId ?? null);
-        // 기존 워크스페이스가 없으면 바로 create 탭
-        if (list.length === 0) setTab("create");
-      })
-      .catch(() => {})
-      .finally(() => setListLoading(false));
-  }, []);
+        setActiveId(active);
+
+        if (list.length === 0) {
+          setTab("create");
+        } else if (list.length === 1) {
+          // 워크스페이스가 하나뿐이면 자동으로 active 설정 + dashboard 진입
+          const only = list[0].id;
+          if (only !== active) {
+            await fetch("/api/workspaces/active", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ workspaceId: only }),
+            }).catch(() => {});
+          }
+          document.cookie = "has_workspace=1; path=/; max-age=31536000";
+          router.replace("/dashboard");
+          return;
+        }
+      } catch {
+        // 무시 — select 탭에서 수동 선택 가능
+      } finally {
+        if (!cancelled) setListLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const handleSelect = async (workspaceId: string) => {
     if (switching) return;

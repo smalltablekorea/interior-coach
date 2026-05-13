@@ -1391,8 +1391,6 @@ export const zoneRanges = pgTable("zone_ranges", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// (이전 채팅 모듈 5개 테이블은 0006 마이그레이션으로 제거됨)
-
 // ─── 전자서명 ───
 
 export const signatureRequests = pgTable("signature_requests", {
