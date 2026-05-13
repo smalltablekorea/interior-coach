@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Building2,
   Users,
@@ -9,6 +9,9 @@ import {
   Loader2,
   Check,
   Plus,
+  Pencil,
+  Trash2,
+  X,
 } from "lucide-react";
 
 type Tab = "select" | "create" | "join";
@@ -30,8 +33,36 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export default function WorkspaceSetupPage() {
+  return (
+    <Suspense fallback={<SetupFallback />}>
+      <WorkspaceSetupInner />
+    </Suspense>
+  );
+}
+
+function SetupFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+      <Loader2 size={20} className="animate-spin text-[var(--muted)]" />
+    </div>
+  );
+}
+
+function WorkspaceSetupInner() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("select");
+  const searchParams = useSearchParams();
+  // 헤더 셀렉터 등에서 명시적으로 워크스페이스를 바꾸려는 경우 자동 진입 금지.
+  const manualMode =
+    searchParams.get("manual") === "1" ||
+    searchParams.get("switch") === "1" ||
+    searchParams.get("tab") != null;
+  const queryTab = searchParams.get("tab");
+  const initialTab: Tab =
+    queryTab === "create" || queryTab === "join" || queryTab === "select"
+      ? (queryTab as Tab)
+      : "select";
+
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -40,6 +71,14 @@ export default function WorkspaceSetupPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(true);
   const [switching, setSwitching] = useState<string | null>(null);
+  const [autoEntering, setAutoEntering] = useState(false);
+
+  // 이름 변경 / 삭제
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Create form
   const [name, setName] = useState("");
@@ -65,21 +104,28 @@ export default function WorkspaceSetupPage() {
 
         if (list.length === 0) {
           setTab("create");
-        } else if (list.length === 1) {
-          // 워크스페이스가 하나뿐이면 자동으로 active 설정 + dashboard 진입
-          const only = list[0].id;
-          if (only !== active) {
-            await fetch("/api/workspaces/active", {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ workspaceId: only }),
-            }).catch(() => {});
-          }
-          document.cookie = "has_workspace=1; path=/; max-age=31536000";
-          router.replace("/dashboard");
           return;
         }
+
+        // manualMode 이면 자동 진입 막고 select 탭에서 사용자가 직접 선택.
+        if (manualMode) return;
+
+        // 워크스페이스가 2개 이상이면 선택지를 제공 (이름 변경·삭제도 여기서 함)
+        // 단 1개면 선택권이 없으므로 곧장 진입.
+        if (list.length > 1) return;
+
+        const target = active && list.some((w) => w.id === active) ? active : list[0].id;
+        setAutoEntering(true);
+        document.cookie = "has_workspace=1; path=/; max-age=31536000";
+        if (target !== active) {
+          await fetch("/api/workspaces/active", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ workspaceId: target }),
+          }).catch(() => {});
+        }
+        router.replace("/dashboard");
       } catch {
         // 무시 — select 탭에서 수동 선택 가능
       } finally {
@@ -89,7 +135,7 @@ export default function WorkspaceSetupPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [manualMode, router]);
 
   const handleSelect = async (workspaceId: string) => {
     if (switching) return;
@@ -109,6 +155,76 @@ export default function WorkspaceSetupPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "전환 실패");
       setSwitching(null);
+    }
+  };
+
+  const canRename = (role: string) => role === "owner" || role === "admin";
+  const canDelete = (role: string) => role === "owner";
+
+  const startRename = (w: WorkspaceItem) => {
+    setRenamingId(w.id);
+    setRenameDraft(w.name);
+    setError("");
+  };
+
+  const cancelRename = () => {
+    setRenamingId(null);
+    setRenameDraft("");
+  };
+
+  const submitRename = async () => {
+    if (!renamingId || renaming) return;
+    const trimmed = renameDraft.trim();
+    if (!trimmed) {
+      setError("이름을 입력해주세요.");
+      return;
+    }
+    setRenaming(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/workspaces/${renamingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error?.message || data?.error || "이름 변경 실패");
+      setWorkspaces((prev) =>
+        prev.map((w) => (w.id === renamingId ? { ...w, name: trimmed } : w))
+      );
+      cancelRename();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "이름 변경 실패");
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingId || deleting) return;
+    setDeleting(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/workspaces/${deletingId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error?.message || data?.error || "삭제 실패");
+      }
+      const removedId = deletingId;
+      setWorkspaces((prev) => prev.filter((w) => w.id !== removedId));
+      if (activeId === removedId) {
+        setActiveId(null);
+        document.cookie = "has_workspace=; path=/; max-age=0";
+      }
+      setDeletingId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "삭제 실패");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -163,6 +279,9 @@ export default function WorkspaceSetupPage() {
   };
 
   const hasExisting = workspaces.length > 0;
+
+  // 자동 진입 중에는 깜빡임 없이 전체 화면 스피너만.
+  if (autoEntering) return <SetupFallback />;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] p-4">
@@ -249,18 +368,23 @@ export default function WorkspaceSetupPage() {
                   {workspaces.map((w) => {
                     const isActive = w.id === activeId;
                     const isLoading = switching === w.id;
+                    const isRenaming = renamingId === w.id;
+                    const isDisabled = !!switching || !!renamingId || !!deletingId;
                     return (
-                      <button
+                      <div
                         key={w.id}
-                        onClick={() => handleSelect(w.id)}
-                        disabled={!!switching}
-                        className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all text-left disabled:opacity-50 ${
+                        className={`group relative w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
                           isActive
                             ? "border-[var(--green)] bg-[var(--green)]/5"
                             : "border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-white/[0.03]"
-                        }`}
+                        } ${isDisabled && !isRenaming ? "opacity-50" : ""}`}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => !isRenaming && handleSelect(w.id)}
+                          disabled={isDisabled}
+                          className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                        >
                           <div
                             className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
                               isActive
@@ -277,29 +401,99 @@ export default function WorkspaceSetupPage() {
                               }
                             />
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-[var(--foreground)] truncate">
-                              {w.name}
-                            </p>
+                          <div className="min-w-0 flex-1">
+                            {isRenaming ? (
+                              <input
+                                type="text"
+                                value={renameDraft}
+                                onChange={(e) => setRenameDraft(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") submitRename();
+                                  if (e.key === "Escape") cancelRename();
+                                }}
+                                autoFocus
+                                className="w-full px-2 py-1 rounded-md bg-[var(--background)] border border-[var(--green)] text-sm text-[var(--foreground)] focus:outline-none"
+                              />
+                            ) : (
+                              <p className="text-sm font-semibold text-[var(--foreground)] truncate">
+                                {w.name}
+                              </p>
+                            )}
                             <p className="text-xs text-[var(--muted)] mt-0.5">
                               {ROLE_LABELS[w.role] ?? w.role}
                               {w.plan ? ` · ${w.plan}` : ""}
                               {isActive ? " · 현재 활성" : ""}
                             </p>
                           </div>
-                        </div>
-                        {isLoading ? (
-                          <Loader2
-                            size={16}
-                            className="animate-spin text-[var(--muted)] shrink-0"
-                          />
+                        </button>
+                        {isRenaming ? (
+                          <div className="flex items-center gap-1 ml-2 shrink-0">
+                            <button
+                              type="button"
+                              onClick={submitRename}
+                              disabled={renaming}
+                              className="p-2 rounded-lg bg-[var(--green)] text-white hover:opacity-90 disabled:opacity-50"
+                              aria-label="저장"
+                              title="저장"
+                            >
+                              {renaming ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Check size={14} />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelRename}
+                              disabled={renaming}
+                              className="p-2 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.05]"
+                              aria-label="취소"
+                              title="취소"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
                         ) : (
-                          <ArrowRight
-                            size={16}
-                            className="text-[var(--muted)] shrink-0"
-                          />
+                          <div className="flex items-center gap-1 ml-2 shrink-0">
+                            {canRename(w.role) && (
+                              <button
+                                type="button"
+                                onClick={() => startRename(w)}
+                                disabled={isDisabled}
+                                className="p-2 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-white/[0.05] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                aria-label="이름 변경"
+                                title="이름 변경"
+                              >
+                                <Pencil size={14} />
+                              </button>
+                            )}
+                            {canDelete(w.role) && (
+                              <button
+                                type="button"
+                                onClick={() => setDeletingId(w.id)}
+                                disabled={isDisabled}
+                                className="p-2 rounded-lg text-[var(--muted)] hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                                aria-label="삭제"
+                                title="삭제"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                            {isLoading ? (
+                              <Loader2
+                                size={16}
+                                className="animate-spin text-[var(--muted)] shrink-0 ml-1"
+                              />
+                            ) : (
+                              <ArrowRight
+                                size={16}
+                                className="text-[var(--muted)] shrink-0 ml-1"
+                              />
+                            )}
+                          </div>
                         )}
-                      </button>
+                      </div>
                     );
                   })}
                   <button
@@ -415,6 +609,62 @@ export default function WorkspaceSetupPage() {
           )}
         </div>
       </div>
+
+      {/* 삭제 확인 모달 */}
+      {deletingId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => !deleting && setDeletingId(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <Trash2 size={18} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[var(--foreground)]">
+                  워크스페이스 삭제
+                </h3>
+                <p className="text-xs text-[var(--muted)] mt-0.5">
+                  되돌릴 수 없습니다.
+                </p>
+              </div>
+            </div>
+            <p className="text-sm text-[var(--muted)] mb-5 leading-relaxed">
+              <span className="text-[var(--foreground)] font-medium">
+                {workspaces.find((w) => w.id === deletingId)?.name}
+              </span>{" "}
+              워크스페이스와 관련된 멤버·권한 데이터가 모두 삭제됩니다.
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeletingId(null)}
+                disabled={deleting}
+                className="px-4 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-50"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-50"
+              >
+                {deleting ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Trash2 size={14} />
+                )}
+                삭제
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

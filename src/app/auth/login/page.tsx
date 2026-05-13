@@ -43,7 +43,8 @@ async function resolveWorkspaceAndRedirect(
   } catch {
     // fallthrough → setup으로
   }
-  router.push("/workspace/setup");
+  // 워크스페이스가 없거나 조회 실패한 신규 가입자 → create 탭으로 보내고 자동 진입은 막는다.
+  router.push("/workspace/setup?tab=create");
 }
 
 export default function LoginPage() {
