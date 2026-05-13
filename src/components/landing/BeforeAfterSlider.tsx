@@ -75,7 +75,7 @@ export default function BeforeAfterSlider() {
             After
           </span>
           <p className="text-sm font-medium text-white mt-1">
-            잠실르엘 32평 · 완공
+            용산 아파트 리모델링 · 완공
           </p>
         </div>
         {/* Decorative — simulated furniture/finish */}
@@ -102,7 +102,7 @@ export default function BeforeAfterSlider() {
               Before
             </span>
             <p className="text-sm font-medium text-white mt-1">
-              잠실르엘 32평 · 철거 전
+              용산 아파트 리모델링 · 철거 전
             </p>
           </div>
           {/* Decorative — simulated old room */}

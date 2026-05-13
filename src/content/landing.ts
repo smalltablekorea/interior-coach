@@ -156,7 +156,7 @@ export const landingCopy = {
 
   caseStudy: {
     eyebrow: "실제 현장 사례",
-    title: "잠실르엘 리모델링",
+    title: "용산 아파트 리모델링",
     subtitle: "32평 전체 리모델링, 공정 6주",
     summary:
       "기존에는 카톡방 4개와 엑셀 3개로 관리하던 현장을,\n인테리어코치 도입 후 단일 화면으로 통합했습니다.",

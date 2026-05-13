@@ -356,7 +356,7 @@ export default function HeroSection() {
             }}
           >
             <p className="text-[11px] text-[var(--landing-body)] leading-none mb-1">
-              잠실르엘 32평
+              용산 아파트 리모델링
             </p>
             <p className="text-sm font-medium text-[var(--landing-heading)] leading-none flex items-center gap-1.5">
               <span

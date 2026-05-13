@@ -54,7 +54,7 @@ function ScheduleMockup() {
     <MockupFrame title="interior-coach / schedule">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-[var(--muted)]">잠실르엘 · 3주차</span>
+          <span className="text-xs text-[var(--muted)]">용산 아파트 · 3주차</span>
           <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--green)]/10 text-[var(--green)]">
             진행 58%
           </span>
@@ -102,7 +102,7 @@ function EstimateMockup() {
 
 function SettlementMockup() {
   return (
-    <MockupFrame title="정산 리포트 / 잠실르엘">
+    <MockupFrame title="정산 리포트 / 용산 아파트">
       <div className="grid grid-cols-2 gap-3">
         <div className="p-3 rounded-xl bg-white/[0.03]">
           <p className="text-[10px] text-[var(--muted)]">계약 금액</p>
@@ -123,9 +123,9 @@ function SettlementMockup() {
 
 function MaterialsMockup() {
   const rows = [
-    { name: "강화 마루 (참나무)", unit: "㎡", price: "78,000" },
-    { name: "석고보드 9.5T", unit: "장", price: "6,800" },
-    { name: "페인트 (친환경 I등급)", unit: "통", price: "42,000" },
+    { name: "강화 마루 (참나무)", unit: "㎡" },
+    { name: "석고보드 9.5T", unit: "장" },
+    { name: "페인트 (친환경 I등급)", unit: "통" },
   ];
   return (
     <MockupFrame title="자재 DB / 1,294건">
@@ -136,10 +136,20 @@ function MaterialsMockup() {
               <p className="text-xs">{r.name}</p>
               <p className="text-[10px] text-[var(--muted)] mt-0.5">단위: {r.unit}</p>
             </div>
-            <span className="text-xs font-mono text-[var(--green)]">₩{r.price}</span>
+            <span
+              className="text-xs font-mono text-[var(--green)] select-none"
+              style={{ filter: "blur(5px)" }}
+              aria-label="자재 단가 비공개"
+              title="회원 가입 후 확인 가능"
+            >
+              ₩00,000
+            </span>
           </div>
         ))}
       </div>
+      <p className="mt-3 text-[10px] text-[var(--muted)] text-center">
+        가격은 회원 가입 후 공개
+      </p>
     </MockupFrame>
   );
 }
@@ -148,7 +158,7 @@ function MaterialsMockup() {
 
 function PnLMockup() {
   const sites = [
-    { name: "잠실르엘", profit: 22.4, tone: "green" as const },
+    { name: "용산 아파트", profit: 22.4, tone: "green" as const },
     { name: "한남더힐", profit: 14.1, tone: "green" as const },
     { name: "성수빌라", profit: 3.2, tone: "orange" as const },
     { name: "압구정B동", profit: -4.8, tone: "red" as const },
@@ -179,7 +189,7 @@ function PnLMockup() {
 
 function InvoiceMockup() {
   const rows = [
-    { site: "잠실르엘", amount: "48,000,000", due: "D-2", overdue: true },
+    { site: "용산 아파트", amount: "48,000,000", due: "D-2", overdue: true },
     { site: "한남더힐", amount: "12,000,000", due: "D-5", overdue: false },
     { site: "성수빌라", amount: "6,500,000", due: "D-12", overdue: false },
   ];
@@ -233,7 +243,7 @@ function DefectsMockup() {
       <div className="mt-3 space-y-1.5">
         <div className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03]">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--red)]" />
-          <span className="text-[10px] flex-1">타일 이격 · 잠실르엘 거실</span>
+          <span className="text-[10px] flex-1">타일 이격 · 용산 아파트 거실</span>
           <span className="text-[9px] text-[var(--muted)]">중대</span>
         </div>
         <div className="flex items-center gap-2 p-2 rounded-lg bg-white/[0.03]">
@@ -251,7 +261,7 @@ function DailyLogMockup() {
     <MockupFrame title="업무일지 / 2026-04-21">
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-medium">잠실르엘 · 3주차</span>
+          <span className="font-medium">용산 아파트 · 3주차</span>
           <span className="text-[var(--muted)]">☀️ 맑음</span>
         </div>
         <div className="space-y-2">
@@ -289,7 +299,7 @@ function AttendanceMockup() {
     { name: "최기사 (도배)", hours: 0, status: "예정" },
   ];
   return (
-    <MockupFrame title="근태 / 잠실르엘 · 오늘">
+    <MockupFrame title="근태 / 용산 아파트 · 오늘">
       <div className="space-y-2">
         {workers.map((w) => {
           const statusColor =
@@ -374,7 +384,7 @@ function TemplatesMockup() {
     { name: "아파트 32평 올수리", phases: 11, system: true },
     { name: "상가 인테리어", phases: 8, system: true },
     { name: "주택 리모델링", phases: 14, system: true },
-    { name: "내 템플릿 — 잠실르엘 스타일", phases: 13, system: false },
+    { name: "내 템플릿 — 용산 아파트 스타일", phases: 13, system: false },
   ];
   return (
     <MockupFrame title="공사 유형 템플릿">
