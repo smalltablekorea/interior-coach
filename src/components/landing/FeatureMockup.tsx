@@ -128,7 +128,7 @@ function MaterialsMockup() {
     { name: "페인트 (친환경 I등급)", unit: "통", price: "42,000" },
   ];
   return (
-    <MockupFrame title="자재 DB / 1,247건">
+    <MockupFrame title="자재 DB / 1,294건">
       <div className="space-y-2">
         {rows.map((r) => (
           <div key={r.name} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0">

@@ -5,7 +5,7 @@ import { landingCopy } from "@/content/landing";
 import FadeIn from "../FadeIn";
 
 const ICONS = [Database, HardHat, Layers] as const;
-const ACCENT_NUMBERS = ["1,247", "10+", "5→1"] as const;
+const ACCENT_NUMBERS = ["1,294", "10+", "5→1"] as const;
 
 export default function WhyUsSection() {
   const w = landingCopy.whyUs;
