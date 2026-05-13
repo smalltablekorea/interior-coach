@@ -123,7 +123,7 @@ function SettlementMockup() {
 
 function MaterialsMockup() {
   const rows = [
-    { name: "강화 마루 (참나무)", unit: "㎡" },
+    { name: "강마루(동화마루)", unit: "㎡" },
     { name: "석고보드 9.5T", unit: "장" },
     { name: "페인트 (친환경 I등급)", unit: "통" },
   ];
