@@ -105,6 +105,18 @@ function LoginForm() {
         : "",
   );
   const [form, setForm] = useState({ email: "", password: "" });
+  const [providers, setProviders] = useState<{ google: boolean; kakao: boolean }>(
+    { google: false, kakao: false },
+  );
+
+  useEffect(() => {
+    fetch("/api/auth/providers")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) setProviders({ google: !!data.google, kakao: !!data.kakao });
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -269,9 +281,10 @@ function LoginForm() {
           <div className="space-y-3">
             <button
               type="button"
-              onClick={() => handleSocial("google")}
-              disabled={busy}
-              className="w-full py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium text-[var(--foreground)] hover:bg-white/[0.04] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              onClick={() => providers.google && handleSocial("google")}
+              disabled={busy || !providers.google}
+              title={providers.google ? "Google로 계속하기" : "Google OAuth 설정 준비 중"}
+              className="w-full py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium text-[var(--foreground)] hover:bg-white/[0.04] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {socialLoading === "google" ? (
                 <span>처리 중...</span>
@@ -295,16 +308,17 @@ function LoginForm() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Google로 계속하기
+                  {providers.google ? "Google로 계속하기" : "Google (준비 중)"}
                 </>
               )}
             </button>
 
             <button
               type="button"
-              onClick={() => handleSocial("kakao")}
-              disabled={busy}
-              className="w-full py-2.5 rounded-xl bg-[#FEE500] text-[#191919] text-sm font-medium hover:bg-[#FDD835] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+              onClick={() => providers.kakao && handleSocial("kakao")}
+              disabled={busy || !providers.kakao}
+              title={providers.kakao ? "카카오로 계속하기" : "카카오 OAuth 설정 준비 중"}
+              className="w-full py-2.5 rounded-xl bg-[#FEE500] text-[#191919] text-sm font-medium hover:bg-[#FDD835] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {socialLoading === "kakao" ? (
                 <span>처리 중...</span>
@@ -316,10 +330,17 @@ function LoginForm() {
                       d="M12 3C6.48 3 2 6.58 2 10.94c0 2.8 1.86 5.27 4.66 6.67-.15.54-.96 3.47-1 3.64 0 0-.02.08.04.11.06.03.13 0 .13 0 .67-.1 3.87-2.54 4.48-2.97.55.08 1.12.12 1.69.12 5.52 0 10-3.58 10-7.94S17.52 3 12 3z"
                     />
                   </svg>
-                  카카오로 계속하기
+                  {providers.kakao ? "카카오로 계속하기" : "카카오 (준비 중)"}
                 </>
               )}
             </button>
+
+            {(!providers.google || !providers.kakao) && (
+              <p className="text-[11px] text-[var(--muted)] text-center leading-relaxed pt-1">
+                소셜 로그인은 OAuth 키 등록 후 활성화됩니다. <br />
+                지금은 이메일로 로그인해 주세요.
+              </p>
+            )}
           </div>
         </div>
 
