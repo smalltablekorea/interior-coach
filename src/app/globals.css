@@ -129,10 +129,11 @@ body {
 .landing-premium {
   /* Pretendard alias — 기존 inline style fontFamily: var(--font-source-sans) 도 자동으로 Pretendard 사용 */
   --font-source-sans: "Pretendard Variable", "Pretendard", system-ui, -apple-system, sans-serif;
-  --landing-bg: #111111;
+  /* 견적코치 톤과 일치 — 더 깊은 다크 배경 */
+  --landing-bg: #0a0a0a;
   --landing-fg: #ededed;
   --landing-heading: #ffffff;
-  --landing-body: rgba(255, 255, 255, 0.55);
+  --landing-body: rgba(255, 255, 255, 0.6);
   --landing-label: rgba(255, 255, 255, 0.85);
   --landing-accent: #00C471;
   --landing-accent-hover: #00E084;

@@ -195,16 +195,24 @@ export default function HeroSection() {
           >
             {h.titleLines.map((line, i) => {
               const isLast = i === h.titleLines.length - 1;
+              if (isLast) {
+                // "엑셀 20장 — 이제 한 곳에서." 중 "이제 한 곳에서" 부분을 emerald 강조
+                const splitIdx = line.indexOf("이제");
+                if (splitIdx > 0) {
+                  const head = line.slice(0, splitIdx);
+                  const accent = line.slice(splitIdx).replace(/\.$/, "");
+                  return (
+                    <span key={i} className="block">
+                      {head}
+                      <span className="text-[var(--landing-accent)]">{accent}</span>
+                      <span className="text-[var(--landing-accent)]">.</span>
+                    </span>
+                  );
+                }
+              }
               return (
                 <span key={i} className="block">
-                  {isLast ? (
-                    <>
-                      {line.replace(/\.$/, "")}
-                      <span className="text-[var(--landing-accent)]">.</span>
-                    </>
-                  ) : (
-                    line
-                  )}
+                  {line}
                 </span>
               );
             })}
