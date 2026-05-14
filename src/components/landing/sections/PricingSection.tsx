@@ -71,7 +71,7 @@ export default function PricingSection() {
               style={{ fontWeight: 400 }}
             >
               연간&nbsp;
-              <span className="text-xs opacity-80">(-17%)</span>
+              <span className="text-xs opacity-80">2개월 무료</span>
             </button>
           </div>
         </FadeIn>
@@ -157,6 +157,15 @@ export default function PricingSection() {
                       </span>
                     )}
                   </div>
+                  {yearly && plan.monthly !== null && plan.yearly !== null && plan.yearly > 0 && (
+                    <p className="mt-2 text-xs text-[var(--landing-body)]">
+                      월 환산 ₩{formatPrice(Math.round(plan.yearly / 12))}
+                      {" · "}
+                      <span className="text-[var(--landing-accent)] font-medium">
+                        연 ₩{formatPrice(plan.monthly * 12 - plan.yearly)} 절약
+                      </span>
+                    </p>
+                  )}
 
                   {/* feature list */}
                   <ul className="mt-8 flex-1 space-y-3">

@@ -197,6 +197,7 @@ export const landingCopy = {
   // 가격: 견적코치 standalone(3회권 33,300/건)과 자기잠식 방지 + 가입 유도 균형.
   // Starter 5건 (1인 평균 영업 견적량), Pro 20건 (성장 업체 상한 커버).
   // 초과 사용 ₩33,300/건 — 3회권 단가와 일치.
+  // 연간 결제 = 월간 × 10 (실질 2개월 무료, 약 17% 할인).
   pricing: {
     eyebrow: "요금제",
     title: "심플하게, 2가지 선택지",
@@ -205,7 +206,7 @@ export const landingCopy = {
       {
         name: "Starter",
         monthly: 88000,
-        yearly: 88000 * 12,
+        yearly: 88000 * 10, // 2개월 무료 (880,000원)
         tagline: "1인·소규모 업체",
         features: [
           "현장 5개",
@@ -222,7 +223,7 @@ export const landingCopy = {
       {
         name: "Pro",
         monthly: 178000,
-        yearly: 178000 * 12,
+        yearly: 178000 * 10, // 2개월 무료 (1,780,000원)
         tagline: "성장 중인 업체 · 가장 많이 선택",
         features: [
           "전체 기능 (12개 모듈)",
