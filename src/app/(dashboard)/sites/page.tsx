@@ -261,6 +261,23 @@ export default function SitesPage() {
                   </option>
                 ))}
               </select>
+              <p className="mt-1 text-[11px] text-[var(--muted)] leading-snug">
+                {customers.length === 0 ? (
+                  <>
+                    <Link href="/customers" className="text-[var(--green)] underline hover:opacity-80">
+                      고객 관리
+                    </Link>
+                    에서 먼저 등록해야 선택할 수 있습니다. 비워두고 현장을 먼저 등록한 뒤 나중에 연결해도 됩니다.
+                  </>
+                ) : (
+                  <>
+                    <Link href="/customers" className="text-[var(--green)] underline hover:opacity-80">
+                      고객 관리
+                    </Link>
+                    에 등록된 고객만 선택할 수 있습니다. 비워두고 나중에 연결도 가능합니다.
+                  </>
+                )}
+              </p>
             </div>
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">건물유형</label>

@@ -156,6 +156,11 @@ body {
 .landing-premium *::selection {
   background: rgba(0, 196, 113, 0.25);
 }
+/* 한글 텍스트 친화 — 단어 중간에서 줄바꿈 X, 모바일 컨테이너 폭 적응 */
+.landing-premium {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
 .landing-premium h1,
 .landing-premium h2,
 .landing-premium h3,
@@ -163,6 +168,11 @@ body {
   color: var(--landing-heading);
   font-weight: 700;
   letter-spacing: -0.02em;
+  word-break: keep-all;
+}
+/* 가로 스크롤 방지 — Hero 글로우/blob 등 absolute 요소가 viewport 넘쳐도 안전 */
+html, body {
+  overflow-x: hidden;
 }
 @keyframes landing-float {
   0%, 100% { transform: translateY(0px); }

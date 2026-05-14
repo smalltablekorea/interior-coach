@@ -186,7 +186,7 @@ export default function HeroSection() {
           {/* Headline — SB 어그로 OTF M */}
           <motion.h1
             variants={fadeUp}
-            className="mt-7 text-[clamp(34px,5.2vw,56px)] leading-[1.15] tracking-[-0.02em] text-[var(--landing-heading)]"
+            className="mt-7 text-[clamp(26px,6.5vw,56px)] leading-[1.18] tracking-[-0.02em] text-[var(--landing-heading)] break-keep"
             style={{
               fontFamily:
                 '"SB Aggro OTF M", "Pretendard Variable", "Pretendard", system-ui, sans-serif',
@@ -213,7 +213,7 @@ export default function HeroSection() {
           {/* Subtitle */}
           <motion.p
             variants={fadeUp}
-            className="mt-7 text-lg leading-relaxed text-[var(--landing-body)] whitespace-pre-line max-w-lg"
+            className="mt-6 text-base sm:text-lg leading-relaxed text-[var(--landing-body)] whitespace-pre-line max-w-lg break-keep"
             style={{
               fontFamily: "var(--font-source-sans)",
               fontWeight: 400,
