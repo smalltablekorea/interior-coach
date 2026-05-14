@@ -314,6 +314,55 @@ export default function DashboardPage() {
     });
   };
 
+  // 지연 공정 확인 처리 — '확인'한 항목은 KPI 카드에서 제거(persist 14일).
+  // key: `${siteId}|${category}`  value: 확인 처리한 timestamp (ms)
+  const DELAYED_DISMISS_KEY = "dashboard-delayed-dismissed";
+  const DELAYED_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+  const [dismissedDelayed, setDismissedDelayed] = useState<Record<string, number>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const stored = localStorage.getItem(DELAYED_DISMISS_KEY);
+      if (!stored) return {};
+      const parsed = JSON.parse(stored) as Record<string, number>;
+      // 14일 지난 건 정리
+      const now = Date.now();
+      return Object.fromEntries(
+        Object.entries(parsed).filter(([, ts]) => now - ts < DELAYED_TTL_MS),
+      );
+    } catch {
+      return {};
+    }
+  });
+  const [delayedModalOpen, setDelayedModalOpen] = useState(false);
+  const [delayedChecked, setDelayedChecked] = useState<Set<string>>(new Set());
+
+  const delayedKey = (p: { siteId: string | null; category: string }) =>
+    `${p.siteId ?? "_"}|${p.category}`;
+
+  const dismissCheckedDelayed = () => {
+    if (delayedChecked.size === 0) {
+      setDelayedModalOpen(false);
+      return;
+    }
+    const now = Date.now();
+    const next = { ...dismissedDelayed };
+    delayedChecked.forEach((k) => {
+      next[k] = now;
+    });
+    setDismissedDelayed(next);
+    localStorage.setItem(DELAYED_DISMISS_KEY, JSON.stringify(next));
+    setDelayedChecked(new Set());
+    setDelayedModalOpen(false);
+  };
+
+  const toggleDelayedCheck = (key: string) => {
+    setDelayedChecked((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
   useEffect(() => {
     Promise.all([
       apiFetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
@@ -615,15 +664,31 @@ export default function DashboardPage() {
           color="var(--blue)"
           href="/sites?status=시공중"
         />
-        <KPICard
-          title="지연 공정"
-          value={`${actionItems.delayedPhases.length}건`}
-          subtitle={actionItems.delayedPhases.length > 0 ? "즉시 확인 필요" : "정상 운영 중"}
-          icon={ShieldAlert}
-          color="var(--red)"
-          warning={actionItems.delayedPhases.length > 0}
-          href="/construction"
-        />
+        {(() => {
+          const visibleDelayed = actionItems.delayedPhases.filter(
+            (p) => !dismissedDelayed[delayedKey(p)],
+          );
+          const count = visibleDelayed.length;
+          return (
+            <KPICard
+              title="지연 공정"
+              value={`${count}건`}
+              subtitle={count > 0 ? "확인하기" : "정상 운영 중"}
+              icon={ShieldAlert}
+              color="var(--red)"
+              warning={count > 0}
+              onClick={
+                count > 0
+                  ? () => {
+                      setDelayedChecked(new Set());
+                      setDelayedModalOpen(true);
+                    }
+                  : undefined
+              }
+              href={count > 0 ? undefined : "/construction"}
+            />
+          );
+        })()}
         <KPICard
           title="미수금"
           value={fmtShort(totalOverdue)}
@@ -1260,6 +1325,74 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ══════════════════════════════════════════════
+          지연 공정 확인 모달 (체크 후 확인 → 14일간 dashboard 미노출)
+          ══════════════════════════════════════════════ */}
+      <Modal
+        open={delayedModalOpen}
+        onClose={() => setDelayedModalOpen(false)}
+        title="지연 공정 확인"
+        maxWidth="max-w-lg"
+      >
+        <p className="text-sm text-[var(--muted)] mb-4">
+          체크한 공정은 대시보드에서 14일간 표시되지 않습니다. 실제 공정 데이터는
+          그대로 유지됩니다.
+        </p>
+        <div className="space-y-1.5 max-h-[50vh] overflow-y-auto">
+          {actionItems.delayedPhases
+            .filter((p) => !dismissedDelayed[delayedKey(p)])
+            .map((p) => {
+              const key = delayedKey(p);
+              const checked = delayedChecked.has(key);
+              return (
+                <label
+                  key={key}
+                  className={cn(
+                    "flex items-start gap-3 p-3 rounded-xl cursor-pointer border transition-colors",
+                    checked
+                      ? "border-[var(--green)]/50 bg-[var(--green)]/5"
+                      : "border-[var(--border)] hover:bg-white/[0.03]",
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleDelayedCheck(key)}
+                    className="mt-1 w-4 h-4 accent-[var(--green)] shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {p.siteName || "(현장 미지정)"} · {p.category}
+                    </p>
+                    <p className="text-xs text-[var(--muted)] mt-0.5">
+                      {p.plannedEnd ? `예정 종료 ${fmtDate(p.plannedEnd)} · ` : ""}
+                      {p.daysDelayed}일 지연 · 진행 {p.progress}%
+                    </p>
+                  </div>
+                </label>
+              );
+            })}
+        </div>
+        <div className="flex items-center justify-end gap-2 mt-5">
+          <button
+            type="button"
+            onClick={() => setDelayedModalOpen(false)}
+            className="px-4 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            onClick={dismissCheckedDelayed}
+            disabled={delayedChecked.size === 0}
+            className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-bold disabled:opacity-50"
+          >
+            <Check size={14} />
+            확인 ({delayedChecked.size})
+          </button>
+        </div>
+      </Modal>
 
       {/* ══════════════════════════════════════════════
           10. DRILLDOWN MODAL
