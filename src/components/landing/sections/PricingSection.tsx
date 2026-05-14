@@ -87,35 +87,25 @@ export default function PricingSection() {
             <FadeIn key={plan.name} delay={0.1 + i * 0.1}>
               <div
                 className={cn(
-                  "relative flex flex-col rounded-xl p-[1px]",
-                  isHighlight
-                    ? "shadow-xl"
-                    : "shadow-sm"
+                  "relative flex flex-col rounded-xl",
+                  isHighlight ? "shadow-xl" : "shadow-sm",
                 )}
-                style={
-                  isHighlight
-                    ? {
-                        background:
-                          "linear-gradient(135deg, var(--landing-accent), var(--landing-magenta))",
-                      }
-                    : {}
-                }
               >
                 <div
                   className={cn(
-                    "relative flex flex-1 flex-col rounded-xl px-7 py-8",
+                    "relative flex flex-1 flex-col rounded-xl px-7 py-8 bg-[rgba(255,255,255,0.04)] backdrop-blur-[12px] border",
                     isHighlight
-                      ? "bg-[rgba(255,255,255,0.04)] backdrop-blur-[12px]"
-                      : "border border-[var(--landing-border)] bg-[rgba(255,255,255,0.04)] backdrop-blur-[12px]"
+                      ? "border-[var(--landing-accent)] emerald-glow"
+                      : "border-[var(--landing-border)]",
                   )}
                 >
                   {/* Recommended / badge */}
                   {isHighlight && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                       <span
-                        className="inline-flex items-center rounded-full bg-[var(--landing-accent)] px-4 py-1 text-xs font-semibold text-white"
+                        className="inline-flex items-center rounded-full bg-[var(--landing-accent)] px-4 py-1 text-xs font-bold text-black"
                         style={{
-                          boxShadow: "0 4px 14px rgba(83,58,253,0.35)",
+                          boxShadow: "0 4px 14px rgba(0,196,113,0.35)",
                         }}
                       >
                         {plan.badge ?? "Recommended"}
@@ -193,15 +183,12 @@ export default function PricingSection() {
                   <Link
                     href={plan.ctaHref}
                     className={cn(
-                      "mt-8 block w-full rounded-lg py-3 text-center text-sm transition-colors",
+                      "mt-8 block w-full rounded-lg py-3 text-center text-sm font-semibold transition-colors",
                       isHighlight
-                        ? "bg-[var(--landing-accent)] text-white hover:bg-[var(--landing-accent-hover)]"
-                        : "border border-[var(--landing-accent)] text-[var(--landing-accent)] hover:bg-[var(--landing-accent)] hover:text-white"
+                        ? "bg-[var(--landing-accent)] text-black hover:bg-[var(--landing-accent-hover)]"
+                        : "border border-[var(--landing-accent)] text-[var(--landing-accent)] hover:bg-[var(--landing-accent)] hover:text-black",
                     )}
-                    style={{
-                      fontWeight: 400,
-                      borderRadius: 8,
-                    }}
+                    style={{ borderRadius: 8 }}
                   >
                     {plan.ctaLabel}
                   </Link>
