@@ -87,23 +87,18 @@ function EstimateMockup() {
           >
             <span>{name}</span>
             <span
-              className="font-mono text-[var(--muted)] select-none"
-              style={{ filter: "blur(5px)" }}
+              className="font-mono text-[var(--muted)]"
               aria-label="견적 금액 비공개"
               title="회원 가입 후 확인 가능"
             >
-              ₩0,000,000
+              XXX만원
             </span>
           </div>
         ))}
         <div className="flex items-center justify-between pt-3 text-sm font-semibold">
           <span>합계</span>
-          <span
-            className="text-[var(--green)] select-none"
-            style={{ filter: "blur(5px)" }}
-            aria-label="합계 금액 비공개"
-          >
-            ₩0,000,000
+          <span className="text-[var(--green)]" aria-label="합계 금액 비공개">
+            XXX만원
           </span>
         </div>
         <p className="pt-2 text-[10px] text-[var(--muted)] text-center">
@@ -151,12 +146,11 @@ function MaterialsMockup() {
               <p className="text-[10px] text-[var(--muted)] mt-0.5">단위: {r.unit}</p>
             </div>
             <span
-              className="text-xs font-mono text-[var(--green)] select-none"
-              style={{ filter: "blur(5px)" }}
+              className="text-xs font-mono text-[var(--green)]"
               aria-label="자재 단가 비공개"
               title="회원 가입 후 확인 가능"
             >
-              ₩00,000
+              XX만원
             </span>
           </div>
         ))}
@@ -307,10 +301,10 @@ function DailyLogMockup() {
 
 function AttendanceMockup() {
   const workers = [
-    { name: "김반장 (목공)", hours: 8, status: "퇴근" },
-    { name: "박기사 (전기)", hours: 8, status: "퇴근" },
-    { name: "이사수 (타일)", hours: 6, status: "근무중" },
-    { name: "최기사 (도배)", hours: 0, status: "예정" },
+    { name: "성호 반장 (목공)", hours: 8, status: "퇴근" },
+    { name: "진우 반장 (전기)", hours: 8, status: "퇴근" },
+    { name: "동현 반장 (타일)", hours: 6, status: "근무중" },
+    { name: "정민 반장 (도배)", hours: 0, status: "예정" },
   ];
   return (
     <MockupFrame title="근태 / 용산 아파트 · 오늘">
@@ -344,9 +338,9 @@ function AttendanceMockup() {
 
 function WorkersMockup() {
   const rows = [
-    { name: "김반장", trade: "목공", rating: 4.9, reuse: 94 },
-    { name: "박기사", trade: "전기", rating: 4.7, reuse: 88 },
-    { name: "이사수", trade: "타일", rating: 4.5, reuse: 72 },
+    { name: "성호 반장", trade: "목공", rating: 4.9, reuse: 94 },
+    { name: "진우 반장", trade: "전기", rating: 4.7, reuse: 88 },
+    { name: "동현 반장", trade: "타일", rating: 4.5, reuse: 72 },
   ];
   return (
     <MockupFrame title="인력풀 / 추천 순">
