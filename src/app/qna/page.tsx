@@ -14,6 +14,10 @@ export const metadata: Metadata = {
     title: "인테리어 Q&A | 인테리어코치",
     description:
       "인테리어 준비부터 시공 완료까지, 전문가가 답변하는 Q&A 커뮤니티.",
+    images: ["/landing/og-hero.png"],
+  },
+  alternates: {
+    canonical: "/qna",
   },
 };
 

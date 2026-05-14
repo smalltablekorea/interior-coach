@@ -5,6 +5,8 @@ import { desc, eq, and, sql } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
+import { sendSms } from "@/lib/solapi";
+import { enforceApiRateLimit } from "@/lib/api/rate-limit";
 
 export async function GET(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "read");
@@ -48,6 +50,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+
+  // SMS 과금/남용 방지 (AI-21): 유저당 분당 20회
+  const gate = enforceApiRateLimit(auth.userId, { bucket: "sms-outreach", max: 20 });
+  if (!gate.ok) return gate.response;
+
   try {
     const body = await request.json();
     const { leadId, campaignId, channel, templateType, content, recipientPhone, stepIndex } = body;
@@ -56,8 +63,7 @@ export async function POST(request: NextRequest) {
       return err("내용과 수신 번호는 필수입니다.");
     }
 
-    // TODO: Solapi API integration
-    // For now, simulate sending by marking as "sent"
+    // Insert as pending first
     const [row] = await db
       .insert(smsOutreachLog)
       .values({
@@ -69,14 +75,42 @@ export async function POST(request: NextRequest) {
         templateType,
         content,
         recipientPhone,
-        status: "sent",
-        sentAt: new Date(),
+        status: "pending",
         stepIndex,
       })
       .returning();
 
-    // Update lead's last contacted timestamp
-    if (leadId) {
+    // Call Solapi API
+    const isLms = content.length > 90;
+    const result = await sendSms(recipientPhone, content, isLms);
+
+    if (result.success) {
+      await db
+        .update(smsOutreachLog)
+        .set({
+          status: "sent",
+          sentAt: new Date(),
+          externalMessageId: result.messageId || null,
+        })
+        .where(eq(smsOutreachLog.id, row.id));
+      row.status = "sent";
+      row.sentAt = new Date();
+      row.externalMessageId = result.messageId || null;
+    } else {
+      await db
+        .update(smsOutreachLog)
+        .set({
+          status: "failed",
+          errorMessage: result.error || "알 수 없는 오류",
+        })
+        .where(eq(smsOutreachLog.id, row.id));
+      row.status = "failed";
+      row.errorMessage = result.error || "알 수 없는 오류";
+      console.error(`[SMS Outreach] 발송 실패 - logId: ${row.id}, phone: ${recipientPhone}, error: ${result.error}`);
+    }
+
+    // Update lead's last contacted timestamp (only on successful send)
+    if (leadId && result.success) {
       await db
         .update(smsLeads)
         .set({

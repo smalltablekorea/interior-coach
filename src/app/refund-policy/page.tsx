@@ -3,6 +3,9 @@ import Link from "next/link";
 export const metadata = {
   title: "환불 정책 — 인테리어코치",
   description: "인테리어코치 구독 및 서비스 환불·취소 정책 안내",
+  alternates: {
+    canonical: "/refund-policy",
+  },
 };
 
 export default function RefundPolicyPage() {

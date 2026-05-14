@@ -62,8 +62,10 @@ export async function GET() {
             currentPeriodStart: subscription.currentPeriodStart,
             currentPeriodEnd: subscription.currentPeriodEnd,
             canceledAt: subscription.canceledAt,
+            tossBillingKey: !!subscription.tossBillingKey, // boolean only — don't expose the key
+            userId: uid,
           }
-        : { plan: "free", status: "active", billingCycle: "monthly" },
+        : { plan: "free", status: "active", billingCycle: "monthly", tossBillingKey: false, userId: uid },
       planConfig: {
         name: planConfig.name,
         nameKo: planConfig.nameKo,

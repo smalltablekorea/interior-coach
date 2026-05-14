@@ -3,11 +3,53 @@
 import { useState, Suspense } from "react";
 import { signIn, signUp } from "@/lib/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import dynamic from "next/dynamic";
 import { Eye, EyeOff } from "lucide-react";
+
+/**
+ * 로그인 직후: 기존 워크스페이스가 있으면 activeWorkspaceId 세팅 + has_workspace 쿠키 + 목적지로,
+ * 없으면 /workspace/setup으로 보낸다. 매번 setup에서 새 ws를 만들지 않게 하는 핵심.
+ */
+async function resolveWorkspaceAndRedirect(
+  redirect: string,
+  router: AppRouterInstance,
+) {
+  try {
+    const res = await fetch("/api/workspaces", { credentials: "include" });
+    if (res.ok) {
+      const data = (await res.json()) as {
+        workspaces?: { id: string }[];
+        activeWorkspaceId?: string | null;
+      };
+      const list = data.workspaces ?? [];
+      if (list.length > 0) {
+        const targetId =
+          (data.activeWorkspaceId && list.find((w) => w.id === data.activeWorkspaceId)?.id) ||
+          list[0].id;
+        if (targetId !== data.activeWorkspaceId) {
+          await fetch("/api/workspaces/active", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ workspaceId: targetId }),
+          }).catch(() => {});
+        }
+        document.cookie = "has_workspace=1; path=/; max-age=31536000";
+        router.push(redirect);
+        return;
+      }
+    }
+  } catch {
+    // fallthrough → setup으로
+  }
+  // 워크스페이스가 없거나 조회 실패한 신규 가입자 → create 탭으로 보내고 자동 진입은 막는다.
+  router.push("/workspace/setup?tab=create");
+}
 
 export default function LoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><p>로딩 중...</p></div>}>
       <LoginForm />
     </Suspense>
   );
@@ -48,7 +90,7 @@ function LoginForm() {
           return;
         }
       }
-      router.push(redirect);
+      await resolveWorkspaceAndRedirect(redirect, router);
     } catch {
       setError(
         mode === "login"

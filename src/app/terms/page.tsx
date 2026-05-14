@@ -1,8 +1,11 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "이용약관 — 견적코치",
-  description: "견적코치 서비스 이용약관",
+  title: "이용약관 — 인테리어코치",
+  description: "인테리어코치 서비스 이용약관",
+  alternates: {
+    canonical: "/terms",
+  },
 };
 
 export default function TermsPage() {

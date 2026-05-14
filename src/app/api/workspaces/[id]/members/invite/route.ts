@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { workspaceMembers, workspaceInvitations, workspaces } from "@/lib/db/schema";
+import { workspaceMembers, workspaceInvitations, workspaces, user } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { requireAuth } from "@/lib/api-auth";
 import { err, serverError, forbidden } from "@/lib/api/response";
 import { hasMinRole, type WorkspaceRole } from "@/lib/workspace-auth";
+import { sendInviteEmail } from "@/lib/email";
 import { z } from "zod";
 import * as crypto from "crypto";
+import { enforceApiRateLimit } from "@/lib/api/rate-limit";
 
 const inviteSchema = z.object({
   email: z.string().email("유효한 이메일을 입력해주세요"),
@@ -19,6 +21,10 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function POST(request: NextRequest, context: RouteContext) {
   const auth = await requireAuth();
   if (!auth.ok) return auth.response;
+
+  // 초대 이메일 남용 방지 (AI-21): 유저당 분당 10회
+  const gate = enforceApiRateLimit(auth.userId, { bucket: "workspace-invite", max: 10 });
+  if (!gate.ok) return gate.response;
 
   const { id } = await context.params;
 
@@ -89,18 +95,43 @@ export async function POST(request: NextRequest, context: RouteContext) {
       })
       .returning();
 
-    // TODO: 실제 이메일 발송 (현재는 토큰만 반환)
+    // 워크스페이스 이름 조회
+    const [ws] = await db
+      .select({ name: workspaces.name })
+      .from(workspaces)
+      .where(eq(workspaces.id, id))
+      .limit(1);
+
+    // 초대한 사람 이름 조회
+    const [inviter] = await db
+      .select({ name: user.name })
+      .from(user)
+      .where(eq(user.id, auth.userId))
+      .limit(1);
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://interiorcoach.kr";
+    const inviteUrl = `${baseUrl}/auth/invite?token=${token}`;
+
+    // 이메일 발송
+    const emailResult = await sendInviteEmail({
+      to: email,
+      workspaceName: ws?.name || "워크스페이스",
+      inviterName: inviter?.name || "팀원",
+      role,
+      inviteUrl,
+    });
+
     return NextResponse.json(
       {
         invitation: {
           id: invitation.id,
           email: invitation.email,
           role: invitation.role,
-          token: invitation.token,
           expiresAt: invitation.expiresAt,
         },
-        // 프론트에서 초대 링크를 생성할 수 있도록
-        inviteUrl: `/auth/invite?token=${token}`,
+        inviteUrl,
+        emailSent: emailResult.success,
+        ...(emailResult.error && { emailError: emailResult.error }),
       },
       { status: 201 },
     );

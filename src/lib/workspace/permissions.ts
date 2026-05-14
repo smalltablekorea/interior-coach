@@ -77,6 +77,8 @@ export function pathToCategory(pathname: string): Category | null {
     "/estimates": "estimates",
     "/contracts": "contracts",
     "/construction": "construction",
+    "/defects": "construction",
+    "/daily-logs": "construction",
     "/schedule": "schedule",
     "/materials": "materials",
     "/workers": "workers",

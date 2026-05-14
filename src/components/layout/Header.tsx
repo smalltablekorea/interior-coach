@@ -143,7 +143,7 @@ export default function Header() {
               ))}
               <div className="border-t border-[var(--border)] mt-1 pt-1">
                 <button
-                  onClick={() => { setWsOpen(false); router.push("/workspace/setup"); }}
+                  onClick={() => { setWsOpen(false); router.push("/workspace/setup?tab=create"); }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
                 >
                   <Plus size={16} />

@@ -659,6 +659,24 @@ export const billingRecords = pgTable("billing_records", {
   tossResponse: jsonb("toss_response"),
   failReason: text("fail_reason"),
   paidAt: timestamp("paid_at"),
+  retryCount: integer("retry_count").notNull().default(0),
+  nextRetryAt: timestamp("next_retry_at"),
+  lastRetryAt: timestamp("last_retry_at"),
+  maxRetries: integer("max_retries").notNull().default(3),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const webhookDeliveries = pgTable("webhook_deliveries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  tossEventId: text("toss_event_id").unique(), // For idempotency
+  webhookName: text("webhook_name").notNull().default("toss_payment"),
+  eventType: text("event_type").notNull(), // BILLING.PAYMENT.DONE, etc.
+  status: text("status").notNull().default("pending"), // pending, processed, failed, dead_letter
+  receiptSignature: text("receipt_signature").notNull(),
+  payload: jsonb("payload").notNull(),
+  processedAt: timestamp("processed_at"),
+  errorMessage: text("error_message"),
+  processAttempt: integer("process_attempt").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -1373,83 +1391,6 @@ export const zoneRanges = pgTable("zone_ranges", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// ─── 현장 톡방 ───
-
-export const siteChatRooms = pgTable("site_chat_rooms", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  siteId: uuid("site_id")
-    .notNull()
-    .references(() => sites.id),
-  workspaceId: uuid("workspace_id")
-    .notNull()
-    .references(() => workspaces.id),
-  title: text("title").notNull(),
-  clientPortalSlug: text("client_portal_slug").unique(),
-  clientPortalEnabled: boolean("client_portal_enabled").notNull().default(false),
-  clientPortalPasswordHash: text("client_portal_password_hash"),
-  isSample: boolean("is_sample").notNull().default(false),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const siteChatMessages = pgTable("site_chat_messages", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  roomId: uuid("room_id")
-    .notNull()
-    .references(() => siteChatRooms.id, { onDelete: "cascade" }),
-  senderId: text("sender_id").references(() => user.id),
-  senderType: text("sender_type").notNull(), // owner, team, partner, client, system
-  senderDisplayName: text("sender_display_name").notNull(),
-  content: text("content"),
-  contentType: text("content_type").notNull().default("text"), // text, image, file, system_event
-  replyToId: uuid("reply_to_id"),
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  editedAt: timestamp("edited_at"),
-  deletedAt: timestamp("deleted_at"),
-});
-
-export const siteChatAttachments = pgTable("site_chat_attachments", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  messageId: uuid("message_id")
-    .notNull()
-    .references(() => siteChatMessages.id, { onDelete: "cascade" }),
-  storagePath: text("storage_path").notNull(),
-  fileType: text("file_type"),
-  fileSize: bigint("file_size", { mode: "number" }),
-  thumbnailPath: text("thumbnail_path"),
-  exifTakenAt: timestamp("exif_taken_at"),
-  autoCategorizedTag: text("auto_categorized_tag"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const siteChatParticipants = pgTable("site_chat_participants", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  roomId: uuid("room_id")
-    .notNull()
-    .references(() => siteChatRooms.id, { onDelete: "cascade" }),
-  userId: text("user_id").references(() => user.id),
-  role: text("role").notNull(), // owner, team, partner, client
-  displayName: text("display_name").notNull(),
-  joinedVia: text("joined_via").notNull().default("direct"), // direct, invite_link, client_portal
-  lastReadAt: timestamp("last_read_at"),
-  notificationEnabled: boolean("notification_enabled").notNull().default(true),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const siteChatPinnedSummary = pgTable("site_chat_pinned_summary", {
-  roomId: uuid("room_id")
-    .primaryKey()
-    .references(() => siteChatRooms.id, { onDelete: "cascade" }),
-  currentProgressPercent: integer("current_progress_percent").default(0),
-  nextMilestoneTitle: text("next_milestone_title"),
-  nextMilestoneDate: date("next_milestone_date"),
-  pendingPaymentAmount: bigint("pending_payment_amount", { mode: "number" }).default(0),
-  pendingPaymentDueDate: date("pending_payment_due_date"),
-  openDefectsCount: integer("open_defects_count").default(0),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
 // ─── 전자서명 ───
 
 export const signatureRequests = pgTable("signature_requests", {
@@ -1534,6 +1475,67 @@ export const n8nWebhookLogs = pgTable("n8n_webhook_logs", {
   responseStatus: integer("response_status"),
   responseBody: text("response_body"),
   executedAt: timestamp("executed_at").notNull().defaultNow(),
+});
+
+// ─── CRON 실행 로그 (AI-14) ───
+
+/**
+ * Vercel CRON 실행 결과를 기록한다.
+ * - `success`: 핸들러가 에러 없이 완료되었는지
+ * - `processed`: 처리 건수 (핸들러가 반환한 숫자 지표)
+ * - `metadata`: 핸들러가 반환한 추가 지표 (JSON)
+ * - `errorMessage` / `errorStack`: 실패 시 에러 상세
+ * - 실패 시 Slack/이메일 알림을 보내고, 최근 연속 실패 수를 조회해 에스컬레이션할 때 사용한다.
+ */
+export const cronExecutionLogs = pgTable("cron_execution_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  cronName: text("cron_name").notNull(),
+  success: boolean("success").notNull(),
+  processed: integer("processed").default(0),
+  durationMs: integer("duration_ms").notNull(),
+  metadata: jsonb("metadata"),
+  errorMessage: text("error_message"),
+  errorStack: text("error_stack"),
+  startedAt: timestamp("started_at").notNull(),
+  completedAt: timestamp("completed_at").notNull().defaultNow(),
+});
+
+// ─── 랜딩페이지: 데모 신청 ───
+
+export const demoRequests = pgTable("demo_requests", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  companyName: text("company_name").notNull(),
+  ownerName: text("owner_name").notNull(),
+  phone: text("phone").notNull(),
+  email: text("email").notNull(),
+  companySize: text("company_size").notNull(), // solo | small | medium | large
+  currentPain: text("current_pain"),
+  source: text("source"),
+  status: text("status").notNull().default("new"), // new | contacted | scheduled | done
+  notifiedAt: timestamp("notified_at"),
+  contactedAt: timestamp("contacted_at"),
+  scheduledAt: timestamp("scheduled_at"),
+  completedAt: timestamp("completed_at"),
+  memo: text("memo"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ─── 랜딩페이지: 이벤트 트래킹 ───
+
+export const landingEvents = pgTable("landing_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sessionId: text("session_id").notNull(),
+  eventType: text("event_type").notNull(), // page_view | section_view | cta_click | scroll_depth
+  sectionName: text("section_name"),
+  ctaName: text("cta_name"),
+  scrollDepth: integer("scroll_depth"),
+  utmSource: text("utm_source"),
+  utmMedium: text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  referrer: text("referrer"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // ─── 마케팅 대행 (Phase 1) ───

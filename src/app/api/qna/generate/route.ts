@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { qnaPosts } from "@/lib/db/schema";
 import { getCurrentMonthConfig, weightedPick } from "@/lib/qna/monthly-config";
+import { createCronRoute } from "@/lib/cron/monitor";
 
 const CATEGORY_LABELS: Record<string, string> = {
   estimate: "견적/비용",
@@ -165,14 +165,9 @@ ${ctaNote}
   return JSON.parse(jsonStr);
 }
 
-export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
+export const GET = createCronRoute({
+  name: "qna/generate",
+  handler: async () => {
     const todayKST = getTodayKST();
     const totalCount = randomInt(7, 15);
 
@@ -199,21 +194,19 @@ export async function GET(request: NextRequest) {
     });
 
     const inserted = await db.insert(qnaPosts).values(rows).returning();
+    const config = getCurrentMonthConfig();
+    const pending = rows.filter((r) => r.status === "pending").length;
+    const answered = rows.filter((r) => r.status === "answered").length;
 
-    return NextResponse.json({
-      success: true,
-      date: todayKST,
-      month: getCurrentMonthConfig().month,
-      season: getCurrentMonthConfig().season,
-      generated: inserted.length,
-      pending: rows.filter((r) => r.status === "pending").length,
-      answered: rows.filter((r) => r.status === "answered").length,
-    });
-  } catch (error) {
-    console.error("[QnA CRON] Error:", error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 },
-    );
-  }
-}
+    return {
+      processed: inserted.length,
+      metadata: {
+        date: todayKST,
+        month: config.month,
+        season: config.season,
+        pending,
+        answered,
+      },
+    };
+  },
+});

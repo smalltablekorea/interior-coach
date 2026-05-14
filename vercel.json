@@ -24,6 +24,20 @@
     {
       "path": "/api/cron/agency/monthly-reports",
       "schedule": "0 3 1 * *"
+      "path": "/api/billing/cron",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/billing/cron/retry",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/trial/nudge",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/notifications/schedule-reminder",
+      "schedule": "0 0 * * *"
     }
   ]
 }

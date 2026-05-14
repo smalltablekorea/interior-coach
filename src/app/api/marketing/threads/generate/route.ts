@@ -5,10 +5,15 @@ import { db } from "@/lib/db";
 import { sites, constructionPhases } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ok, err, serverError } from "@/lib/api/response";
+import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
 
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "write");
   if (!auth.ok) return auth.response;
+
+  // Plan-aware rate limiting (AI 과금 폭탄 방어 - AI-21)
+  const gate = await enforceAiRateLimit(auth.userId);
+  if (!gate.ok) return gate.response;
 
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY;

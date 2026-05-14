@@ -1,17 +1,16 @@
 import { NextRequest } from "next/server";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
-import { checkRateLimit, callAnthropicWithRetry, extractJson } from "@/lib/api/ai-helpers";
+import { callAnthropicWithRetry, extractJson } from "@/lib/api/ai-helpers";
+import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
 import { CATS, calcSub } from "@/lib/estimate-engine";
 
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("estimates", "write");
   if (!auth.ok) return auth.response;
 
-  const rateCheck = checkRateLimit(auth.userId);
-  if (!rateCheck.allowed) {
-    return err(`요청이 너무 많습니다. ${Math.ceil((rateCheck.retryAfterMs ?? 0) / 1000)}초 후 다시 시도해주세요.`, 429);
-  }
+  const gate = await enforceAiRateLimit(auth.userId);
+  if (!gate.ok) return gate.response;
 
   try {
     const body = await request.json();

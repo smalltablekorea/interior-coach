@@ -1,0 +1,29 @@
+"use client";
+
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { SubscriptionProvider } from "@/hooks/useSubscription";
+import { WorkspaceProvider } from "@/components/workspace/WorkspaceProvider";
+import Sidebar from "@/components/layout/Sidebar";
+import Header from "@/components/layout/Header";
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <AuthProvider>
+      <SubscriptionProvider>
+        <WorkspaceProvider>
+          <div className="min-h-screen">
+            <Sidebar />
+            <div className="md:ml-60 min-h-screen flex flex-col transition-all duration-200">
+              <Header />
+              <main className="flex-1 p-6 pb-24 md:pb-6">{children}</main>
+            </div>
+          </div>
+        </WorkspaceProvider>
+      </SubscriptionProvider>
+    </AuthProvider>
+  );
+}

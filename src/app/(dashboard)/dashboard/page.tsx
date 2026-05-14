@@ -41,6 +41,8 @@ import {
 import { fmtShort, fmtDate, cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api-client";
 import OnboardingModal from "@/components/onboarding/OnboardingModal";
+import TrialBanner from "@/components/onboarding/TrialBanner";
+import { useSubscription } from "@/hooks/useSubscription";
 import Link from "next/link";
 
 const MonthlyTrendChart = dynamic(
@@ -294,6 +296,7 @@ export default function DashboardPage() {
   const [drilldown, setDrilldown] = useState<DrilldownData | null>(null);
   const [drilldownLoading, setDrilldownLoading] = useState(false);
   const [showAllMenu, setShowAllMenu] = useState(false);
+  const { plan, status, billingCycle, trialEndsAt } = useSubscription();
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(() => {
     if (typeof window === "undefined") return new Set();
     const key = `dashboard-tasks-${new Date().toISOString().slice(0, 10)}`;
@@ -428,6 +431,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <OnboardingModal />
+      <TrialBanner trialEndsAt={trialEndsAt} plan={plan} status={status} />
 
       {/* ══════════════════════════════════════════════
           1. HEADER

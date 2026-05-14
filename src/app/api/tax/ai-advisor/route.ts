@@ -7,6 +7,7 @@ import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 import { requireFeature } from "@/lib/api/plan-guard";
+import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
 import { incrementUsage } from "@/lib/subscription";
 import { z } from "zod";
 import { validateBody } from "@/lib/api/validate";
@@ -45,6 +46,10 @@ export async function POST(request: NextRequest) {
   // 플랜 체크: aiTaxAdvisor는 starter 이상
   const planCheck = await requireFeature(uid, "aiTaxAdvisor");
   if (!planCheck.ok) return planCheck.response;
+
+  // 플랜 기반 분당 레이트 리밋 (AI 과금 방어)
+  const gate = await enforceAiRateLimit(uid, { plan: planCheck.plan });
+  if (!gate.ok) return gate.response;
 
   const validation = await validateBody(request, questionSchema);
   if (!validation.ok) return validation.response;

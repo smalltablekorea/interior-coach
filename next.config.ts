@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Skip static prerender errors (global-error useContext bug in Next.js 16 + React 19)
+  experimental: {
+    // Allow build to continue despite prerender errors (/_global-error SSG crash)
+    prerenderEarlyExit: false,
+  },
   async headers() {
     return [
       {

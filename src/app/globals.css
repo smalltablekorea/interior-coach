@@ -1,3 +1,4 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 @import "tailwindcss";
 
 :root {
@@ -44,7 +45,21 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: "Pretendard Variable", "Pretendard", var(--font-sans), -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* 견적코치 스타일 글래스 유틸 */
+.glass {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.glass-hover:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.emerald-glow {
+  box-shadow: 0 0 20px rgba(0, 196, 113, 0.15);
 }
 
 /* Scrollbar */
@@ -98,6 +113,50 @@ body {
 }
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ─── Landing Theme — 견적코치 톤앤매너 (Dark + Emerald + Pretendard) ─── */
+.landing-premium {
+  /* Pretendard alias — 기존 inline style fontFamily: var(--font-source-sans) 도 자동으로 Pretendard 사용 */
+  --font-source-sans: "Pretendard Variable", "Pretendard", system-ui, -apple-system, sans-serif;
+  --landing-bg: #111111;
+  --landing-fg: #ededed;
+  --landing-heading: #ffffff;
+  --landing-body: rgba(255, 255, 255, 0.55);
+  --landing-label: rgba(255, 255, 255, 0.85);
+  --landing-accent: #00C471;
+  --landing-accent-hover: #00E084;
+  --landing-accent-light: rgba(0, 196, 113, 0.10);
+  --landing-accent-border: rgba(0, 196, 113, 0.25);
+  --landing-green: #00C471;
+  --landing-green-light: rgba(0, 196, 113, 0.10);
+  --landing-border: rgba(255, 255, 255, 0.08);
+  --landing-card: rgba(255, 255, 255, 0.03);
+  --landing-card-alt: rgba(255, 255, 255, 0.05);
+  --landing-dark-section: #0a0a0a;
+  --landing-shadow-blue: rgba(0, 0, 0, 0.4);
+  --landing-shadow-black: rgba(0, 0, 0, 0.6);
+  --landing-shadow-ambient: rgba(0, 0, 0, 0.3);
+  --landing-ruby: #00C471;
+  --landing-magenta: #00E084;
+  background: var(--landing-bg);
+  color: var(--landing-fg);
+  font-family: "Pretendard Variable", "Pretendard", system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.landing-premium *::selection {
+  background: rgba(0, 196, 113, 0.25);
+}
+.landing-premium h1,
+.landing-premium h2,
+.landing-premium h3,
+.landing-premium h4 {
+  color: var(--landing-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+@keyframes landing-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
 }
 
 /* Stagger animation delays */

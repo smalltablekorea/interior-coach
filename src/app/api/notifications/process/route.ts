@@ -1,25 +1,18 @@
 import { processQueue } from "@/lib/notifications/queue";
-import { ok, err, serverError } from "@/lib/api/response";
+import { createCronRoute } from "@/lib/cron/monitor";
 
-/** Vercel Cron: 큐 처리 (5분 간격) */
-export async function POST(request: Request) {
-  // Cron 인증
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return err("Unauthorized", 401);
-  }
-
-  try {
+/** Vercel Cron: 알림 큐 처리 (매일 09:00) */
+export const POST = createCronRoute({
+  name: "notifications/process",
+  handler: async () => {
     const result = await processQueue();
-
-    return ok({
-      success: true,
-      ...result,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("[NotificationProcess] Fatal error:", error);
-    return serverError(error);
-  }
-}
+    return {
+      processed: result.processed,
+      metadata: {
+        processed: result.processed,
+        failed: result.failed,
+        skipped: result.skipped,
+      },
+    };
+  },
+});
