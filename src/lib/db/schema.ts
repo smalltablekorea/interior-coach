@@ -1535,3 +1535,176 @@ export const n8nWebhookLogs = pgTable("n8n_webhook_logs", {
   responseBody: text("response_body"),
   executedAt: timestamp("executed_at").notNull().defaultNow(),
 });
+
+// ─── 마케팅 대행 (Phase 1) ───
+
+// 본문 markdown 내 이미지 마커 + 위치 정보. Phase 4 복붙 UX에서
+// 클립보드 복사 시 마커 텍스트를 본문에서 제거하고 발행 화면에는
+// 시각적 placeholder만 보여주기 위한 메타.
+export type AgencyImageMarker = {
+  marker: string; // 본문에 박힌 토큰. 예: "[이미지1]"
+  imageUrl: string;
+  caption?: string | null;
+  position?: {
+    paragraphIndex?: number | null; // 단락 인덱스 (0-based)
+    charOffset?: number | null; // 단락 내 문자 오프셋
+    nodePath?: string | null; // 마크다운 AST 노드 경로 또는 CSS selector
+  } | null;
+};
+
+// Phase 3 자재 단가 검증용 슬롯 (Phase 1에서는 미사용, 컬럼만 선행).
+export type AgencyMaterialCitation = {
+  materialId: string;
+  mentionedPrice: number;
+  verifiedPrice: number | null;
+  deltaPct: number | null;
+};
+
+export const agencyClients = pgTable("agency_clients", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  operatorWorkspaceId: uuid("operator_workspace_id")
+    .notNull()
+    .references(() => workspaces.id),
+  linkedWorkspaceId: uuid("linked_workspace_id").references(() => workspaces.id),
+  businessName: text("business_name").notNull(),
+  contactPerson: text("contact_person"),
+  contactPhone: text("contact_phone"),
+  contactEmail: text("contact_email"),
+  brandTone: jsonb("brand_tone"),
+  targetAudience: text("target_audience"),
+  categories: jsonb("categories").$type<string[]>(),
+  region: text("region"),
+  naverBlogUrl: text("naver_blog_url"),
+  threadsHandle: text("threads_handle"),
+  instagramBusinessId: text("instagram_business_id"),
+  contractStart: date("contract_start"),
+  contractMonths: integer("contract_months").notNull().default(3),
+  monthlyPrice: integer("monthly_price").notNull().default(300000),
+  status: text("status").notNull().default("active"), // active | paused | churned
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
+});
+
+export const agencyClientPortalTokens = pgTable("agency_client_portal_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => agencyClients.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  status: text("status").notNull().default("active"), // active | rotated | revoked
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  lastUsedAt: timestamp("last_used_at"),
+  // self-FK: SQL 마이그레이션에서 외래키 선언. Drizzle TS에서는 같은 테이블 참조
+  // 클로저 패턴이 hoisting 이슈를 일으킬 수 있어 컬럼만 선언.
+  rotatedToTokenId: uuid("rotated_to_token_id"),
+  revokedAt: timestamp("revoked_at"),
+  revokedBy: text("revoked_by").references(() => user.id),
+  revokedReason: text("revoked_reason"),
+});
+
+export const agencyBrandAssets = pgTable("agency_brand_assets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => agencyClients.id, { onDelete: "cascade" }),
+  type: text("type").notNull(), // past_work | style_ref | logo | other
+  imageUrl: text("image_url").notNull(),
+  caption: text("caption"),
+  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
+});
+
+export const agencyWeeklyUploads = pgTable("agency_weekly_uploads", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => agencyClients.id, { onDelete: "cascade" }),
+  weekOfDate: date("week_of_date").notNull(),
+  imageUrls: jsonb("image_urls").$type<string[]>().notNull(),
+  notesText: text("notes_text"),
+  uploadedVia: text("uploaded_via").notNull().default("portal"), // portal | admin
+  uploadedAt: timestamp("uploaded_at").notNull().defaultNow(),
+  // Phase 2: 일괄 180일 보관. NULL이면 영구 (Phase 5에서 클라이언트별 토글)
+  retainUntil: timestamp("retain_until"),
+});
+
+export const agencyContentJobs = pgTable("agency_content_jobs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => agencyClients.id, { onDelete: "cascade" }),
+  weeklyUploadId: uuid("weekly_upload_id").references(() => agencyWeeklyUploads.id),
+  channel: text("channel").notNull(), // naver_blog | threads | instagram
+  status: text("status").notNull().default("generating"), // generating | qc_failed | ready | published | cancelled
+  generationAttempts: integer("generation_attempts").notNull().default(0),
+  aiInputSnapshot: jsonb("ai_input_snapshot"),
+  generatedAt: timestamp("generated_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const agencyContentDrafts = pgTable("agency_content_drafts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  jobId: uuid("job_id")
+    .notNull()
+    .unique()
+    .references(() => agencyContentJobs.id, { onDelete: "cascade" }),
+  title: text("title"),
+  bodyMarkdown: text("body_markdown").notNull(),
+  hashtags: jsonb("hashtags").$type<string[]>(),
+  imageMarkers: jsonb("image_markers").$type<AgencyImageMarker[]>(),
+  materialCitations: jsonb("material_citations").$type<AgencyMaterialCitation[]>(),
+  qcScore: integer("qc_score"),
+  qcFeedback: text("qc_feedback"),
+  qcPassedAt: timestamp("qc_passed_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const agencyPublications = pgTable("agency_publications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  draftId: uuid("draft_id")
+    .notNull()
+    .references(() => agencyContentDrafts.id, { onDelete: "cascade" }),
+  channel: text("channel").notNull(),
+  publishStartedAt: timestamp("publish_started_at"), // 네이버 복붙 흐름 "발행 시작" 시점
+  publishedAt: timestamp("published_at"),
+  publishDurationSeconds: integer("publish_duration_seconds"), // 네이버만 측정
+  externalPostUrl: text("external_post_url"),
+  searchRankCheckScheduledAt: timestamp("search_rank_check_scheduled_at"),
+  searchRankResult: jsonb("search_rank_result"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const agencyAlerts = pgTable("agency_alerts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  clientId: uuid("client_id").references(() => agencyClients.id, { onDelete: "cascade" }),
+  jobId: uuid("job_id").references(() => agencyContentJobs.id, { onDelete: "set null" }),
+  publicationId: uuid("publication_id").references(() => agencyPublications.id, { onDelete: "set null" }),
+  type: text("type").notNull(), // qc_3_fail | publish_overrun | sentiment_drop | other
+  severity: text("severity").notNull().default("warning"), // info | warning | critical
+  message: text("message").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+  resolvedBy: text("resolved_by").references(() => user.id),
+});
+
+export const agencyMonthlyReports = pgTable(
+  "agency_monthly_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clientId: uuid("client_id")
+      .notNull()
+      .references(() => agencyClients.id, { onDelete: "cascade" }),
+    yearMonth: text("year_month").notNull(),
+    totalPublished: integer("total_published").notNull().default(0),
+    searchVisibility: jsonb("search_visibility"),
+    avgPublishTimeSeconds: integer("avg_publish_time_seconds"),
+    reportUrl: text("report_url"),
+    generatedAt: timestamp("generated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    unique("agency_monthly_reports_client_month_idx").on(table.clientId, table.yearMonth),
+  ],
+);

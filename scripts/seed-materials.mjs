@@ -1,11 +1,12 @@
+import "dotenv/config";
 import { readFileSync } from "fs";
 import { Client } from "pg";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_URL =
-  "postgresql://neondb_owner:npg_W9TOnGB3zKFX@ep-square-pond-a11pvsyy-pooler.ap-southeast-1.aws.neon.tech/interiorcoach?sslmode=require";
+const DB_URL = process.env.DATABASE_URL;
+if (!DB_URL) throw new Error("DATABASE_URL is required");
 
 function parseCSV(text) {
   const lines = text.split("\n").filter((l) => l.trim());

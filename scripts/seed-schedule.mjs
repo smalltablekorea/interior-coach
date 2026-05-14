@@ -1,7 +1,8 @@
+import "dotenv/config";
 import { Client } from "pg";
 
-const DB_URL =
-  "postgresql://neondb_owner:npg_W9TOnGB3zKFX@ep-square-pond-a11pvsyy-pooler.ap-southeast-1.aws.neon.tech/interiorcoach?sslmode=require";
+const DB_URL = process.env.DATABASE_URL;
+if (!DB_URL) throw new Error("DATABASE_URL is required");
 
 async function main() {
   const client = new Client({ connectionString: DB_URL, ssl: { rejectUnauthorized: false } });

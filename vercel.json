@@ -16,6 +16,14 @@
     {
       "path": "/api/notifications/check-payments",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/agency/check-search-rank",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/agency/monthly-reports",
+      "schedule": "0 3 1 * *"
     }
   ]
 }
