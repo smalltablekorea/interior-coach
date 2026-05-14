@@ -36,8 +36,8 @@ export default function LandingNav() {
     <nav
       className={`sticky top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-300 ${
         scrolled
-          ? "bg-[rgba(255,255,255,0.85)] backdrop-blur-[12px] border-b border-[var(--landing-border)]"
-          : "bg-transparent border-b border-transparent"
+          ? "bg-[rgba(17,17,17,0.85)] backdrop-blur-[12px] border-b border-[var(--landing-border)]"
+          : "bg-[var(--landing-bg)] border-b border-transparent"
       }`}
       style={{ fontFamily: "var(--font-source-sans), sans-serif" }}
     >
@@ -106,7 +106,7 @@ export default function LandingNav() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden fixed inset-0 top-16 z-40 bg-[rgba(255,255,255,0.97)] backdrop-blur-[12px]"
+            className="md:hidden fixed inset-0 top-16 z-40 bg-[rgba(17,17,17,0.97)] backdrop-blur-[12px]"
           >
             <motion.div
               initial={{ opacity: 0, y: -8 }}

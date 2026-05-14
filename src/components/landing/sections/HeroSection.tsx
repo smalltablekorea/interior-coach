@@ -183,13 +183,14 @@ export default function HeroSection() {
             {h.eyebrow}
           </motion.span>
 
-          {/* Headline */}
+          {/* Headline — SB 어그로 OTF M */}
           <motion.h1
             variants={fadeUp}
-            className="mt-7 text-[clamp(34px,5.2vw,56px)] leading-[1.06] tracking-[-0.03em] text-[var(--landing-heading)]"
+            className="mt-7 text-[clamp(34px,5.2vw,56px)] leading-[1.15] tracking-[-0.02em] text-[var(--landing-heading)]"
             style={{
-              fontFamily: "var(--font-source-sans)",
-              fontWeight: 300,
+              fontFamily:
+                '"SB Aggro OTF M", "Pretendard Variable", "Pretendard", system-ui, sans-serif',
+              fontWeight: 500,
             }}
           >
             {h.titleLines.map((line, i) => {
@@ -242,18 +243,7 @@ export default function HeroSection() {
                 className="transition-transform duration-200 group-hover:translate-x-0.5"
               />
             </Link>
-            <Link
-              href={h.secondaryCta.href}
-              aria-label={`${h.secondaryCta.label} — 데모 신청 이동`}
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-md border border-[var(--landing-border)] text-[var(--landing-heading)] transition-all duration-200 hover:bg-[var(--landing-card-alt)] hover:border-[var(--landing-accent-border)]"
-              style={{
-                fontFamily: "var(--font-source-sans)",
-                fontWeight: 400,
-                borderRadius: "6px",
-              }}
-            >
-              {h.secondaryCta.label}
-            </Link>
+            {/* 데모 신청 버튼 제거 (요청) */}
           </motion.div>
 
           {/* Meta text */}

@@ -62,15 +62,7 @@ export default function FinalCTASection() {
               <ArrowRight size={18} strokeWidth={2} />
             </Link>
 
-            {/* Secondary — ghost with white border */}
-            <Link
-              href={c.secondary.href}
-              aria-label={`${c.secondary.label} — 데모 신청 이동`}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/20 px-8 py-4 text-[15px] text-white transition-colors hover:border-white/40 hover:bg-white/[0.06]"
-              style={{ fontWeight: 400 }}
-            >
-              {c.secondary.label}
-            </Link>
+            {/* 데모 신청 버튼 제거 (요청) */}
           </div>
         </FadeIn>
 

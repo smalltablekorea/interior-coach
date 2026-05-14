@@ -18,7 +18,7 @@ export const landingCopy = {
 
   hero: {
     eyebrow: "인테리어 업체 현장 운영 올인원 SaaS",
-    titleLines: ["현장 5개, 폴더 50개,", "엑셀 100장 — 이제 한 곳에서."],
+    titleLines: ["현장 5개, 폴더 12개,", "엑셀 20장 — 이제 한 곳에서."],
     subtitle:
       "공정 매니저, 현장 손익, 견적·계약·정산까지.\n현장 하나당 화면 하나로 정리됩니다.",
     primaryCta: { label: "14일 무료 시작", href: "/auth/signup" },

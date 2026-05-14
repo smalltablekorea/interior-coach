@@ -7,7 +7,6 @@ const productLinks = [
 ];
 
 const supportLinks = [
-  { label: "데모 신청", href: "/demo-request" },
   { label: "고객센터", href: "/qna" },
 ];
 
