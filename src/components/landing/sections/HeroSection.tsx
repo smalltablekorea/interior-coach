@@ -5,7 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { landingCopy } from "@/content/landing";
-import BeforeAfterSlider from "../BeforeAfterSlider";
+import FeatureMockup from "../FeatureMockup";
 
 /* ──────────────────────────────────────────────────────────
    Animated counter hook — counts up from 0 to target
@@ -39,23 +39,12 @@ function useAnimatedCounter(
 }
 
 /* ──────────────────────────────────────────────────────────
-   Stats data
+   Stats data — 실제 검증 가능한 제품 사양만 사용 (사용자 수치 X)
    ────────────────────────────────────────────────────────── */
 const stats = [
-  { value: 3000, suffix: "+", label: "현장" },
-  { value: 12000, suffix: "+", label: "견적서" },
-  { value: 1200, suffix: "억+", label: "누적 거래" },
-];
-
-/* ──────────────────────────────────────────────────────────
-   Social proof logos (placeholder initials for demo)
-   ────────────────────────────────────────────────────────── */
-const socialProofLogos = [
-  "태현인테리어",
-  "모던하우스",
-  "준혁건설",
-  "하우스랩",
-  "공간플러스",
+  { value: 1294, suffix: "", label: "자재 단가 DB" },
+  { value: 12, suffix: "", label: "통합 기능 모듈" },
+  { value: 20, suffix: "+", label: "공종 분류" },
 ];
 
 /* ──────────────────────────────────────────────────────────
@@ -276,99 +265,24 @@ export default function HeroSection() {
             {h.meta}
           </motion.p>
 
-          {/* ── Social Proof Strip ── */}
-          <motion.div
-            variants={fadeUp}
-            className="mt-10 pt-8 border-t border-[var(--landing-border)]"
-          >
-            <p
-              className="text-sm text-[var(--landing-body)] mb-4"
-              style={{ fontFamily: "var(--font-source-sans)" }}
-            >
-              <span className="font-medium text-[var(--landing-heading)]">
-                1,200+
-              </span>{" "}
-              인테리어 업체가 선택했습니다
-            </p>
-            <div className="flex items-center gap-3">
-              {/* Company avatar logos */}
-              {socialProofLogos.map((name, i) => (
-                <div
-                  key={name}
-                  className="flex items-center justify-center w-9 h-9 rounded-md text-[10px] font-medium text-[var(--landing-accent)] bg-[var(--landing-accent-light)] border border-[var(--landing-accent-border)]"
-                  style={{
-                    fontFamily: "var(--font-source-sans)",
-                  }}
-                >
-                  {name.slice(0, 2)}
-                </div>
-              ))}
-              <span className="text-xs text-[var(--landing-body)] ml-1">
-                +1,195
-              </span>
-            </div>
-          </motion.div>
+          {/* Social Proof Strip 제거 — 검증되지 않은 사용자 수치 노출 금지 */}
         </div>
 
-        {/* ── Right Column: Before/After Slider ── */}
-        <motion.div variants={fadeUpSlow} className="relative">
-          {/* Decorative glow behind slider */}
+        {/* ── Right Column: 손익 + 업무일지 합성 목업 (실제 제품 UI 기반) ── */}
+        <motion.div variants={fadeUpSlow} className="relative grid gap-4">
+          {/* 배경 emerald glow */}
           <div
             aria-hidden
             className="hidden md:block absolute -top-12 -right-10 w-48 h-48 rounded-full"
             style={{
-              background: "rgba(83,58,253,0.08)",
+              background: "rgba(0,196,113,0.10)",
               filter: "blur(60px)",
             }}
           />
-          <div
-            aria-hidden
-            className="hidden md:block absolute -bottom-8 -left-8 w-36 h-36 rounded-full"
-            style={{
-              background: "rgba(249,107,238,0.06)",
-              filter: "blur(50px)",
-            }}
-          />
-
-          {/* Slider with premium blue-tinted shadow */}
-          <div
-            className="relative rounded-lg overflow-hidden"
-            style={{
-              borderRadius: "8px",
-              boxShadow:
-                "rgba(50,50,93,0.25) 0px 30px 45px -30px, rgba(0,0,0,0.1) 0px 18px 36px -18px",
-            }}
-          >
-            <BeforeAfterSlider />
+          <FeatureMockup kind="pnl" />
+          <div className="-mt-2 md:-mt-4 md:ml-8">
+            <FeatureMockup kind="dailyLog" />
           </div>
-
-          {/* Floating badge on slider */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 1.2, duration: 0.5 }}
-            className="absolute -bottom-4 -left-4 md:-left-6 px-4 py-2.5 rounded-md bg-[rgba(255,255,255,0.04)] backdrop-blur-[12px] border border-[var(--landing-border)]"
-            style={{
-              borderRadius: "6px",
-              boxShadow:
-                "rgba(50,50,93,0.12) 0px 6px 12px -2px, rgba(0,0,0,0.08) 0px 3px 7px -3px",
-              fontFamily: "var(--font-source-sans)",
-            }}
-          >
-            <p className="text-[11px] text-[var(--landing-body)] leading-none mb-1">
-              용산 아파트 리모델링
-            </p>
-            <p className="text-sm font-medium text-[var(--landing-heading)] leading-none flex items-center gap-1.5">
-              <span
-                className="inline-block w-2 h-2 rounded-full"
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--landing-accent), var(--landing-magenta))",
-                }}
-              />
-              공정 100% 완료
-            </p>
-          </motion.div>
         </motion.div>
       </motion.div>
 
