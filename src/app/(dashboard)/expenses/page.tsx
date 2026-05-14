@@ -344,32 +344,34 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] flex-1">
-          <Search size={18} className="text-[var(--muted)]" />
-          <input
-            type="text"
-            placeholder="내역, 현장명, 거래처로 검색..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent text-sm flex-1 focus:outline-none placeholder:text-[var(--muted)]"
-          />
+      {/* Filters — 1행: 검색 + 현장 / 2행: 카테고리 탭 */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] flex-1 min-w-0">
+            <Search size={18} className="text-[var(--muted)] shrink-0" />
+            <input
+              type="text"
+              placeholder="내역, 현장명, 거래처로 검색..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-transparent text-sm flex-1 min-w-0 focus:outline-none placeholder:text-[var(--muted)]"
+            />
+          </div>
+          <select
+            value={filterSite}
+            onChange={(e) => setFilterSite(e.target.value)}
+            className="px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm text-white focus:outline-none sm:w-56"
+          >
+            <option value="">전체 현장</option>
+            {sites.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
         </div>
-        <select
-          value={filterSite}
-          onChange={(e) => setFilterSite(e.target.value)}
-          className="px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-sm text-white focus:outline-none"
-        >
-          <option value="">전체 현장</option>
-          {sites.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setFilterCategory("")}
-            className={`px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+            className={`shrink-0 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
               !filterCategory
                 ? "bg-[var(--green)]/10 text-[var(--green)]"
                 : "bg-white/[0.04] text-[var(--muted)]"
@@ -381,7 +383,7 @@ export default function ExpensesPage() {
             <button
               key={cat}
               onClick={() => setFilterCategory(cat)}
-              className={`px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+              className={`shrink-0 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
                 filterCategory === cat
                   ? "bg-[var(--green)]/10 text-[var(--green)]"
                   : "bg-white/[0.04] text-[var(--muted)]"

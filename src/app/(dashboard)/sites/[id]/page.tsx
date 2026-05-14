@@ -482,8 +482,8 @@ export default function SiteDetailPage() {
           />
         </div>
         <div className="flex items-center justify-between mt-2 text-[10px] text-[var(--muted)]">
-          <span>시작 {fmtDate(site.startDate)}</span>
-          {site.endDate && (
+          <span>시작 {site.startDate ? fmtDate(site.startDate) : "미정"}</span>
+          {site.endDate ? (
             <span>
               완공 {fmtDate(site.endDate)}
               {(() => {
@@ -491,6 +491,8 @@ export default function SiteDetailPage() {
                 return d > 0 ? ` (D-${d})` : d < 0 ? ` (D+${Math.abs(d)})` : " (오늘)";
               })()}
             </span>
+          ) : (
+            <span>완공 미정</span>
           )}
         </div>
       </div>
@@ -631,35 +633,47 @@ export default function SiteDetailPage() {
               </div>
             ) : (
               <div className="space-y-3 text-sm">
-                {site.address && (
-                  <div className="flex items-start gap-3">
-                    <MapPin size={16} className="text-[var(--muted)] mt-0.5" />
-                    <span>{site.address}</span>
-                  </div>
-                )}
-                {site.customerName && (
-                  <div className="flex items-center gap-3">
-                    <User size={16} className="text-[var(--muted)]" />
-                    <Link href={`/customers/${site.customerId}`} className="text-[var(--green)] hover:underline">
-                      {site.customerName}
-                    </Link>
-                    {site.customerPhone && <span className="text-[var(--muted)]">{site.customerPhone}</span>}
-                  </div>
-                )}
-                {(site.startDate || site.endDate) && (
-                  <div className="flex items-center gap-3">
-                    <Calendar size={16} className="text-[var(--muted)]" />
+                <div className="flex items-start gap-3">
+                  <MapPin size={16} className="text-[var(--muted)] mt-0.5 shrink-0" />
+                  <span className={site.address ? "" : "text-[var(--muted)] italic"}>
+                    {site.address || "주소 미입력"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User size={16} className="text-[var(--muted)] shrink-0" />
+                  {site.customerName ? (
+                    <>
+                      <Link
+                        href={site.customerId ? `/customers/${site.customerId}` : "#"}
+                        className="text-[var(--green)] hover:underline"
+                      >
+                        {site.customerName}
+                      </Link>
+                      {site.customerPhone && (
+                        <span className="text-[var(--muted)]">{site.customerPhone}</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[var(--muted)] italic">고객 미연결</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar size={16} className="text-[var(--muted)] shrink-0" />
+                  {site.startDate || site.endDate ? (
                     <span>
-                      {site.startDate && fmtDate(site.startDate)}
-                      {site.endDate && ` ~ ${fmtDate(site.endDate)}`}
+                      {site.startDate ? fmtDate(site.startDate) : "시작 미정"}
+                      {" ~ "}
+                      {site.endDate ? fmtDate(site.endDate) : "종료 미정"}
                     </span>
-                  </div>
-                )}
-                {site.memo && (
-                  <div className="mt-3 p-3 rounded-xl bg-white/[0.03] text-[var(--muted)]">
-                    {site.memo}
-                  </div>
-                )}
+                  ) : (
+                    <span className="text-[var(--muted)] italic">일정 미입력</span>
+                  )}
+                </div>
+                <div className="mt-3 p-3 rounded-xl bg-white/[0.03] text-[var(--muted)]">
+                  {site.memo || (
+                    <span className="italic opacity-70">메모 없음 — 편집에서 추가하세요</span>
+                  )}
+                </div>
               </div>
             )}
           </div>

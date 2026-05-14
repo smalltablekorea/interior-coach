@@ -185,6 +185,15 @@ export default function SettlementPage() {
         {/* Category Budget vs Actual */}
         <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
           <h3 className="text-sm text-[var(--muted)] mb-4">공종별 예산 vs 실제</h3>
+          {current.categories.length === 0 ? (
+            <div className="py-10 text-center text-sm text-[var(--muted)]">
+              <BarChart3 size={28} className="mx-auto mb-3 opacity-40" />
+              <p>공종별 예산 데이터가 없습니다.</p>
+              <p className="text-xs mt-1 opacity-70">
+                견적·계약을 등록하면 공종별 예산이 자동 집계됩니다.
+              </p>
+            </div>
+          ) : (
           <div className="space-y-3">
             {current.categories.map((cat) => {
               const maxVal = Math.max(cat.budget, cat.actual);
@@ -238,6 +247,7 @@ export default function SettlementPage() {
               );
             })}
           </div>
+          )}
         </div>
       </div>
 

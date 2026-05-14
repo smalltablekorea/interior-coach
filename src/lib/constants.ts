@@ -64,7 +64,9 @@ export const ESTIMATE_STATUSES = [
 
 export const PAYMENT_TYPES = ["계약금", "착수금", "중도금", "잔금"] as const;
 
-export const PHASE_STATUSES = ["대기", "진행중", "완료", "보류"] as const;
+// /api/schedule 과 /schedule 페이지가 "예정"을 사용하고, /construction 만 과거 "대기"를 사용했음.
+// 데이터·표시 통일을 위해 "예정"으로 정렬. (기존 DB의 "대기" 값은 select 옵션에 자동 보충해 호환.)
+export const PHASE_STATUSES = ["예정", "진행중", "완료", "보류"] as const;
 
 export const ORDER_STATUSES = ["발주", "배송중", "입고", "취소"] as const;
 

@@ -219,8 +219,14 @@ export default function SitesPage() {
                 </p>
               </div>
               <div className="text-right text-xs text-[var(--muted)]">
-                {s.startDate && <p>시작 {fmtDate(s.startDate)}</p>}
-                {s.endDate && <p>종료 {fmtDate(s.endDate)}</p>}
+                {s.startDate || s.endDate ? (
+                  <>
+                    <p>시작 {s.startDate ? fmtDate(s.startDate) : "미정"}</p>
+                    <p>종료 {s.endDate ? fmtDate(s.endDate) : "미정"}</p>
+                  </>
+                ) : (
+                  <p className="opacity-70">일정 미입력</p>
+                )}
               </div>
             </Link>
           ))}

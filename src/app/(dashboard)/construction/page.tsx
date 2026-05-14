@@ -51,7 +51,7 @@ export default function ConstructionPage() {
     plannedStart: "",
     plannedEnd: "",
     progress: "0",
-    status: "대기",
+    status: "예정",
     memo: "",
   });
   const [deletePhaseId, setDeletePhaseId] = useState<string | null>(null);
@@ -363,6 +363,10 @@ export default function ConstructionPage() {
               onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
               className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
             >
+              {/* TRADES 에 없는 레거시/커스텀 공종(예: "바닥 보양")도 표시되도록 현재값을 상단 옵션으로 보충 */}
+              {editForm.category && !(TRADES as readonly string[]).includes(editForm.category) && (
+                <option value={editForm.category}>{editForm.category} (커스텀)</option>
+              )}
               {TRADES.map((t) => (
                 <option key={t} value={t}>{t}</option>
               ))}
@@ -407,6 +411,10 @@ export default function ConstructionPage() {
                 onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] text-sm focus:border-[var(--green)] focus:outline-none"
               >
+                {/* 레거시 "대기" 데이터도 select에 매핑되도록 보충 옵션 */}
+                {editForm.status && !(PHASE_STATUSES as readonly string[]).includes(editForm.status) && (
+                  <option value={editForm.status}>{editForm.status}</option>
+                )}
                 {PHASE_STATUSES.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}

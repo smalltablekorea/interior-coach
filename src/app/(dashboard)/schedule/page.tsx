@@ -235,6 +235,19 @@ export default function SchedulePage() {
 
   useEffect(() => { fetchData(currentMonth); }, [currentMonth]);
 
+  // 캘린더 진입 시 현재 월 블록으로 자동 스크롤 (loading false 직후 1회).
+  // useMemo 결과가 DOM에 마운트된 다음 프레임에서 실행되어야 정확히 잡힘.
+  useEffect(() => {
+    if (loading) return;
+    const target = document.getElementById(`calendar-month-${currentMonth}`);
+    if (target) {
+      // 헤더 sticky 영역 보정 — 살짝 위로 여유 두고 스크롤
+      const y = target.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+    // currentMonth 가 바뀔 때마다 한 번만 정렬
+  }, [loading, currentMonth]);
+
   const prevMonth = () => {
     const [y, m] = currentMonth.split("-").map(Number);
     const d = new Date(y, m - 2, 1);
@@ -524,7 +537,12 @@ export default function SchedulePage() {
             {multiMonthCalendar.map((month) => {
               const monthStr = `${month.yr}-${String(month.mo).padStart(2, "0")}`;
               return (
-                <div key={monthStr} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
+                <div
+                  key={monthStr}
+                  id={`calendar-month-${monthStr}`}
+                  data-month={monthStr}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden"
+                >
                   {/* 월 헤더 */}
                   <div className="px-4 py-2.5 border-b border-[var(--border)] bg-[var(--green)]/[0.04]">
                     <h3 className="text-sm font-bold text-[var(--green)]">{month.label}</h3>
