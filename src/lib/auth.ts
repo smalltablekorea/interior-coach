@@ -36,6 +36,13 @@ export const auth = betterAuth({
             // disableDefaultScope 로 기본 비활성 + 닉네임만 명시.
             disableDefaultScope: true,
             scope: ["profile_nickname"],
+            // 비즈 앱 미등록 상태에서는 카카오가 이메일을 안 줌 → user.email NOT NULL 제약 위반 →
+            // 콜백이 silent fail 후 홈으로 리다이렉트. 카카오 id 기반 합성 이메일로 우회.
+            // 비즈 앱 전환 후 account_email scope 활성화되면 이 매핑 제거 가능.
+            mapProfileToUser: (profile) => ({
+              email: `kakao_${profile.id}@kakao.interiorcoach.local`,
+              emailVerified: false,
+            }),
           },
         }
       : {}),
