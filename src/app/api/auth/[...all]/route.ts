@@ -53,7 +53,23 @@ export async function GET(req: NextRequest) {
     // OAuth 콜백(/callback/google, /callback/kakao 등)과 그 외 GET 경로는
     // better-auth 기본 핸들러에 위임. 콜백은 redirect + Set-Cookie 응답을
     // 반환하므로 커스텀 쿠키 서명 로직 우회 가능.
-    return auth.handler(req);
+    const res = await auth.handler(req);
+    // 디버그: 콜백 처리 결과 로깅
+    if (path.startsWith("/callback/")) {
+      const setCookie = res.headers.get("set-cookie");
+      const location = res.headers.get("location");
+      const url = new URL(req.url);
+      console.log("[Auth Callback]", path, {
+        status: res.status,
+        hasSetCookie: !!setCookie,
+        setCookiePreview: setCookie?.slice(0, 80),
+        location,
+        hasCode: url.searchParams.has("code"),
+        hasError: url.searchParams.get("error"),
+        errorDesc: url.searchParams.get("error_description"),
+      });
+    }
+    return res;
   } catch (e) {
     console.error("[Auth GET]", path, e);
     return NextResponse.json(
