@@ -31,6 +31,9 @@ export const auth = betterAuth({
           kakao: {
             clientId: process.env.KAKAO_CLIENT_ID,
             clientSecret: process.env.KAKAO_CLIENT_SECRET,
+            // 비즈 앱 미등록 상태에서는 account_email/profile_image 권한 없음 → KOE205.
+            // 닉네임만 요청. 비즈 앱 전환 후 ["profile_nickname","account_email"] 등으로 확장 가능.
+            scope: ["profile_nickname"],
           },
         }
       : {}),
