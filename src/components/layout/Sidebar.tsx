@@ -30,10 +30,12 @@ import {
   ShieldAlert,
   Wrench,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { isAgencyOperator } from "@/lib/agency/operator";
 import PlanBadge from "@/components/subscription/PlanBadge";
 import type { FeatureKey } from "@/lib/plans";
 import { checkPermission, pathToCategory, type WorkspaceRole } from "@/lib/workspace/permissions";
@@ -43,6 +45,7 @@ interface NavItem {
   icon: typeof LayoutDashboard;
   label: string;
   requiredFeature?: FeatureKey;
+  badgeKey?: "agencyAlerts";
 }
 
 interface NavGroup {
@@ -51,6 +54,7 @@ interface NavGroup {
   icon: typeof ClipboardList;
   defaultOpen: boolean;
   items: NavItem[];
+  operatorOnly?: boolean;
 }
 
 const NAV_GROUPS: NavGroup[] = [
@@ -95,6 +99,19 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/settings", icon: Settings, label: "설정" },
     ],
   },
+  {
+    key: "agency",
+    label: "마케팅 대행",
+    icon: Megaphone,
+    defaultOpen: false,
+    operatorOnly: true,
+    items: [
+      { href: "/agency", icon: LayoutDashboard, label: "대행 대시보드" },
+      { href: "/agency/clients", icon: Users, label: "클라이언트" },
+      { href: "/agency/jobs", icon: FileText, label: "콘텐츠 잡" },
+      { href: "/agency/alerts", icon: BarChart3, label: "알림", badgeKey: "agencyAlerts" },
+    ],
+  },
 ];
 
 const MOBILE_TABS = [
@@ -109,7 +126,25 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { plan, checkFeature } = useSubscription();
   const { workspace } = useWorkspace();
+  const { user } = useAuth();
   const myRole = (workspace?.myRole || "owner") as WorkspaceRole;
+  const isOperator = isAgencyOperator(user?.email);
+  const visibleGroups = NAV_GROUPS.filter((g) => !g.operatorOnly || isOperator);
+  const [agencyAlertsCount, setAgencyAlertsCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (!isOperator) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/agency/alerts?unresolved=true&limit=1");
+        if (!r.ok) return;
+        const j = await r.json();
+        if (!cancelled) setAgencyAlertsCount(j.unresolvedCount || 0);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [isOperator, pathname]);
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(NAV_GROUPS.map((g) => [g.key, g.defaultOpen])),
@@ -134,13 +169,14 @@ export default function Sidebar() {
 
     const active = isActive(item.href);
     const isLocked = item.requiredFeature ? !checkFeature(item.requiredFeature).allowed : false;
+    const badge = item.badgeKey === "agencyAlerts" ? agencyAlertsCount : 0;
 
     return (
       <Link
         key={item.href}
         href={item.href}
         className={cn(
-          "flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all",
+          "flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-all relative",
           active
             ? "bg-[var(--green)]/10 text-[var(--green)]"
             : "text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--border)]",
@@ -149,9 +185,21 @@ export default function Sidebar() {
         <item.icon size={18} />
         {!collapsed && (
           <span className="flex-1 flex items-center justify-between">
-            {item.label}
+            <span className="flex items-center gap-1.5">
+              {item.label}
+              {badge > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-semibold leading-none">
+                  {badge}
+                </span>
+              )}
+            </span>
             {isLocked && <Lock size={12} className="text-[var(--muted)]" />}
             {isReadOnly && !isLocked && <Eye size={12} className="text-[var(--muted)]" />}
+          </span>
+        )}
+        {collapsed && badge > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] font-semibold leading-none flex items-center justify-center">
+            {badge > 9 ? "9+" : badge}
           </span>
         )}
       </Link>
@@ -185,7 +233,7 @@ export default function Sidebar() {
 
         {/* Grouped Nav */}
         <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-1">
-          {NAV_GROUPS.map((group) => {
+          {visibleGroups.map((group) => {
             const isOpen = openGroups[group.key];
             const hasActiveChild = group.items.some((item) => isActive(item.href));
 
@@ -292,7 +340,7 @@ export default function Sidebar() {
             />
             <div className="absolute bottom-16 left-0 right-0 z-40 bg-[var(--sidebar)] border-t border-[var(--border)] rounded-t-2xl p-4 max-h-[60vh] overflow-y-auto animate-fade-up">
               <div className="w-10 h-1 rounded-full bg-[var(--border)] mx-auto mb-4" />
-              {NAV_GROUPS.map((group) => (
+              {visibleGroups.map((group) => (
                 <div key={group.key} className="mb-4">
                   <p className="text-[10px] text-[var(--muted)] font-medium uppercase tracking-wider px-2 mb-2 flex items-center gap-1.5">
                     <group.icon size={12} /> {group.label}

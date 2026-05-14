@@ -1,6 +1,9 @@
+import "dotenv/config";
 import pg from "pg";
 
-const DATABASE_URL = "postgresql://neondb_owner:npg_W9TOnGB3zKFX@ep-square-pond-a11pvsyy-pooler.ap-southeast-1.aws.neon.tech/interiorcoach?sslmode=require";
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) throw new Error("DATABASE_URL is required");
+
 const client = new pg.Client({ connectionString: DATABASE_URL });
 
 async function seed() {
