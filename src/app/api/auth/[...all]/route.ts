@@ -50,7 +50,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(session);
     }
 
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // OAuth 콜백(/callback/google, /callback/kakao 등)과 그 외 GET 경로는
+    // better-auth 기본 핸들러에 위임. 콜백은 redirect + Set-Cookie 응답을
+    // 반환하므로 커스텀 쿠키 서명 로직 우회 가능.
+    return auth.handler(req);
   } catch (e) {
     console.error("[Auth GET]", path, e);
     return NextResponse.json(
@@ -135,7 +138,9 @@ export async function POST(req: NextRequest) {
       return response;
     }
 
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // sign-in/social, sign-up/social 등 OAuth 시작 경로는 better-auth 기본 핸들러에 위임.
+    // 응답 JSON에 redirect URL이 들어있어 클라이언트가 그쪽으로 이동.
+    return auth.handler(req);
   } catch (e) {
     console.error("[Auth POST]", path, e);
     return NextResponse.json(
