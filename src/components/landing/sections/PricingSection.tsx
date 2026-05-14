@@ -78,7 +78,7 @@ export default function PricingSection() {
       </div>
 
       {/* cards */}
-      <div className="mx-auto mt-14 grid max-w-6xl gap-8 px-6 lg:grid-cols-3">
+      <div className="mx-auto mt-14 grid max-w-4xl gap-8 px-6 sm:grid-cols-2">
         {pricing.plans.map((plan, i) => {
           const price = yearly ? plan.yearly : plan.monthly;
           const isHighlight = plan.highlight;

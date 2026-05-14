@@ -199,7 +199,7 @@ export const landingCopy = {
   // 초과 사용 ₩33,300/건 — 3회권 단가와 일치.
   pricing: {
     eyebrow: "요금제",
-    title: "심플하게, 3가지 선택지",
+    title: "심플하게, 2가지 선택지",
     subtitle: "모든 유료 플랜 14일 무료 · 카드 등록 불필요",
     plans: [
       {
@@ -238,23 +238,6 @@ export const landingCopy = {
         ctaHref: "/auth/signup?plan=pro",
         highlight: true,
         badge: "가장 인기",
-      },
-      {
-        name: "Pro 연간",
-        monthly: null,
-        yearly: 1780000,
-        tagline: "Pro와 동일 · 2개월 할인",
-        features: [
-          "Pro의 모든 기능",
-          "견적코치 AI 20건/월",
-          "초과 사용 ₩33,300/건",
-          "연 결제 시 2개월 무료 (₩356,000 절약)",
-          "전담 도입 지원 1회",
-          "데이터 마이그레이션 지원",
-        ],
-        ctaLabel: "연간 결제 시작",
-        ctaHref: "/auth/signup?plan=pro-yearly",
-        highlight: false,
       },
     ],
   },
