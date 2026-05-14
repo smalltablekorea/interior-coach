@@ -76,25 +76,39 @@ function ScheduleMockup() {
 }
 
 function EstimateMockup() {
-  const items = [
-    { name: "철거 공사", amount: "1,200,000" },
-    { name: "목공 자재", amount: "3,400,000" },
-    { name: "타일 시공", amount: "2,100,000" },
-    { name: "도장/필름", amount: "1,800,000" },
-  ];
+  const items = ["철거 공사", "목공 자재", "타일 시공", "도장/필름"];
   return (
     <MockupFrame title="견적코치 AI / 신규 견적서">
       <div className="space-y-2">
-        {items.map((it) => (
-          <div key={it.name} className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0 text-xs">
-            <span>{it.name}</span>
-            <span className="font-mono text-[var(--muted)]">₩{it.amount}</span>
+        {items.map((name) => (
+          <div
+            key={name}
+            className="flex items-center justify-between py-2 border-b border-[var(--border)] last:border-0 text-xs"
+          >
+            <span>{name}</span>
+            <span
+              className="font-mono text-[var(--muted)] select-none"
+              style={{ filter: "blur(5px)" }}
+              aria-label="견적 금액 비공개"
+              title="회원 가입 후 확인 가능"
+            >
+              ₩0,000,000
+            </span>
           </div>
         ))}
         <div className="flex items-center justify-between pt-3 text-sm font-semibold">
           <span>합계</span>
-          <span className="text-[var(--green)]">₩8,500,000</span>
+          <span
+            className="text-[var(--green)] select-none"
+            style={{ filter: "blur(5px)" }}
+            aria-label="합계 금액 비공개"
+          >
+            ₩0,000,000
+          </span>
         </div>
+        <p className="pt-2 text-[10px] text-[var(--muted)] text-center">
+          금액은 회원 가입 후 공개
+        </p>
       </div>
     </MockupFrame>
   );
