@@ -39,18 +39,37 @@ export async function GET(
     process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
   const redirectUri = `${baseUrl}/api/marketing/oauth/${provider}/callback`;
 
+  // 채널 → 사용자 출발 페이지 매핑 (에러 시 해당 페이지로 돌려보냄)
+  const channelPathMap: Record<string, string> = {
+    threads: "/marketing/threads",
+    instagram: "/marketing/instagram",
+    meta_ads: "/marketing/meta-ads",
+    youtube: "/marketing/youtube",
+  };
+  const returnPath = channelPathMap[channel] || "/marketing";
+
   try {
     const authUrl = buildAuthorizationUrl(channel, redirectUri, auth.userId);
     return NextResponse.redirect(authUrl);
   } catch (error) {
-    const message =
+    let message =
       error instanceof Error ? error.message : "OAuth initiation failed";
-    // Redirect back with error instead of JSON (user-facing route)
+    // env 미설정 케이스를 사용자 친화 메시지로 변환
+    if (message.includes("META_APP_ID") || message.includes("META_APP_SECRET")) {
+      message =
+        "Meta OAuth 키가 등록되어 있지 않습니다. 관리자에게 META_APP_ID, META_APP_SECRET 등록을 요청하세요.";
+    } else if (
+      message.includes("GOOGLE_CLIENT_ID") ||
+      message.includes("GOOGLE_CLIENT_SECRET")
+    ) {
+      message =
+        "Google OAuth 키가 등록되어 있지 않습니다. 관리자에게 문의하세요.";
+    }
     return NextResponse.redirect(
       new URL(
-        `/marketing?oauth_error=${encodeURIComponent(message)}`,
-        request.nextUrl.origin
-      )
+        `${returnPath}?oauth_error=${encodeURIComponent(message)}`,
+        request.nextUrl.origin,
+      ),
     );
   }
 }

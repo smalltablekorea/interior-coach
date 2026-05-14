@@ -48,6 +48,8 @@ export default function AccountConnectionBanner({
   const [formOpen, setFormOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [oauthError, setOauthError] = useState("");
+  const [providerReady, setProviderReady] = useState(true);
 
   // Form fields for credentials/api_key/blog
   const [field1, setField1] = useState("");
@@ -90,13 +92,30 @@ export default function AccountConnectionBanner({
 
   useEffect(() => {
     fetchConnection();
-    // Check for OAuth callback
+    // OAuth callback 결과/에러 처리
     const params = new URLSearchParams(window.location.search);
     if (params.get("oauth_success") === "true") {
       fetchConnection();
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [fetchConnection]);
+    const err = params.get("oauth_error");
+    if (err) {
+      setOauthError(err);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+
+    // OAuth 채널인 경우 provider 키 등록 여부 사전 점검
+    if (connectionType === "oauth_meta" || connectionType === "oauth_google") {
+      fetch("/api/marketing/oauth/status")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (!data) return;
+          const providerKey = connectionType === "oauth_meta" ? "meta" : "google";
+          if (data[providerKey] === false) setProviderReady(false);
+        })
+        .catch(() => {});
+    }
+  }, [fetchConnection, connectionType]);
 
   const handleDisconnect = async () => {
     setSubmitting(true);
@@ -247,14 +266,45 @@ export default function AccountConnectionBanner({
         </div>
       </div>
 
+      {/* OAuth 에러 알림 — callback 또는 시작 시 실패 메시지 */}
+      {oauthError && (
+        <div className="mb-3 flex items-start gap-2 rounded-xl bg-red-500/10 border border-red-500/20 px-3 py-2.5 text-sm text-red-300">
+          <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+          <span>{oauthError}</span>
+        </div>
+      )}
+      {/* Provider 키 미설정 안내 (OAuth 채널 한정) */}
+      {(connectionType === "oauth_meta" || connectionType === "oauth_google") && !providerReady && (
+        <div className="mb-3 flex items-start gap-2 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 py-2.5 text-sm text-amber-300">
+          <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
+          <span>
+            {connectionType === "oauth_meta"
+              ? "Meta OAuth 키(META_APP_ID, META_APP_SECRET)가 서버에 등록되어 있지 않습니다. 관리자가 등록한 후 연결할 수 있습니다."
+              : "Google OAuth 키가 서버에 등록되어 있지 않습니다. 관리자가 등록한 후 연결할 수 있습니다."}
+          </span>
+        </div>
+      )}
+
       {/* OAuth buttons */}
       {(connectionType === "oauth_meta" || connectionType === "oauth_google") && (
         <a
-          href={`/api/marketing/oauth/${OAUTH_PROVIDERS[connectionType]}?channel=${channel}`}
-          className={`inline-flex items-center gap-2 ${style.bg} text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:brightness-110 transition-all`}
+          href={
+            providerReady
+              ? `/api/marketing/oauth/${OAUTH_PROVIDERS[connectionType]}?channel=${channel}`
+              : undefined
+          }
+          aria-disabled={!providerReady}
+          onClick={(e) => {
+            if (!providerReady) e.preventDefault();
+          }}
+          className={`inline-flex items-center gap-2 ${style.bg} text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            providerReady
+              ? "hover:brightness-110"
+              : "opacity-50 cursor-not-allowed"
+          }`}
         >
           <ExternalLink size={14} />
-          {style.label}
+          {providerReady ? style.label : `${style.label} (준비 중)`}
         </a>
       )}
 
