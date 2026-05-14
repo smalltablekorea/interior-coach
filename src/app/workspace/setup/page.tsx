@@ -32,6 +32,19 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: "뷰어",
 };
 
+/**
+ * 010-XXXX-XXXX 형식으로 자동 포맷팅.
+ * 숫자만 입력해도 자동 하이픈 삽입.
+ * 010 으로 시작하지 않는 경우엔 011/016 등 옛 번호도 010 으로 강제 X (그냥 raw 표시)
+ */
+function formatKoreanPhone(value: string): string {
+  // 숫자만 추출 (붙여넣기 시 하이픈/공백 자동 제거)
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length < 4) return digits;
+  if (digits.length < 8) return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
+}
+
 export default function WorkspaceSetupPage() {
   return (
     <Suspense fallback={<SetupFallback />}>
@@ -231,6 +244,10 @@ function WorkspaceSetupInner() {
   const handleCreate = async () => {
     if (!name.trim()) {
       setError("업체명을 입력해주세요.");
+      return;
+    }
+    if (phone.trim() && !/^010-\d{4}-\d{4}$/.test(phone.trim())) {
+      setError("연락처는 010-XXXX-XXXX 형식으로 입력해주세요.");
       return;
     }
     setLoading(true);
@@ -552,12 +569,19 @@ function WorkspaceSetupInner() {
                     연락처
                   </label>
                   <input
-                    type="text"
+                    type="tel"
+                    inputMode="numeric"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="선택사항"
+                    onChange={(e) => setPhone(formatKoreanPhone(e.target.value))}
+                    placeholder="010-0000-0000"
+                    maxLength={13}
+                    pattern="010-\d{4}-\d{4}"
+                    title="010-XXXX-XXXX 형식으로 입력해주세요"
                     className="w-full px-4 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--green)]/50"
                   />
+                  <p className="mt-1 text-[11px] text-[var(--muted)]">
+                    숫자만 입력해도 010-XXXX-XXXX 형식으로 자동 변환됩니다.
+                  </p>
                 </div>
               </div>
               <button
