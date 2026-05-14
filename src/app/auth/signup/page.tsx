@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
@@ -8,15 +8,18 @@ import {
   Building2,
   Mail,
   Lock,
+  User,
+  Phone,
+  AlertCircle,
+  CheckCircle2,
   Eye,
   EyeOff,
-  AlertCircle,
 } from "lucide-react";
-import { signIn } from "@/lib/auth-client";
+import { signIn, signUp } from "@/lib/auth-client";
 
 /**
- * 로그인 직후: 기존 워크스페이스가 있으면 activeWorkspaceId 세팅 + has_workspace 쿠키 + 목적지로,
- * 없으면 /workspace/setup?tab=create 로. (매번 신규 ws 생성되는 문제 방지)
+ * 회원가입 직후: 워크스페이스가 없으면 setup?tab=create 로 보내 업체명 입력.
+ * (로그인 페이지와 동일한 헬퍼)
  */
 async function resolveWorkspaceAndRedirect(
   redirect: string,
@@ -45,9 +48,7 @@ async function resolveWorkspaceAndRedirect(
           }).catch(() => {});
         }
         document.cookie = "has_workspace=1; path=/; max-age=31536000";
-        // 워크스페이스 2개 이상이면 setup에서 선택 (Picker UX)
-        router.push(list.length > 1 ? "/workspace/setup" : redirect);
-        router.refresh();
+        router.push(redirect);
         return;
       }
     }
@@ -55,79 +56,94 @@ async function resolveWorkspaceAndRedirect(
     // fallthrough
   }
   router.push("/workspace/setup?tab=create");
-  router.refresh();
 }
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+        <div className="min-h-screen flex items-center justify-center">
           <p className="text-sm text-[var(--muted)]">로딩 중...</p>
         </div>
       }
     >
-      <LoginForm />
+      <SignupForm />
     </Suspense>
   );
 }
 
-function LoginForm() {
+function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect =
-    searchParams.get("callbackUrl") ||
-    searchParams.get("redirect") ||
-    "/dashboard";
-  const urlError = searchParams.get("error");
-  const expired = searchParams.get("expired") === "1";
-
-  // ?ref=... 가 있으면 localStorage에 저장 (추천 보상 시스템용)
-  useEffect(() => {
-    const refCode = searchParams.get("ref");
-    if (refCode) {
-      try {
-        localStorage.setItem("referralCode", refCode);
-      } catch {
-        // localStorage 비활성/꽉찬 환경 — 무시
-      }
-    }
-  }, [searchParams]);
+    searchParams.get("callbackUrl") || searchParams.get("redirect") || "/dashboard";
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<"google" | "kakao" | null>(null);
-  const [errorMsg, setErrorMsg] = useState(
-    expired
-      ? "세션이 만료되어 다시 로그인해 주세요."
-      : urlError
-        ? "로그인에 실패했습니다. 다시 시도해주세요."
-        : "",
-  );
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [form, setForm] = useState({
+    companyName: "",
+    name: "",
+    phone: "",
+    email: "",
+    password: "",
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg("");
+    setSuccessMsg("");
+
+    if (form.password.length < 8) {
+      setErrorMsg("비밀번호는 8자 이상이어야 합니다.");
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const { error } = await signIn.email({
+      const res = await signUp.email({
         email: form.email,
         password: form.password,
+        name: form.name,
       });
-      if (error) {
+      if (res.error) {
         setErrorMsg(
-          error.message === "Invalid credentials"
-            ? "이메일 또는 비밀번호가 올바르지 않습니다."
-            : error.message || "로그인에 실패했습니다.",
+          res.error.message?.toLowerCase().includes("already")
+            ? "이미 등록된 이메일입니다. 로그인해 주세요."
+            : res.error.message || "회원가입에 실패했습니다. 다시 시도해주세요.",
         );
         setIsLoading(false);
         return;
       }
-      await resolveWorkspaceAndRedirect(redirect, router);
+
+      // 업체명·연락처가 들어오면 워크스페이스 생성 시 사용. 가입 직후 자동 생성 시도.
+      if (form.companyName.trim()) {
+        try {
+          await fetch("/api/workspace", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              name: form.companyName.trim(),
+              ceoName: form.name.trim() || undefined,
+              phone: form.phone.trim() || undefined,
+            }),
+          });
+          document.cookie = "has_workspace=1; path=/; max-age=31536000";
+        } catch {
+          // 워크스페이스 자동 생성 실패해도 setup에서 다시 입력 가능
+        }
+      }
+
+      setSuccessMsg("계정이 생성되었습니다. 대시보드로 이동합니다.");
+      setTimeout(() => {
+        resolveWorkspaceAndRedirect(redirect, router);
+      }, 800);
     } catch {
-      setErrorMsg("로그인에 실패했습니다. 다시 시도해주세요.");
+      setErrorMsg("회원가입에 실패했습니다. 다시 시도해주세요.");
       setIsLoading(false);
     }
   }
@@ -136,19 +152,16 @@ function LoginForm() {
     setErrorMsg("");
     setSocialLoading(provider);
     try {
-      const { error } = await signIn.social({
-        provider,
-        callbackURL: redirect,
-      });
-      if (error) {
+      const res = await signIn.social({ provider, callbackURL: redirect });
+      if (res.error) {
         setErrorMsg(
           provider === "google"
-            ? "Google 로그인에 실패했습니다. 다시 시도해주세요."
-            : "카카오 로그인에 실패했습니다. 다시 시도해주세요.",
+            ? "Google 가입에 실패했습니다. 다시 시도해주세요."
+            : "카카오 가입에 실패했습니다. 다시 시도해주세요.",
         );
       }
     } catch {
-      setErrorMsg("소셜 로그인에 실패했습니다. 다시 시도해주세요.");
+      setErrorMsg("소셜 가입에 실패했습니다. 다시 시도해주세요.");
     } finally {
       setSocialLoading(null);
     }
@@ -156,36 +169,67 @@ function LoginForm() {
 
   const busy = isLoading || socialLoading !== null;
 
+  const fields = [
+    {
+      id: "companyName",
+      label: "업체명",
+      placeholder: "스몰테이블디자인그룹",
+      icon: Building2,
+      key: "companyName" as const,
+      type: "text",
+    },
+    {
+      id: "name",
+      label: "담당자 이름",
+      placeholder: "홍길동",
+      icon: User,
+      key: "name" as const,
+      type: "text",
+    },
+    {
+      id: "phone",
+      label: "연락처",
+      placeholder: "010-1234-5678",
+      icon: Phone,
+      key: "phone" as const,
+      type: "tel",
+    },
+    {
+      id: "email",
+      label: "이메일",
+      placeholder: "email@company.co.kr",
+      icon: Mail,
+      key: "email" as const,
+      type: "email",
+    },
+  ];
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--background)] px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--background)] px-4 py-12">
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[var(--green)] opacity-[0.06] blur-[80px]" />
       </div>
 
       <div className="relative w-full max-w-sm">
         {/* 로고 */}
-        <div className="mb-10 flex flex-col items-center gap-3">
-          <Link
-            href="/"
-            className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--green)]/10 emerald-glow"
-            aria-label="홈으로"
-          >
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--green)]/10 emerald-glow">
             <Building2 className="h-6 w-6 text-[var(--green)]" />
-          </Link>
+          </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">
               인테리어코치
             </h1>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              인테리어 업체 현장 운영 올인원 SaaS
+              14일 무료 체험 · 카드 등록 불필요
             </p>
           </div>
         </div>
 
-        {/* 로그인 카드 */}
+        {/* 가입 카드 */}
         <div className="glass rounded-2xl p-8">
           <h2 className="mb-6 text-lg font-semibold text-[var(--foreground)]">
-            로그인
+            무료로 시작하기
           </h2>
 
           {errorMsg && (
@@ -194,31 +238,39 @@ function LoginForm() {
               <span>{errorMsg}</span>
             </div>
           )}
+          {successMsg && (
+            <div className="mb-4 flex items-start gap-2 rounded-xl bg-[var(--green)]/10 px-3 py-2.5 text-sm text-[var(--green)]">
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>{successMsg}</span>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="text-sm text-[var(--muted)]">
-                이메일
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="email@company.co.kr"
-                  className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-transparent border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none focus:border-[var(--green)]/60 focus:ring-2 focus:ring-[var(--green)]/20"
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, email: e.target.value }))
-                  }
-                  required
-                />
+            {fields.map(({ id, label, placeholder, icon: Icon, key, type }) => (
+              <div key={id} className="flex flex-col gap-2">
+                <label htmlFor={id} className="text-sm text-[var(--muted)]">
+                  {label}
+                </label>
+                <div className="relative">
+                  <Icon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
+                  <input
+                    id={id}
+                    type={type}
+                    placeholder={placeholder}
+                    className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-transparent border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none focus:border-[var(--green)]/60 focus:ring-2 focus:ring-[var(--green)]/20"
+                    value={form[key]}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, [key]: e.target.value }))
+                    }
+                    required
+                  />
+                </div>
               </div>
-            </div>
+            ))}
 
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-sm text-[var(--muted)]">
-                비밀번호
+                비밀번호 (8자 이상)
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
@@ -232,7 +284,7 @@ function LoginForm() {
                     setForm((f) => ({ ...f, password: e.target.value }))
                   }
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -254,7 +306,7 @@ function LoginForm() {
               disabled={busy}
               className="mt-2 w-full py-2.5 rounded-xl bg-[var(--green)] text-black font-semibold hover:bg-[var(--green-hover)] transition-colors disabled:opacity-50"
             >
-              {isLoading ? "로그인 중..." : "로그인"}
+              {isLoading ? "계정 생성 중..." : "무료 체험 시작"}
             </button>
           </form>
 
@@ -295,7 +347,7 @@ function LoginForm() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  Google로 계속하기
+                  Google로 시작하기
                 </>
               )}
             </button>
@@ -316,20 +368,24 @@ function LoginForm() {
                       d="M12 3C6.48 3 2 6.58 2 10.94c0 2.8 1.86 5.27 4.66 6.67-.15.54-.96 3.47-1 3.64 0 0-.02.08.04.11.06.03.13 0 .13 0 .67-.1 3.87-2.54 4.48-2.97.55.08 1.12.12 1.69.12 5.52 0 10-3.58 10-7.94S17.52 3 12 3z"
                     />
                   </svg>
-                  카카오로 계속하기
+                  카카오로 시작하기
                 </>
               )}
             </button>
           </div>
+
+          <p className="mt-5 text-center text-xs text-[var(--muted)]">
+            가입 시 이용약관 및 개인정보처리방침에 동의합니다
+          </p>
         </div>
 
         <p className="mt-6 text-center text-sm text-[var(--muted)]">
-          계정이 없으신가요?{" "}
+          이미 계정이 있으신가요?{" "}
           <Link
-            href={`/auth/signup${redirect !== "/dashboard" ? `?callbackUrl=${encodeURIComponent(redirect)}` : ""}`}
+            href={`/auth/login${redirect !== "/dashboard" ? `?callbackUrl=${encodeURIComponent(redirect)}` : ""}`}
             className="text-[var(--green)] hover:underline font-medium"
           >
-            무료로 시작하기
+            로그인
           </Link>
         </p>
       </div>
