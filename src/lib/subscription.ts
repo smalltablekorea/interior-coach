@@ -7,6 +7,7 @@ import { type PlanId, PLANS, isPlanAtLeast, FEATURE_REQUIRED_PLAN, type FeatureK
 const UNLIMITED_EMAILS = [
   "smalltablekorea@gmail.com",
   "test@interior-coach.com",
+  "test@interiorcoach.kr",
 ];
 
 export function isUnlimitedAccount(email: string | null | undefined): boolean {
