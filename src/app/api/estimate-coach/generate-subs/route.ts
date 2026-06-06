@@ -1,9 +1,31 @@
 import { NextRequest } from "next/server";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
-import { callAnthropicWithRetry, extractJson } from "@/lib/api/ai-helpers";
+import { MODELS, callAnthropicWithRetry, extractJson, logAiUsage, cachedSystem } from "@/lib/api/ai-helpers";
 import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
 import { CATS, calcSub } from "@/lib/estimate-engine";
+import type Anthropic from "@anthropic-ai/sdk";
+
+const GENERATE_SUBS_SYSTEM_PROMPT = `당신은 대한민국 인테리어 현장 견적 전문가입니다. 공종별 세부내역을 현실적으로 작성합니다.
+
+요청사항:
+1. 기존 엔진 항목의 이름을 현장에 맞게 구체적으로 수정 (예: "철거 인건비" → "철거 인건비 (2인×2일)")
+2. 필요시 금액도 현장 조건에 맞게 조정
+3. 엔진에 없는 추가 항목이 필요하면 customSubs로 추가 (현실적인 수량/단위/단가)
+4. 현장에서 실제로 필요한 자재가 있으면 matOverrides로 추가
+
+반드시 아래 JSON 형식으로만 응답 (설명 텍스트 없이 JSON만):
+{
+  "subs": [
+    { "index": 0, "name": "수정된 항목명", "amount": 수정금액또는null }
+  ],
+  "customSubs": [
+    { "name": "추가항목명", "qty": 1, "unit": "식", "unitPrice": 100000 }
+  ],
+  "matOverrides": [
+    { "name": "자재명", "qty": 1, "unit": "개", "unitPrice": 50000 }
+  ]
+}`;
 
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("estimates", "write");
@@ -36,16 +58,8 @@ export async function POST(request: NextRequest) {
       computed: Math.round(calcSub(sub, area || 27)),
     }));
 
-    const parsed = await callAnthropicWithRetry(async (client) => {
-      const response = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 1500,
-        messages: [
-          {
-            role: "user",
-            content: `당신은 대한민국 인테리어 현장 견적 전문가입니다. 아래 현장 조건에 맞는 "${catName}" 공종의 세부내역을 현실적으로 작성해주세요.
-
-현장 조건:
+    const userPrompt = `현장 조건:
+- 공종: ${catName}
 - 면적: ${area || 27}평
 - 등급: ${gradeLabel} (${grade})
 - 건물유형: ${buildingType}
@@ -53,28 +67,26 @@ export async function POST(request: NextRequest) {
 현재 엔진 세부항목:
 ${engineSubs.map((s) => `[${s.index}] ${s.name} (${s.type}) = ${s.computed.toLocaleString()}원`).join("\n")}
 
-요청사항:
-1. 기존 엔진 항목의 이름을 현장에 맞게 구체적으로 수정 (예: "철거 인건비" → "철거 인건비 (2인×2일)")
-2. 필요시 금액도 현장 조건에 맞게 조정
-3. 엔진에 없는 추가 항목이 필요하면 customSubs로 추가 (현실적인 수량/단위/단가)
-4. 현장에서 실제로 필요한 자재가 있으면 matOverrides로 추가
+위 조건에 맞는 "${catName}" 공종의 세부내역을 작성해주세요.`;
 
-반드시 아래 JSON 형식으로만 응답하세요. 설명 텍스트 없이 JSON만:
-{
-  "subs": [
-    { "index": 0, "name": "수정된 항목명", "amount": 수정금액또는null }
-  ],
-  "customSubs": [
-    { "name": "추가항목명", "qty": 1, "unit": "식", "unitPrice": 100000 }
-  ],
-  "matOverrides": [
-    { "name": "자재명", "qty": 1, "unit": "개", "unitPrice": 50000 }
-  ]
-}`,
-          },
-        ],
+    let genSubsUsage: Anthropic.Messages.Usage | undefined;
+    const parsed = await callAnthropicWithRetry(async (client) => {
+      const response = await client.messages.create({
+        model: MODELS.HAIKU,
+        max_tokens: 1500,
+        system: cachedSystem(GENERATE_SUBS_SYSTEM_PROMPT),
+        messages: [{ role: "user", content: userPrompt }],
       });
+      genSubsUsage = response.usage;
       return extractJson<{ subs?: unknown[]; customSubs?: unknown[]; matOverrides?: unknown[] }>(response);
+    });
+
+    await logAiUsage({
+      endpoint: "estimate-coach/generate-subs",
+      model: MODELS.HAIKU,
+      userId: auth.userId,
+      workspaceId: auth.workspaceId,
+      usage: genSubsUsage,
     });
 
     return ok({

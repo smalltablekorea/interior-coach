@@ -1,11 +1,28 @@
 import { NextRequest } from "next/server";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
-import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { sites, constructionPhases } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { ok, err, serverError } from "@/lib/api/response";
 import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
+import { MODELS, callAnthropicWithRetry, logAiUsage, cachedSystem } from "@/lib/api/ai-helpers";
+
+const THREADS_GEN_SYSTEM_PROMPT = `당신은 한국 인테리어 업체의 SNS 마케팅 전문가입니다.
+Meta Threads 플랫폼에 올릴 포스트를 작성합니다.
+
+다음 JSON 형식으로 정확히 응답하세요 (JSON만 반환):
+{
+  "content": "포스트 본문 (500자 이내, 이모지 적절히 활용, 줄바꿈으로 가독성 확보)",
+  "hashtags": "#인테리어 #리모델링 ... (5-10개, 공백으로 구분)"
+}
+
+규칙:
+- 한국어로 작성
+- Threads 최적화 (500자 이내)
+- 자연스럽고 전문적인 톤
+- 이모지는 적절히 (과하지 않게)
+- 해시태그는 한국 인테리어 관련 트렌디한 태그 포함
+- CTA(Call to Action) 포함 (DM 문의, 프로필 링크 등)`;
 
 export async function POST(request: NextRequest) {
   const auth = await requireWorkspaceAuth("marketing", "write");
@@ -16,11 +33,6 @@ export async function POST(request: NextRequest) {
   if (!gate.ok) return gate.response;
 
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return err("ANTHROPIC_API_KEY가 설정되지 않았습니다.", 500);
-    }
-
     const body = await request.json();
     const { type, siteId, context } = body as {
       type: string;
@@ -66,34 +78,28 @@ export async function POST(request: NextRequest) {
       일상: "인테리어 업체의 일상, 현장 분위기, 팀 소개 등 친근한 브랜딩 콘텐츠.",
     };
 
-    const prompt = `당신은 한국 인테리어 업체의 SNS 마케팅 전문가입니다.
-Meta Threads 플랫폼에 올릴 포스트를 작성해주세요.
-
-콘텐츠 유형: ${type}
+    const userPrompt = `콘텐츠 유형: ${type}
 설명: ${typeDescriptions[type] || type}
 ${siteContext}
 ${context ? `추가 컨텍스트: ${context}` : ""}
 
-다음 JSON 형식으로 정확히 응답해주세요 (JSON만 반환):
-{
-  "content": "포스트 본문 (500자 이내, 이모지 적절히 활용, 줄바꿈으로 가독성 확보)",
-  "hashtags": "#인테리어 #리모델링 ... (5-10개, 공백으로 구분)"
-}
+위 정보로 Threads 포스트를 생성해주세요.`;
 
-규칙:
-- 한국어로 작성
-- Threads 최적화 (500자 이내)
-- 자연스럽고 전문적인 톤
-- 이모지는 적절히 (과하지 않게)
-- 해시태그는 한국 인테리어 관련 트렌디한 태그 포함
-- CTA(Call to Action) 포함 (DM 문의, 프로필 링크 등)`;
+    const response = await callAnthropicWithRetry((client) =>
+      client.messages.create({
+        model: MODELS.SONNET,
+        max_tokens: 1000,
+        system: cachedSystem(THREADS_GEN_SYSTEM_PROMPT),
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    );
 
-    const client = new Anthropic({ apiKey });
-
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      messages: [{ role: "user", content: prompt }],
+    await logAiUsage({
+      endpoint: "marketing/threads/generate",
+      model: MODELS.SONNET,
+      userId: auth.userId,
+      workspaceId: auth.workspaceId,
+      usage: response.usage,
     });
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";

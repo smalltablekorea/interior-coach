@@ -1,7 +1,25 @@
 import { NextRequest } from "next/server";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
-import { callAnthropicWithRetry, extractText } from "@/lib/api/ai-helpers";
+import { MODELS, callAnthropicWithRetry, extractText, logAiUsage, cachedSystem } from "@/lib/api/ai-helpers";
+
+const ESTIMATE_COACH_SYSTEM_PROMPT = `당신은 대한민국 인테리어 견적 전문 코치입니다. 10년 이상 경력의 인테리어 견적 전문가로서, 건축주에게 실질적이고 구체적인 조언을 제공합니다.
+
+전문 분야:
+- 인테리어 공사 견적 분석 및 참고 가격 범위 제시
+- 공종별(철거, 설비, 전기, 목공, 타일, 도배, 주방 등) 세부 비용 분석
+- 자재 등급별 가격 차이와 가성비 추천
+- 시공 품질 대비 비용 최적화 전략
+- 업체 견적서 비교 분석 요령
+- 2026년 기준 인건비 및 자재가 시세
+
+답변 규칙:
+- 한국어, 존댓말 (사장님/고객님 호칭)
+- 구체적인 금액, 자재명, 브랜드 포함
+- 실무에서 쓰이는 팁과 주의사항 강조
+- 800자 이내로 핵심 위주
+- 비용 절감 포인트가 있으면 반드시 언급
+- 과도한 절약이 품질 하락으로 이어지는 경우 경고`;
 import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
 import {
   CATS,
@@ -131,40 +149,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const answer = await callAnthropicWithRetry(async (client) => {
-      const response = await client.messages.create({
-        model: "claude-sonnet-4-20250514",
+    const userPrompt = `${contextParts.length > 0 ? `현재 고객 상황:\n${contextParts.join("\n")}\n\n` : ""}질문: ${question}`;
+
+    const response = await callAnthropicWithRetry((client) =>
+      client.messages.create({
+        model: MODELS.SONNET,
         max_tokens: 1200,
-        messages: [
-          {
-            role: "user",
-            content: `당신은 대한민국 인테리어 견적 전문 코치입니다. 10년 이상 경력의 인테리어 견적 전문가로서, 건축주에게 실질적이고 구체적인 조언을 제공합니다.
+        system: cachedSystem(ESTIMATE_COACH_SYSTEM_PROMPT),
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    );
 
-전문 분야:
-- 인테리어 공사 견적 분석 및 참고 가격 범위 제시
-- 공종별(철거, 설비, 전기, 목공, 타일, 도배, 주방 등) 세부 비용 분석
-- 자재 등급별 가격 차이와 가성비 추천
-- 시공 품질 대비 비용 최적화 전략
-- 업체 견적서 비교 분석 요령
-- 2026년 기준 인건비 및 자재가 시세
-
-${contextParts.length > 0 ? `\n현재 고객 상황:\n${contextParts.join("\n")}` : ""}
-
-답변 규칙:
-- 한국어, 존댓말 (사장님/고객님 호칭)
-- 구체적인 금액, 자재명, 브랜드 포함
-- 실무에서 쓰이는 팁과 주의사항 강조
-- 800자 이내로 핵심 위주
-- 비용 절감 포인트가 있으면 반드시 언급
-- 과도한 절약이 품질 하락으로 이어지는 경우 경고
-
-질문: ${question}`,
-          },
-        ],
-      });
-      return extractText(response);
+    await logAiUsage({
+      endpoint: "estimate-coach",
+      model: MODELS.SONNET,
+      userId: auth.userId,
+      workspaceId: auth.workspaceId,
+      usage: response.usage,
     });
 
+    const answer = extractText(response);
     return ok({ question, answer, createdAt: new Date().toISOString() });
   } catch (error) {
     if (error instanceof Error && error.message.includes("ANTHROPIC_API_KEY")) {

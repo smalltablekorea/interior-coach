@@ -81,9 +81,15 @@ export async function enforceAiRateLimit(
 
   // 1) 일일 한도 먼저 검사 (DB-backed, cold-start 안전).
   //    하루 누적 폭주를 우선 차단해 봇/루프 비용 방어.
-  const daily = await checkDailyLimit(userId, plan);
-  if (!daily.allowed) {
-    return { ok: false, response: rateLimitExceededResponse(daily, "day") };
+  //    DB 에러 발생 시(예: ai_usage 마이그레이션 미적용) fail-open —
+  //    AI 흐름을 막지 않고 분당 한도만으로 방어. 로그로 가시화.
+  try {
+    const daily = await checkDailyLimit(userId, plan);
+    if (!daily.allowed) {
+      return { ok: false, response: rateLimitExceededResponse(daily, "day") };
+    }
+  } catch (e) {
+    console.warn("[ai-rate-limit] daily check skipped (fail-open)", e);
   }
 
   // 2) 분당 한도 검사 (메모리, 인스턴스별).

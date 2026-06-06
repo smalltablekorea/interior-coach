@@ -2,7 +2,33 @@ import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
-import { callAnthropicWithRetry, extractJson } from "@/lib/api/ai-helpers";
+import { MODELS, callAnthropicWithRetry, extractJson, logAiUsage, cachedSystem } from "@/lib/api/ai-helpers";
+
+const PARSE_RECEIPT_SYSTEM_PROMPT = `당신은 한국 인테리어 자재 영수증/견적서/거래명세서를 분석하는 전문가입니다.
+
+이미지에서 자재·시공 항목을 추출하여 인테리어 공사 세부항목으로 변환합니다.
+
+반드시 아래 JSON 형식으로만 응답하세요 (설명 텍스트 없이 JSON만):
+{
+  "items": [
+    {
+      "name": "항목명 (영수증에 적힌 그대로)",
+      "catId": "해당하는 공종 ID",
+      "qty": 수량(숫자),
+      "unit": "단위 (개/m²/롤/식/세트/EA 등)",
+      "unitPrice": 단가(숫자, 원 단위),
+      "totalAmount": 합계금액(숫자)
+    }
+  ]
+}
+
+규칙:
+- 금액은 숫자만 (쉼표, 원 기호 제거)
+- 여러 영수증이면 모든 항목을 하나의 items 배열에 합산
+- catId는 항목 내용에 맞는 공종 선택. 매칭 어려우면 가장 가까운 공종
+- 배송비/부가세 행은 제외
+- 수량 불명확하면 1
+- 단가 불명확하면 totalAmount을 qty로 나눈 값`;
 import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
 import { CATS } from "@/lib/estimate-engine";
 import { z } from "zod";
@@ -112,41 +138,28 @@ export async function POST(request: NextRequest) {
     }
     content.push({
       type: "text",
-      text: `이 영수증/견적서/거래명세서 이미지를 분석하여 인테리어 공사 세부항목으로 변환해주세요.
-
-공종 목록: ${catNames}
-
-반드시 아래 JSON 형식으로만 응답하세요 (설명 텍스트 없이 JSON만):
-{
-  "items": [
-    {
-      "name": "항목명 (영수증에 적힌 그대로)",
-      "catId": "해당하는 공종 ID (위 목록에서 선택)",
-      "qty": 수량(숫자),
-      "unit": "단위 (개/m²/롤/식/세트/EA 등)",
-      "unitPrice": 단가(숫자, 원 단위),
-      "totalAmount": 합계금액(숫자)
-    }
-  ]
-}
-
-규칙:
-- 금액은 숫자만 (쉼표, 원 기호 제거)
-- 여러 영수증이면 모든 항목을 하나의 items 배열에 합산
-- catId는 항목 내용에 맞는 공종 선택. 매칭 어려우면 가장 가까운 공종
-- 배송비/부가세 행은 제외
-- 수량 불명확하면 1
-- 단가 불명확하면 totalAmount을 qty로 나눈 값`,
+      text: `공종 목록: ${catNames}\n\n위 영수증/견적서를 분석해서 지정한 JSON으로 응답해주세요.`,
     });
 
     // 재시도 로직 적용
+    let parseUsage: Anthropic.Messages.Usage | undefined;
     const parsed = await callAnthropicWithRetry(async (client) => {
       const response = await client.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: MODELS.SONNET,
         max_tokens: 3000,
+        system: cachedSystem(PARSE_RECEIPT_SYSTEM_PROMPT),
         messages: [{ role: "user", content }],
       });
+      parseUsage = response.usage;
       return extractJson<{ items: unknown[] }>(response);
+    });
+
+    await logAiUsage({
+      endpoint: "estimate-coach/parse-receipt",
+      model: MODELS.SONNET,
+      userId: auth.userId,
+      workspaceId: auth.workspaceId,
+      usage: parseUsage,
     });
 
     // 구조 검증

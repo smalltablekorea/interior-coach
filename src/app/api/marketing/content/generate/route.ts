@@ -10,10 +10,10 @@ import {
 } from "@/lib/db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
-import Anthropic from "@anthropic-ai/sdk";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { ok, err, serverError } from "@/lib/api/response";
 import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
+import { MODELS, callAnthropicWithRetry, logAiUsage } from "@/lib/api/ai-helpers";
 
 function buildPrompt(
   channel: string,
@@ -259,11 +259,20 @@ export async function POST(request: NextRequest) {
     const prompt = buildPrompt(channel, contentType, siteData, additionalContext);
 
     // Call Anthropic Claude API
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const msg = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
-      messages: [{ role: "user", content: prompt }],
+    const msg = await callAnthropicWithRetry((client) =>
+      client.messages.create({
+        model: MODELS.SONNET,
+        max_tokens: 4096,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    );
+
+    await logAiUsage({
+      endpoint: "marketing/content/generate",
+      model: MODELS.SONNET,
+      userId: uid,
+      workspaceId: wid,
+      usage: msg.usage,
     });
 
     // Extract text from the response

@@ -4,9 +4,22 @@ import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { db } from "@/lib/db";
 import { threadsComments, threadsPosts } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
-import Anthropic from "@anthropic-ai/sdk";
 import { ok, err, notFound, serverError } from "@/lib/api/response";
 import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
+import { MODELS, callAnthropicWithRetry, logAiUsage, cachedSystem } from "@/lib/api/ai-helpers";
+
+const COMMENT_REPLY_SYSTEM_PROMPT = `당신은 한국 인테리어 업체의 SNS 담당자입니다.
+Threads 게시물에 달린 댓글에 친절하고 전문적으로 답변합니다.
+
+답변 규칙:
+- 한국어, 존댓말
+- 친근하면서 전문적인 톤
+- 200자 이내
+- 이모지 1-2개 적절히
+- 문의 성격이면 DM이나 전화 상담 유도
+- 칭찬이면 감사 표현 + 추가 정보 제공
+
+순수 텍스트만 반환 (JSON 아님).`;
 
 
 export async function GET(request: NextRequest) {
@@ -54,11 +67,6 @@ export async function POST(request: NextRequest) {
   if (!gate.ok) return gate.response;
 
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) {
-      return err("ANTHROPIC_API_KEY가 설정되지 않았습니다.", 500);
-    }
-
     const body = await request.json();
     const { commentId } = body as { commentId: string };
 
@@ -83,32 +91,30 @@ export async function POST(request: NextRequest) {
       return notFound("댓글을 찾을 수 없습니다.");
     }
 
-    const client = new Anthropic({ apiKey });
-
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 300,
-      messages: [
-        {
-          role: "user",
-          content: `당신은 한국 인테리어 업체의 SNS 담당자입니다.
-Threads 게시물에 달린 댓글에 친절하고 전문적으로 답변해주세요.
-
-원본 게시물: ${comment.postContent || ""}
+    const response = await callAnthropicWithRetry((client) =>
+      client.messages.create({
+        model: MODELS.HAIKU,
+        max_tokens: 300,
+        system: cachedSystem(COMMENT_REPLY_SYSTEM_PROMPT),
+        messages: [
+          {
+            role: "user",
+            content: `원본 게시물: ${comment.postContent || ""}
 댓글 작성자: ${comment.authorName}
 댓글 내용: ${comment.commentText}
 
-답변 규칙:
-- 한국어, 존댓말
-- 친근하면서 전문적인 톤
-- 200자 이내
-- 이모지 1-2개 적절히
-- 문의 성격이면 DM이나 전화 상담 유도
-- 칭찬이면 감사 표현 + 추가 정보 제공
+위 댓글에 대한 답변을 작성해주세요.`,
+          },
+        ],
+      }),
+    );
 
-답변 텍스트만 반환해주세요 (JSON 아님, 순수 텍스트만).`,
-        },
-      ],
+    await logAiUsage({
+      endpoint: "marketing/threads/comments",
+      model: MODELS.HAIKU,
+      userId: auth.userId,
+      workspaceId: auth.workspaceId,
+      usage: response.usage,
     });
 
     const replyText = response.content[0].type === "text" ? response.content[0].text.trim() : "";
