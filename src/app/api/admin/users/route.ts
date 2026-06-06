@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { desc, sql, ilike, or, eq } from "drizzle-orm";
+import { desc, sql, ilike, or, eq, inArray, and, gte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   user as userTable,
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       const wsRows = await db
         .select({ id: workspaces.id, name: workspaces.name })
         .from(workspaces)
-        .where(sql`${workspaces.id} = ANY(${wsIds})`);
+        .where(inArray(workspaces.id, wsIds));
       for (const w of wsRows) wsMap.set(w.id, w.name);
     }
 
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
           count: sql<number>`count(*)::int`,
         })
         .from(aiUsage)
-        .where(sql`${aiUsage.createdAt} >= ${since} AND ${aiUsage.userId} = ANY(${userIds})`)
+        .where(and(gte(aiUsage.createdAt, since), inArray(aiUsage.userId, userIds)))
         .groupBy(aiUsage.userId);
       for (const u of usage) aiUsageMap.set(u.userId, u.count);
     }
