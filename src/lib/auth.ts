@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db";
 import * as schema from "./db/schema";
+import { startTrialForNewUser } from "./subscription/trial";
 
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
@@ -16,6 +17,26 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          // 신규 가입자에게 Pro 체험 + (프로모 기간 한정) 견적코치 분석권 자동 부여.
+          // 가입 흐름을 막지 않도록 실패는 로그만 남기고 swallow.
+          try {
+            const grant = await startTrialForNewUser(user.id);
+            console.log("[Auth] Signup grant", {
+              userId: user.id,
+              email: user.email,
+              ...grant,
+            });
+          } catch (e) {
+            console.error("[Auth] Signup grant failed", user.id, e);
+          }
+        },
+      },
+    },
   },
   socialProviders: {
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET

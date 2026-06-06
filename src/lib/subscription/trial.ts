@@ -1,37 +1,95 @@
 import { and, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { subscriptions, user as userTable } from "@/lib/db/schema";
+import {
+  analysisCredits,
+  subscriptions,
+  user as userTable,
+} from "@/lib/db/schema";
 import { sendSms } from "@/lib/solapi";
 
 export const TRIAL_DAYS = 14;
 export const TRIAL_PLAN = "pro" as const;
 export const TRIAL_STATUS = "trialing" as const;
 
+// 카톡방 90명 대상 초기 가입 프로모션
+// 2026-06-08 00:00 KST(= 2026-06-07 15:00 UTC) 이전 가입자에게:
+//   - 21일 Pro 체험 (기본 14일 대신)
+//   - 견적코치 분석권 10회 무료 지급
+export const SIGNUP_PROMO_DEADLINE = new Date("2026-06-07T15:00:00Z");
+export const SIGNUP_PROMO_TRIAL_DAYS = 21;
+export const SIGNUP_PROMO_CREDITS = 10;
+
+export interface SignupPromoGrant {
+  trialDays: number;
+  credits: number;
+  isPromoWindow: boolean;
+  subscriptionCreated: boolean;
+  creditsCreated: boolean;
+}
+
 /**
- * 신규 유저에게 14일 Pro 체험을 부여한다.
- * - 이미 subscriptions 행이 있으면 건드리지 않는다 (멱등)
+ * 신규 유저에게 Pro 체험 + (프로모 기간 한정) 견적코치 분석권을 부여한다.
+ * - 프로모 마감(SIGNUP_PROMO_DEADLINE) 이전 가입: 21일 체험 + 10회 분석권
+ * - 마감 이후 가입: 기본 14일 체험만
+ * - subscriptions / analysisCredits 모두 멱등 (이미 행이 있으면 건드리지 않음)
  */
-export async function startTrialForNewUser(userId: string): Promise<boolean> {
-  const existing = await db
+export async function startTrialForNewUser(
+  userId: string,
+): Promise<SignupPromoGrant> {
+  const now = new Date();
+  const isPromoWindow = now < SIGNUP_PROMO_DEADLINE;
+  const trialDays = isPromoWindow ? SIGNUP_PROMO_TRIAL_DAYS : TRIAL_DAYS;
+  const credits = isPromoWindow ? SIGNUP_PROMO_CREDITS : 0;
+
+  // 1) Pro 체험 구독
+  let subscriptionCreated = false;
+  const existingSub = await db
     .select({ id: subscriptions.id })
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
-  if (existing.length > 0) return false;
 
-  const now = new Date();
-  const trialEnd = new Date(now.getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
+  if (existingSub.length === 0) {
+    const trialEnd = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
+    await db.insert(subscriptions).values({
+      userId,
+      plan: TRIAL_PLAN,
+      status: TRIAL_STATUS,
+      billingCycle: "monthly",
+      currentPeriodStart: now,
+      currentPeriodEnd: trialEnd,
+      trialEndsAt: trialEnd,
+    });
+    subscriptionCreated = true;
+  }
 
-  await db.insert(subscriptions).values({
-    userId,
-    plan: TRIAL_PLAN,
-    status: TRIAL_STATUS,
-    billingCycle: "monthly",
-    currentPeriodStart: now,
-    currentPeriodEnd: trialEnd,
-    trialEndsAt: trialEnd,
-  });
-  return true;
+  // 2) 견적코치 분석권 (프로모 기간 한정)
+  let creditsCreated = false;
+  if (credits > 0) {
+    const existingCredit = await db
+      .select({ id: analysisCredits.id })
+      .from(analysisCredits)
+      .where(eq(analysisCredits.userId, userId))
+      .limit(1);
+
+    if (existingCredit.length === 0) {
+      await db.insert(analysisCredits).values({
+        userId,
+        workspaceId: null,
+        totalCredits: credits,
+        usedCredits: 0,
+      });
+      creditsCreated = true;
+    }
+  }
+
+  return {
+    trialDays,
+    credits,
+    isPromoWindow,
+    subscriptionCreated,
+    creditsCreated,
+  };
 }
 
 export interface TrialSweepResult {
