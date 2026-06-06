@@ -101,3 +101,6 @@ function addDays(dateStr: string, days: number): string {
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+// Vercel Cron 호환: 기본 GET 호출도 동일 핸들러로 처리.
+export const GET = POST;

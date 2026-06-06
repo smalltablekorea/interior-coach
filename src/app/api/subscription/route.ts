@@ -7,6 +7,7 @@ import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 import { isUnlimitedAccount } from "@/lib/subscription";
+import { isPromoEligibleUser, startTrialForNewUser } from "@/lib/subscription/trial";
 
 export async function GET() {
   const auth = await requireWorkspaceAuth("settings", "read");
@@ -15,11 +16,32 @@ export async function GET() {
   try {
     const wid = auth.workspaceId;
     const uid = auth.userId;
-    const subRows = await db
+    let subRows = await db
       .select()
       .from(subscriptions)
       .where(workspaceFilter(subscriptions.workspaceId, subscriptions.userId, wid, uid))
       .limit(1);
+
+    // 안전망: 가입 시 databaseHooks와 명시적 호출이 모두 실패한 프로모 대상자도
+    // 첫 대시보드 진입 시 trial을 자동 부여하여 복구한다. (멱등)
+    // 가입 시각이 프로모 윈도우 안에 있는 사용자만 대상 — 기존 가입자 보호.
+    if (subRows.length === 0 && !isUnlimitedAccount(auth.session.user.email)) {
+      try {
+        if (await isPromoEligibleUser(uid)) {
+          const grant = await startTrialForNewUser(uid);
+          if (grant.subscriptionCreated) {
+            console.log("[Subscription] Lazy trial grant", { userId: uid, ...grant });
+            subRows = await db
+              .select()
+              .from(subscriptions)
+              .where(workspaceFilter(subscriptions.workspaceId, subscriptions.userId, wid, uid))
+              .limit(1);
+          }
+        }
+      } catch (e) {
+        console.error("[Subscription] Lazy trial grant failed", uid, e);
+      }
+    }
 
     const subscription = subRows[0] || null;
     const unlimited = isUnlimitedAccount(auth.session.user.email);

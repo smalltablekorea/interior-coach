@@ -12,12 +12,28 @@ export const TRIAL_PLAN = "pro" as const;
 export const TRIAL_STATUS = "trialing" as const;
 
 // 카톡방 90명 대상 초기 가입 프로모션
-// 2026-06-08 00:00 KST(= 2026-06-07 15:00 UTC) 이전 가입자에게:
+// SIGNUP_PROMO_START ~ SIGNUP_PROMO_DEADLINE 사이 가입자에게:
 //   - 21일 Pro 체험 (기본 14일 대신)
 //   - 견적코치 분석권 10회 무료 지급
+// (KST = UTC+9; 2026-06-06 00:00 KST = 2026-06-05 15:00 UTC)
+export const SIGNUP_PROMO_START = new Date("2026-06-05T15:00:00Z");
 export const SIGNUP_PROMO_DEADLINE = new Date("2026-06-07T15:00:00Z");
 export const SIGNUP_PROMO_TRIAL_DAYS = 21;
 export const SIGNUP_PROMO_CREDITS = 10;
+
+/**
+ * 사용자가 프로모 대상인지 검증 — 가입 시각이 프로모 윈도우 안에 있어야 함.
+ * lazy init 안전망에서 기존 가입자가 의도치 않게 프로모 혜택을 받지 않도록 가드.
+ */
+export async function isPromoEligibleUser(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ createdAt: userTable.createdAt })
+    .from(userTable)
+    .where(eq(userTable.id, userId))
+    .limit(1);
+  if (!row?.createdAt) return false;
+  return row.createdAt >= SIGNUP_PROMO_START && row.createdAt < SIGNUP_PROMO_DEADLINE;
+}
 
 export interface SignupPromoGrant {
   trialDays: number;

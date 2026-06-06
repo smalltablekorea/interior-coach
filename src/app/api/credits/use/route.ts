@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { analysisCredits, analysisResults } from "@/lib/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, sql } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
@@ -21,25 +21,30 @@ export async function POST(request: NextRequest) {
       return err("area, grade 필수");
     }
 
-    // 분석권 확인
-    const [credit] = await db
-      .select()
-      .from(analysisCredits)
-      .where(workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid))
-      .limit(1);
-
-    if (!credit || credit.totalCredits - credit.usedCredits <= 0) {
-      return err("분석권이 부족합니다. 분석권을 구매해주세요.", 402);
-    }
-
-    // 분석권 차감
-    await db
+    // 조건부 UPDATE + RETURNING 으로 한도 검사와 차감을 한 트랜잭션 안에서 처리.
+    // 동시 요청이 들어와도 used < total 인 행만 +1 되므로 한도 초과 사용 차단.
+    const updated = await db
       .update(analysisCredits)
       .set({
         usedCredits: sql`${analysisCredits.usedCredits} + 1`,
         updatedAt: new Date(),
       })
-      .where(workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid));
+      .where(
+        and(
+          workspaceFilter(analysisCredits.workspaceId, analysisCredits.userId, wid, uid),
+          sql`${analysisCredits.usedCredits} < ${analysisCredits.totalCredits}`,
+        ),
+      )
+      .returning({
+        totalCredits: analysisCredits.totalCredits,
+        usedCredits: analysisCredits.usedCredits,
+      });
+
+    if (updated.length === 0) {
+      return err("분석권이 부족합니다. 분석권을 구매해주세요.", 402);
+    }
+
+    const { totalCredits, usedCredits } = updated[0];
 
     // 분석 결과 저장
     const [result] = await db
@@ -61,7 +66,7 @@ export async function POST(request: NextRequest) {
     return ok({
       success: true,
       analysisId: result.id,
-      remainingCredits: credit.totalCredits - credit.usedCredits - 1,
+      remainingCredits: totalCredits - usedCredits,
     });
   } catch (error) {
     return serverError(error);

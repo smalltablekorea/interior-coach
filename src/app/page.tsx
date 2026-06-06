@@ -25,6 +25,9 @@ export const metadata: Metadata = {
   },
 };
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://www.interiorcoach.co.kr";
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
@@ -43,7 +46,7 @@ const jsonLd = {
   creator: {
     "@type": "Organization",
     name: "스몰테이블디자인그룹",
-    url: "https://www.interiorcoach.co.kr",
+    url: SITE_URL,
   },
   aggregateRating: {
     "@type": "AggregateRating",
