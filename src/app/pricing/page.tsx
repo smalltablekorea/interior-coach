@@ -50,6 +50,7 @@ const PLANS: Plan[] = [
       { text: "고객 20명 등록", included: true },
       { text: "기본 공정 관리 (6공종)", included: true },
       { text: "간단 정산 (총액)", included: true },
+      { text: "작업자/자재 관리", included: true },
       { text: "견적코치 무료 분석", included: true },
       { text: "상담 이력 기록", included: true },
       { text: "공종별 정산", included: false },
@@ -81,9 +82,9 @@ const PLANS: Plan[] = [
       { text: "세무 캘린더 + 기본 장부", included: true },
       { text: "AI 세무 상담 (월 10회)", included: true },
       { text: "Excel 내보내기", included: true },
+      { text: "작업자/자재 관리", included: true },
       { text: "마케팅 자동화", included: false },
       { text: "전자 계약", included: false },
-      { text: "인력/자재 관리", included: false },
     ],
   },
   {
@@ -114,7 +115,6 @@ const PLANS: Plan[] = [
       { text: "현장별 수익 분석", included: true },
       { text: "AI 세무 상담 무제한", included: true },
       { text: "전자 계약 (카카오/PASS)", included: true, section: "추가" },
-      { text: "인력/자재 관리", included: true },
       { text: "고객 포털", included: true },
     ],
   },
@@ -198,8 +198,8 @@ const COMPARISON_DATA: ComparisonCategory[] = [
   {
     name: "인력/자재/AI",
     rows: [
-      { label: "인력 관리", free: false, starter: false, pro: true },
-      { label: "자재 관리", free: false, starter: false, pro: true },
+      { label: "작업자 관리", free: true, starter: true, pro: true },
+      { label: "자재 관리", free: true, starter: true, pro: true },
     ],
   },
   {

@@ -1354,7 +1354,7 @@ export default function ScheduleGeneratorPage() {
                 {[
                   { id: "free", name: "무료", price: "₩0", color: "var(--muted)", features: ["AI 공정표 + 간트차트", "총 비용 범위", "공종별 기본 정보"], cta: "현재 이용 중" },
                   { id: "starter", name: "스타터", price: "₩149,000/월", color: "var(--blue)", pop: false, features: ["현장 15개 관리", "공종별 정산", "견적서 템플릿 3개", "세무 기본 (캘린더, 장부)", "AI 세무 상담 10회/월", "Excel 내보내기"], cta: "스타터 시작 →" },
-                  { id: "pro", name: "프로", price: "₩299,000/월", color: "var(--green)", pop: true, features: ["현장/고객 무제한", "마케팅 자동화 (5채널)", "전자 계약", "인력/자재 관리", "세무/회계 전체", "AI 세무 상담 무제한", "고객 포털", "OCR 영수증 스캔"], cta: "프로 시작 →" },
+                  { id: "pro", name: "프로", price: "₩299,000/월", color: "var(--green)", pop: true, features: ["현장/고객 무제한", "마케팅 자동화 (5채널)", "전자 계약", "세무/회계 전체", "AI 세무 상담 무제한", "고객 포털", "OCR 영수증 스캔"], cta: "프로 시작 →" },
                 ].map(pkg => (
                   <button
                     key={pkg.id}

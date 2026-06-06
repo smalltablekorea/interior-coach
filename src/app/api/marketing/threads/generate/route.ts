@@ -89,6 +89,7 @@ ${context ? `추가 컨텍스트: ${context}` : ""}
       client.messages.create({
         model: MODELS.SONNET,
         max_tokens: 1000,
+        temperature: 0.8,
         system: cachedSystem(THREADS_GEN_SYSTEM_PROMPT),
         messages: [{ role: "user", content: userPrompt }],
       }),

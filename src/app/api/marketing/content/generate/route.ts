@@ -263,6 +263,7 @@ export async function POST(request: NextRequest) {
       client.messages.create({
         model: MODELS.SONNET,
         max_tokens: 4096,
+        temperature: 0.7,
         messages: [{ role: "user", content: prompt }],
       }),
     );

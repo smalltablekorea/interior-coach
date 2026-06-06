@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
       client.messages.create({
         model: MODELS.HAIKU,
         max_tokens: 300,
+        temperature: 0.7,
         system: cachedSystem(COMMENT_REPLY_SYSTEM_PROMPT),
         messages: [
           {

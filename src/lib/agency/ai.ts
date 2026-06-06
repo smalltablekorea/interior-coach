@@ -249,15 +249,17 @@ async function realGenerate(input: GenerateInput): Promise<GenerateOutput> {
   const resp = await client.messages.create({
     model: GEN_MODEL,
     max_tokens: 4096,
-    system: buildSystemPrompt(input),
+    system: [{ type: "text", text: buildSystemPrompt(input), cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: buildUserPrompt(input) }],
   });
 
   const tokensIn = resp.usage?.input_tokens ?? 0;
   const tokensOut = resp.usage?.output_tokens ?? 0;
+  const cacheCreate = resp.usage?.cache_creation_input_tokens ?? 0;
+  const cacheRead = resp.usage?.cache_read_input_tokens ?? 0;
   // eslint-disable-next-line no-console
   console.log(
-    `[agency:ai:gen] model=${GEN_MODEL} channel=${input.channel} attempt=${input.attemptNumber} tokensIn=${tokensIn} tokensOut=${tokensOut}`,
+    `[agency:ai:gen] model=${GEN_MODEL} channel=${input.channel} attempt=${input.attemptNumber} tokensIn=${tokensIn} tokensOut=${tokensOut} cacheCreate=${cacheCreate} cacheRead=${cacheRead}`,
   );
 
   const text = resp.content

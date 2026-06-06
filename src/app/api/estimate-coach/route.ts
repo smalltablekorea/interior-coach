@@ -155,6 +155,7 @@ export async function POST(request: NextRequest) {
       client.messages.create({
         model: MODELS.SONNET,
         max_tokens: 1200,
+        temperature: 0.7,
         system: cachedSystem(ESTIMATE_COACH_SYSTEM_PROMPT),
         messages: [{ role: "user", content: userPrompt }],
       }),

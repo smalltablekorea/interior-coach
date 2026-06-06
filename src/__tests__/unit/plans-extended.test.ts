@@ -96,11 +96,16 @@ describe("FEATURE_REQUIRED_PLAN — 기능별 최소 플랜", () => {
   it("프로 전용 기능 그룹", () => {
     const proOnlyFeatures: FeatureKey[] = [
       "marketingAutomation", "taxFull", "electronicContracts",
-      "workersManagement", "materialsManagement", "customerPortal", "ocrReceiptScan"
+      "customerPortal", "ocrReceiptScan"
     ];
     for (const f of proOnlyFeatures) {
       expect(FEATURE_REQUIRED_PLAN[f]).toBe("pro");
     }
+  });
+
+  it("작업자/자재 관리는 무료 공개 (2026-06-06 정책 변경)", () => {
+    expect(FEATURE_REQUIRED_PLAN.workersManagement).toBe("free");
+    expect(FEATURE_REQUIRED_PLAN.materialsManagement).toBe("free");
   });
 });
 

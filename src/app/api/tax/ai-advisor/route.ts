@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
       client.messages.create({
         model: MODELS.SONNET,
         max_tokens: 1000,
+        temperature: 0.5,
         system: cachedSystem(TAX_ADVISOR_SYSTEM_PROMPT),
         messages: [
           { role: "user", content: `질문: ${validation.data.question}` },

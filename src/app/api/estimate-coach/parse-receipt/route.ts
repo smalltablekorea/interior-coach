@@ -147,6 +147,7 @@ export async function POST(request: NextRequest) {
       const response = await client.messages.create({
         model: MODELS.SONNET,
         max_tokens: 3000,
+        temperature: 0.3,
         system: cachedSystem(PARSE_RECEIPT_SYSTEM_PROMPT),
         messages: [{ role: "user", content }],
       });

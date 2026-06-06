@@ -74,6 +74,7 @@ ${engineSubs.map((s) => `[${s.index}] ${s.name} (${s.type}) = ${s.computed.toLoc
       const response = await client.messages.create({
         model: MODELS.HAIKU,
         max_tokens: 1500,
+        temperature: 0.3,
         system: cachedSystem(GENERATE_SUBS_SYSTEM_PROMPT),
         messages: [{ role: "user", content: userPrompt }],
       });
