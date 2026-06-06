@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Search, RefreshCw, Users, Gift, Sparkles, AlertTriangle } from "lucide-react";
 
 interface UserRow {
@@ -220,13 +221,13 @@ export default function AdminUsersPage() {
                   filtered.map((u) => (
                     <tr key={u.id} className="border-t border-[var(--border)] hover:bg-white/[0.02]">
                       <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2">
+                        <Link href={`/admin/users/${u.id}`} className="flex items-center gap-2 hover:text-[var(--green)]">
                           {u.isPromoSignup && <span title="프로모 가입자" className="w-1.5 h-1.5 rounded-full bg-[var(--green)]" />}
                           <div>
                             <div className="font-medium">{u.email}</div>
                             <div className="text-xs text-[var(--muted)]">{u.name}</div>
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-3 py-2.5 text-xs text-[var(--muted)]">{u.phone || "—"}</td>
                       <td className="px-3 py-2.5 text-xs">
