@@ -32,7 +32,7 @@ export async function sendTrialNudgeEmail(params: TrialNudgeEmailParams): Promis
 
   try {
     const planConfig = PLANS[params.plan];
-    const upgradeUrl = `https://interiorcoach.co.kr/pricing?utm_source=email&utm_medium=trial_nudge&utm_campaign=d${params.daysLeft}&user_id=${params.userId}`;
+    const upgradeUrl = `https://www.interiorcoach.co.kr/pricing?utm_source=email&utm_medium=trial_nudge&utm_campaign=d${params.daysLeft}&user_id=${params.userId}`;
 
     const { subject, html } = buildTrialNudgeEmail({
       userName: params.userName,

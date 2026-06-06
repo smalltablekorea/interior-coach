@@ -26,7 +26,7 @@ const sourceSans = Source_Sans_3({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || "https://interiorcoach.co.kr",
+    process.env.NEXT_PUBLIC_SITE_URL || "https://www.interiorcoach.co.kr",
   ),
   title: {
     default: "인테리어코치 — 인테리어 업체 현장 운영 올인원 SaaS",
