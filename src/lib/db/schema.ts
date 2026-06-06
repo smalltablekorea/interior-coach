@@ -1710,3 +1710,20 @@ export const agencyMonthlyReports = pgTable(
     unique("agency_monthly_reports_client_month_idx").on(table.clientId, table.yearMonth),
   ],
 );
+
+// ─── AI 사용량 로그 ───
+// Anthropic 호출당 토큰 사용량 적재. 일/월 quota·청구 검증·이상 탐지에 사용.
+export const aiUsage = pgTable("ai_usage", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id, { onDelete: "set null" }),
+  endpoint: text("endpoint").notNull(),
+  model: text("model").notNull(),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  cacheCreationTokens: integer("cache_creation_tokens").notNull().default(0),
+  cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

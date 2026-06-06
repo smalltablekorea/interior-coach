@@ -43,8 +43,11 @@ const imageSchema = z.object({
 });
 
 const requestSchema = z.object({
-  images: z.array(imageSchema).min(1, "이미지가 필요합니다").max(10, "최대 10장까지 첨부 가능합니다"),
+  images: z.array(imageSchema).min(1, "이미지가 필요합니다").max(3, "최대 3장까지 첨부 가능합니다"),
 });
+
+// 한 요청의 누적 이미지 바이트 cap — 비전 토큰 폭주 방어 (3장 × 5MB).
+const MAX_TOTAL_IMAGE_BYTES = 15 * 1024 * 1024;
 
 // ─── 파싱 결과 검증 스키마 ───
 const parsedItemSchema = z.object({
@@ -80,12 +83,17 @@ export async function POST(request: NextRequest) {
 
     const { images } = validation.data;
 
-    // 개별 이미지 크기 검증 (base64 → 실제 크기 근사)
+    // 개별 + 누적 이미지 크기 검증 (base64 → 실제 크기 근사)
+    let totalBytes = 0;
     for (let i = 0; i < images.length; i++) {
       const approxBytes = Math.ceil(images[i].data.length * 0.75);
       if (approxBytes > MAX_IMAGE_SIZE_BYTES) {
         return err(`${i + 1}번째 이미지가 너무 큽니다 (최대 5MB).`);
       }
+      totalBytes += approxBytes;
+    }
+    if (totalBytes > MAX_TOTAL_IMAGE_BYTES) {
+      return err(`이미지 누적 용량이 너무 큽니다 (최대 ${MAX_TOTAL_IMAGE_BYTES / 1024 / 1024}MB).`);
     }
 
     const catNames = CATS.map((c) => `${c.id}(${c.name})`).join(", ");

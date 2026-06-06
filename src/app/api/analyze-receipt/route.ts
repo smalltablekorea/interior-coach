@@ -1,12 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { db } from "@/lib/db";
 import { materials, materialOrders } from "@/lib/db/schema";
 import { eq, and, ilike } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
-import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
 import { enforceAiRateLimit } from "@/lib/api/ai-rate-limit";
+import { MODELS, callAnthropicWithRetry, logAiUsage, cachedSystem } from "@/lib/api/ai-helpers";
+
+const RECEIPT_SYSTEM_PROMPT = `당신은 한국 인테리어 자재 영수증/거래명세서를 분석하는 전문가입니다.
+
+이미지에서 자재 항목을 추출하여 정확한 JSON으로 응답합니다.
+
+## 출력 형식 (JSON만, 다른 텍스트 없이)
+{
+  "storeName": "상호명",
+  "purchaseDate": "YYYY-MM-DD",
+  "items": [
+    {
+      "name": "자재명 (인테리어 자재로 판단되는 항목명)",
+      "category": "가구/도배/도어/목공/목자재/바닥/보일러/샷시/설비/에어컨/욕실/일정관리/전기/주방/중문/타일/필름/기타 중 하나",
+      "quantity": 1,
+      "unit": "단위 (개/박스/m²/롤/세트/EA 등)",
+      "unitPrice": 단가(숫자),
+      "totalAmount": 합계금액(숫자)
+    }
+  ],
+  "totalAmount": 전체합계(숫자)
+}
+
+## 규칙
+- 금액은 숫자만 (쉼표, 원 기호 제거)
+- 날짜가 없으면 오늘 날짜 사용
+- 카테고리는 자재 종류에 맞게 분류
+- 배송비, 부가세 등은 items에서 제외
+- 수량이 불명확하면 1로 설정`;
 
 interface ParsedItem {
   name: string;
@@ -33,63 +60,44 @@ export async function POST(request: NextRequest) {
   if (!gate.ok) return gate.response;
 
   try {
-    const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return err("ANTHROPIC_API_KEY가 설정되지 않았습니다");
-
     const body = await request.json();
     const { image, mimeType } = body as { image: string; mimeType: string };
 
     if (!image) return err("이미지가 필요합니다");
 
-    const client = new Anthropic({ apiKey });
-
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2000,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
-                data: image,
+    const response = await callAnthropicWithRetry((client) =>
+      client.messages.create({
+        model: MODELS.HAIKU,
+        max_tokens: 2000,
+        system: cachedSystem(RECEIPT_SYSTEM_PROMPT),
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: mimeType as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+                  data: image,
+                },
               },
-            },
-            {
-              type: "text",
-              text: `이 영수증/거래명세서 이미지를 분석해주세요.
+              {
+                type: "text",
+                text: "이 영수증/거래명세서를 분석해서 JSON으로 응답해주세요.",
+              },
+            ],
+          },
+        ],
+      }),
+    );
 
-다음 JSON 형식으로 정확히 응답해주세요 (JSON만 반환, 다른 텍스트 없이):
-
-{
-  "storeName": "상호명",
-  "purchaseDate": "YYYY-MM-DD",
-  "items": [
-    {
-      "name": "자재명 (인테리어 자재로 판단되는 항목명)",
-      "category": "카테고리 (가구/도배/도어/목공/목자재/바닥/보일러/샷시/설비/에어컨/욕실/일정관리/전기/주방/중문/타일/필름/기타 중 하나)",
-      "quantity": 1,
-      "unit": "단위 (개/박스/m²/롤/세트/EA 등)",
-      "unitPrice": 단가(숫자),
-      "totalAmount": 합계금액(숫자)
-    }
-  ],
-  "totalAmount": 전체합계(숫자)
-}
-
-규칙:
-- 금액은 숫자만 (쉼표, 원 기호 제거)
-- 날짜가 없으면 오늘 날짜 사용
-- 카테고리는 자재 종류에 맞게 분류
-- 배송비, 부가세 등은 items에서 제외
-- 수량이 불명확하면 1로 설정`,
-            },
-          ],
-        },
-      ],
+    await logAiUsage({
+      endpoint: "analyze-receipt",
+      model: MODELS.HAIKU,
+      userId: auth.userId,
+      workspaceId: auth.workspaceId,
+      usage: response.usage,
     });
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";

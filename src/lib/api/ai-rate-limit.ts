@@ -16,16 +16,28 @@ import { NextResponse } from "next/server";
 import { getUserSubscription } from "@/lib/subscription";
 import type { PlanId } from "@/lib/plans";
 import { PLANS } from "@/lib/plans";
-import { checkRateLimit, AI_RATE_LIMITS, type RateLimitResult } from "./ai-helpers";
+import {
+  checkRateLimit,
+  checkDailyLimit,
+  AI_RATE_LIMITS,
+  AI_DAILY_LIMITS,
+  type RateLimitResult,
+} from "./ai-helpers";
 
-export function rateLimitExceededResponse(result: RateLimitResult): NextResponse {
+type LimitWindow = "minute" | "day";
+
+export function rateLimitExceededResponse(
+  result: RateLimitResult,
+  window: LimitWindow = "minute",
+): NextResponse {
   const retryAfterSec = Math.max(1, Math.ceil((result.retryAfterMs ?? 60_000) / 1000));
   const planName = PLANS[result.plan].nameKo;
+  const windowLabel = window === "day" ? "일일" : "분당";
   const upgradeHint =
     result.plan === "pro"
       ? ""
       : " 더 많은 호출이 필요하면 상위 플랜으로 업그레이드해주세요.";
-  const message = `요청이 너무 많습니다. ${planName} 플랜은 분당 ${result.limit}회까지 허용됩니다. 약 ${retryAfterSec}초 후 다시 시도해주세요.${upgradeHint}`;
+  const message = `요청이 너무 많습니다. ${planName} 플랜은 ${windowLabel} ${result.limit}회까지 허용됩니다. 약 ${retryAfterSec}초 후 다시 시도해주세요.${upgradeHint}`;
 
   return NextResponse.json(
     {
@@ -33,6 +45,7 @@ export function rateLimitExceededResponse(result: RateLimitResult): NextResponse
       error: message,
       rateLimit: {
         plan: result.plan,
+        window,
         limit: result.limit,
         remaining: 0,
         retryAfterSec,
@@ -44,6 +57,7 @@ export function rateLimitExceededResponse(result: RateLimitResult): NextResponse
         "Retry-After": String(retryAfterSec),
         "X-RateLimit-Limit": String(result.limit),
         "X-RateLimit-Remaining": "0",
+        "X-RateLimit-Window": window,
       },
     }
   );
@@ -64,11 +78,22 @@ export async function enforceAiRateLimit(
   options?: { plan?: PlanId }
 ): Promise<RateLimitGate> {
   const plan = options?.plan ?? (await getUserSubscription(userId)).plan;
-  const result = checkRateLimit(userId, plan);
-  if (!result.allowed) {
-    return { ok: false, response: rateLimitExceededResponse(result) };
+
+  // 1) 일일 한도 먼저 검사 (DB-backed, cold-start 안전).
+  //    하루 누적 폭주를 우선 차단해 봇/루프 비용 방어.
+  const daily = await checkDailyLimit(userId, plan);
+  if (!daily.allowed) {
+    return { ok: false, response: rateLimitExceededResponse(daily, "day") };
   }
-  return { ok: true, plan, remaining: result.remaining, limit: result.limit };
+
+  // 2) 분당 한도 검사 (메모리, 인스턴스별).
+  //    단기 burst 차단.
+  const minute = checkRateLimit(userId, plan);
+  if (!minute.allowed) {
+    return { ok: false, response: rateLimitExceededResponse(minute, "minute") };
+  }
+
+  return { ok: true, plan, remaining: minute.remaining, limit: minute.limit };
 }
 
-export { AI_RATE_LIMITS };
+export { AI_RATE_LIMITS, AI_DAILY_LIMITS };
