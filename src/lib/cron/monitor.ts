@@ -65,7 +65,7 @@ export function getAlertChannels(): AlertChannels {
     slackWebhookUrl: process.env.CRON_ALERT_SLACK_WEBHOOK?.trim() || null,
     alertEmail: process.env.CRON_ALERT_EMAIL?.trim() || null,
     resendApiKey: process.env.RESEND_API_KEY?.trim() || null,
-    fromEmail: process.env.RESEND_FROM_EMAIL?.trim() || "noreply@interiorcoach.kr",
+    fromEmail: process.env.RESEND_FROM_EMAIL?.trim() || "noreply@interiorcoach.co.kr",
   };
 }
 
@@ -157,7 +157,7 @@ async function sendEmailAlert(
   try {
     const resend = new Resend(channels.resendApiKey);
     await resend.emails.send({
-      from: `인테리어코치 알림 <${channels.fromEmail || "noreply@interiorcoach.kr"}>`,
+      from: `인테리어코치 알림 <${channels.fromEmail || "noreply@interiorcoach.co.kr"}>`,
       to: channels.alertEmail,
       subject,
       text: body,

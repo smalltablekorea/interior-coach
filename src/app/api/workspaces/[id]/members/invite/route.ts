@@ -109,7 +109,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .where(eq(user.id, auth.userId))
       .limit(1);
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://interiorcoach.kr";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://interiorcoach.co.kr";
     const inviteUrl = `${baseUrl}/auth/invite?token=${token}`;
 
     // 이메일 발송

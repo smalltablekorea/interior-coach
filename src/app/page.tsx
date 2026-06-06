@@ -43,7 +43,7 @@ const jsonLd = {
   creator: {
     "@type": "Organization",
     name: "스몰테이블디자인그룹",
-    url: "https://interiorcoach.kr",
+    url: "https://interiorcoach.co.kr",
   },
   aggregateRating: {
     "@type": "AggregateRating",

@@ -7,7 +7,7 @@ function getResend(): Resend {
   return _resend;
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@interiorcoach.kr";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@interiorcoach.co.kr";
 
 interface SendResult {
   success: boolean;
@@ -32,7 +32,7 @@ export async function sendTrialNudgeEmail(params: TrialNudgeEmailParams): Promis
 
   try {
     const planConfig = PLANS[params.plan];
-    const upgradeUrl = `https://interiorcoach.kr/pricing?utm_source=email&utm_medium=trial_nudge&utm_campaign=d${params.daysLeft}&user_id=${params.userId}`;
+    const upgradeUrl = `https://interiorcoach.co.kr/pricing?utm_source=email&utm_medium=trial_nudge&utm_campaign=d${params.daysLeft}&user_id=${params.userId}`;
 
     const { subject, html } = buildTrialNudgeEmail({
       userName: params.userName,
@@ -146,7 +146,7 @@ function buildTrialNudgeEmail(params: {
         <!-- Footer -->
         <tr><td style="background:#f8fafc;padding:32px 40px;text-align:center;border-top:1px solid #e2e8f0;">
           <p style="margin:0 0 16px;color:#64748b;font-size:14px;line-height:1.6;">
-            궁금한 점이 있으시면 언제든 <a href="mailto:support@interiorcoach.kr" style="color:#3b82f6;text-decoration:none;">support@interiorcoach.kr</a>로 문의해주세요.
+            궁금한 점이 있으시면 언제든 <a href="mailto:support@interiorcoach.co.kr" style="color:#3b82f6;text-decoration:none;">support@interiorcoach.co.kr</a>로 문의해주세요.
           </p>
           <div style="color:#94a3b8;font-size:12px;">
             인테리어코치 | 중소 인테리어 업체를 위한 올인원 솔루션<br>

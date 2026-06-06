@@ -11,8 +11,8 @@ function getResend(): Resend {
   return _resend;
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@interiorcoach.kr";
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://interiorcoach.kr";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@interiorcoach.co.kr";
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://interiorcoach.co.kr";
 
 interface SendResult {
   success: boolean;

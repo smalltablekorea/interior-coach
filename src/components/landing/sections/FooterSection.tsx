@@ -39,7 +39,7 @@ export default function FooterSection() {
               견적부터 공정 관리, 정산까지 한 곳에서.
             </p>
             <p className="mt-5 text-xs text-[var(--landing-body)]/60">
-              contact@interiorcoach.kr
+              contact@interiorcoach.co.kr
             </p>
           </div>
 

@@ -6,7 +6,7 @@ function getResend(): Resend {
   return _resend;
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@interiorcoach.kr";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "noreply@interiorcoach.co.kr";
 
 interface SendResult {
   success: boolean;
