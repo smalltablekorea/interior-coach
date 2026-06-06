@@ -73,7 +73,7 @@ const PLANS: Plan[] = [
     color: "blue",
     features: [
       { text: "Free 전체 포함", included: true },
-      { text: "현장 15개 관리", included: true, section: "추가 기능" },
+      { text: "현장 8개 관리", included: true, section: "추가 기능" },
       { text: "고객 100명 등록", included: true },
       { text: "공종별 정산 (12공종)", included: true },
       { text: "실시간 수익률", included: true },
@@ -150,7 +150,7 @@ const COMPARISON_DATA: ComparisonCategory[] = [
   {
     name: "현장관리",
     rows: [
-      { label: "현장 등록", free: "3개", starter: "15개", pro: "무제한" },
+      { label: "현장 등록", free: "3개", starter: "8개", pro: "무제한" },
       { label: "사진 업로드 (현장당)", free: "20장", starter: "200장", pro: "무제한" },
       { label: "공정 관리", free: "6공종", starter: "12+커스텀", pro: "12+커스텀" },
       { label: "현장 건강점수", free: false, starter: "기본", pro: "상세" },

@@ -41,7 +41,7 @@ const pricingJsonLd = {
       price: "149000",
       priceCurrency: "KRW",
       priceValidUntil: "2027-12-31",
-      description: "현장 15개, 공종별 정산, 견적서 템플릿",
+      description: "현장 8개, 공종별 정산, 견적서 템플릿",
       availability: "https://schema.org/InStock",
     },
     {

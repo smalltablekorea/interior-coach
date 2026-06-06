@@ -73,7 +73,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
     yearlyMonthlyPrice: 119000,
     description: "체계적으로 관리하고 싶은 사장님",
     limits: {
-      maxSites: 15,
+      maxSites: 8,
       maxPhotosPerSite: 200,
       maxCustomers: 100,
       maxUsers: 1,
@@ -90,7 +90,7 @@ export const PLANS: Record<PlanId, PlanConfig> = {
       hasOcrReceiptScan: false,
     },
     highlights: [
-      "현장 15개 관리",
+      "현장 8개 관리",
       "고객 100명",
       "공종별 정산",
       "견적서 템플릿 3개",
