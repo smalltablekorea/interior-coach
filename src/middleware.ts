@@ -52,7 +52,8 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // 제외: auth 라우트, 정적 파일, 포탈 (공개), favicon, 랜딩/가격 페이지
-    "/((?!_next/static|_next/image|favicon.ico|auth|portal|pricing|qna|terms|refund-policy|api/auth|api/portal|api/qna|api/v1|api/cron).*)",
+    // 제외: auth 라우트, 정적 파일, 포탈 (공개), favicon, 랜딩/가격 페이지,
+    //       robots.txt·sitemap.xml(SEO 크롤러용 공개), 이미지·폰트 등 정적 에셋(OG 이미지 포함)
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|auth|portal|pricing|qna|terms|refund-policy|api/auth|api/portal|api/qna|api/v1|api/cron|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf)).*)",
   ],
 };
