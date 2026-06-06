@@ -140,7 +140,7 @@ export async function runTrialSweep(): Promise<TrialSweepResult> {
 
   for (const row of toRemind) {
     if (row.phone) {
-      const msg = `[인테리어코치] ${row.name || ""}님의 14일 무료 체험이 3일 후 종료됩니다. 계속 이용하시려면 앱에서 결제 수단을 등록해주세요.`;
+      const msg = `[인테리어코치] ${row.name || ""}님의 Pro 무료 체험이 3일 후 종료됩니다. 계속 이용하시려면 앱에서 결제 수단을 등록해주세요.`;
       const sms = await sendSms(row.phone, msg, false);
       if (!sms.success) result.smsFailures++;
     }

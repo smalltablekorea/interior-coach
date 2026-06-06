@@ -13,6 +13,9 @@ export const auth = betterAuth({
   }),
   trustedOrigins: [
     process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    "https://www.interiorcoach.co.kr",
+    "https://interiorcoach.co.kr",
+    "https://interior-coach-deploy.vercel.app",
   ],
   emailAndPassword: {
     enabled: true,
