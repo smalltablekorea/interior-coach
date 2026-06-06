@@ -132,9 +132,11 @@ function SignupForm() {
       }
 
       // 업체명·연락처가 들어오면 워크스페이스 생성 시 사용. 가입 직후 자동 생성 시도.
+      // 실패해도 흐름은 막지 않되, 실제 생성 성공 여부에 따라 cookie를 다르게 설정.
+      let workspaceCreated = false;
       if (form.companyName.trim()) {
         try {
-          await fetch("/api/workspace", {
+          const wsRes = await fetch("/api/workspace", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -144,13 +146,22 @@ function SignupForm() {
               phone: form.phone.trim() || undefined,
             }),
           });
-          document.cookie = "has_workspace=1; path=/; max-age=31536000";
-        } catch {
-          // 워크스페이스 자동 생성 실패해도 setup에서 다시 입력 가능
+          if (wsRes.ok) {
+            workspaceCreated = true;
+            document.cookie = "has_workspace=1; path=/; max-age=31536000";
+          } else {
+            console.error("[Signup] workspace creation failed", await wsRes.text());
+          }
+        } catch (e) {
+          console.error("[Signup] workspace creation error", e);
         }
       }
 
-      setSuccessMsg("계정이 생성되었습니다. 대시보드로 이동합니다.");
+      setSuccessMsg(
+        workspaceCreated
+          ? "계정과 워크스페이스가 생성되었습니다. 대시보드로 이동합니다."
+          : "계정이 생성되었습니다. 워크스페이스 설정으로 이동합니다.",
+      );
       setTimeout(() => {
         resolveWorkspaceAndRedirect(redirect, router);
       }, 800);
@@ -232,8 +243,11 @@ function SignupForm() {
             <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">
               인테리어코치
             </h1>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              14일 무료 체험 · 카드 등록 불필요
+            <p className="mt-1 text-sm text-[var(--green)] font-medium">
+              🎁 Pro 3주 무료 + 견적코치 10회 (6/8 00시까지)
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--muted)]">
+              카드 등록 불필요
             </p>
           </div>
         </div>

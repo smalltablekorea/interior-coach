@@ -4,15 +4,35 @@ import { db } from "./db";
 import * as schema from "./db/schema";
 import { startTrialForNewUser } from "./subscription/trial";
 
+// 프로덕션에서 BETTER_AUTH_SECRET이 비어있으면 세션 위조 위험 → 빌드/부팅 차단.
+// 빌드 단계(VERCEL_ENV !== "production" 일 때)에서도 dev secret 사용은 허용하되 경고.
+const RESOLVED_AUTH_SECRET = (() => {
+  const v = process.env.BETTER_AUTH_SECRET;
+  if (v && v.length >= 16) return v;
+  if (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") {
+    throw new Error(
+      "[auth] BETTER_AUTH_SECRET 환경변수가 비어있거나 16자 미만입니다. 프로덕션에서는 반드시 설정해야 합니다.",
+    );
+  }
+  console.warn("[auth] BETTER_AUTH_SECRET 미설정 — 개발용 임시 secret 사용. 프로덕션 배포 전 반드시 설정하세요.");
+  return "development-secret-key-change-in-production";
+})();
+
+const RESOLVED_BASE_URL =
+  process.env.BETTER_AUTH_URL ||
+  (process.env.VERCEL_ENV === "production"
+    ? "https://www.interiorcoach.co.kr"
+    : "http://localhost:3000");
+
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
-  secret: process.env.BETTER_AUTH_SECRET || "development-secret-key-change-in-production",
+  baseURL: RESOLVED_BASE_URL,
+  secret: RESOLVED_AUTH_SECRET,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
   }),
   trustedOrigins: [
-    process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    RESOLVED_BASE_URL,
     "https://www.interiorcoach.co.kr",
     "https://interiorcoach.co.kr",
     "https://interior-coach-deploy.vercel.app",
