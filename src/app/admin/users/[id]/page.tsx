@@ -119,7 +119,12 @@ export default function Page({ params }: { params: Promise<{ id: string }> }) {
     })();
   }, [id]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-[var(--muted)]">로딩 중...</div>;
+  if (loading) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-2 text-[var(--muted)]">
+      <div className="animate-pulse">로딩 중...</div>
+      <p className="text-xs">사용자가 입력한 모든 데이터를 불러오는 중입니다</p>
+    </div>
+  );
   if (err || !data) {
     return (
       <div className="min-h-screen p-8">

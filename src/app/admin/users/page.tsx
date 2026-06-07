@@ -210,18 +210,19 @@ export default function AdminUsersPage() {
                   <th className="text-right px-3 py-2.5">분석권</th>
                   <th className="text-right px-3 py-2.5">24h AI</th>
                   <th className="text-left px-3 py-2.5">가입일</th>
+                  <th className="text-right px-3 py-2.5">상세</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && items.length === 0 ? (
-                  <tr><td colSpan={8} className="px-3 py-12 text-center text-[var(--muted)]">로딩 중...</td></tr>
+                  <tr><td colSpan={9} className="px-3 py-12 text-center text-[var(--muted)]">로딩 중...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="px-3 py-12 text-center text-[var(--muted)]">결과 없음</td></tr>
+                  <tr><td colSpan={9} className="px-3 py-12 text-center text-[var(--muted)]">결과 없음</td></tr>
                 ) : (
                   filtered.map((u) => (
-                    <tr key={u.id} className="border-t border-[var(--border)] hover:bg-white/[0.02]">
+                    <tr key={u.id} className="border-t border-[var(--border)] hover:bg-white/[0.02] cursor-pointer" onClick={() => window.location.assign(`/admin/users/${u.id}`)}>
                       <td className="px-3 py-2.5">
-                        <Link href={`/admin/users/${u.id}`} className="flex items-center gap-2 hover:text-[var(--green)]">
+                        <Link href={`/admin/users/${u.id}`} className="flex items-center gap-2 hover:text-[var(--green)] hover:underline" onClick={(e) => e.stopPropagation()}>
                           {u.isPromoSignup && <span title="프로모 가입자" className="w-1.5 h-1.5 rounded-full bg-[var(--green)]" />}
                           <div>
                             <div className="font-medium">{u.email}</div>
@@ -255,6 +256,15 @@ export default function AdminUsersPage() {
                         {u.aiCalls24h}
                       </td>
                       <td className="px-3 py-2.5 text-xs text-[var(--muted)]">{fmtDate(u.createdAt)}</td>
+                      <td className="px-3 py-2.5 text-right">
+                        <Link
+                          href={`/admin/users/${u.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-lg bg-[var(--green)]/10 text-[var(--green)] text-xs font-medium hover:bg-[var(--green)]/20"
+                        >
+                          상세 →
+                        </Link>
+                      </td>
                     </tr>
                   ))
                 )}
