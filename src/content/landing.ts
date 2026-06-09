@@ -235,7 +235,6 @@ export const landingCopy = {
           "전자 계약 (카카오·PASS)",
           "세무·회계 전체 + OCR 영수증 스캔",
           "AI 세무 상담 무제한",
-          "고객 포털",
         ],
         ctaLabel: "14일 무료 시작",
         ctaHref: "/auth/signup?plan=pro",
