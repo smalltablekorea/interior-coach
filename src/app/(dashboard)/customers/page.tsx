@@ -35,6 +35,7 @@ export default function CustomersPage() {
   const { checkFeature } = useSubscription();
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", memo: "", status: "상담중" });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchCustomers = (status?: string) => {
     const url = status ? `/api/customers?status=${status}` : "/api/customers";
@@ -54,17 +55,41 @@ export default function CustomersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const res = await apiFetch("/api/customers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    if (res.ok) {
-      setShowModal(false);
-      setForm({ name: "", phone: "", email: "", address: "", memo: "", status: "상담중" });
-      fetchCustomers(statusFilter || undefined);
+    setSaveError(null);
+    try {
+      const res = await apiFetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        setShowModal(false);
+        setForm({ name: "", phone: "", email: "", address: "", memo: "", status: "상담중" });
+        fetchCustomers(statusFilter || undefined);
+      } else {
+        // 저장 실패 원인을 사용자에게 노출 (워크스페이스 미설정, 권한 부족, 유효성 등).
+        let detail = "";
+        try {
+          const body = await res.json();
+          detail = body?.error || body?.message || "";
+        } catch {
+          /* body 파싱 실패 시 status만 안내 */
+        }
+        if (res.status === 403) {
+          setSaveError(detail || "워크스페이스 권한이 없습니다. 헤더에서 워크스페이스를 확인하거나 다시 로그인해주세요.");
+        } else if (res.status === 400) {
+          setSaveError(detail || "입력값을 확인해주세요. 이름은 필수입니다.");
+        } else if (res.status === 401) {
+          setSaveError("세션이 만료되었습니다. 다시 로그인해주세요.");
+        } else {
+          setSaveError(detail || `저장에 실패했습니다 (HTTP ${res.status}).`);
+        }
+      }
+    } catch {
+      setSaveError("네트워크 오류로 저장하지 못했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const filtered = customers.filter(
@@ -191,8 +216,13 @@ export default function CustomersPage() {
       )}
 
       {/* Modal */}
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="고객 등록">
+      <Modal open={showModal} onClose={() => { setShowModal(false); setSaveError(null); }} title="고객 등록">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {saveError && (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+              {saveError}
+            </div>
+          )}
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">이름 *</label>
             <KoreanInput
