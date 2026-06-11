@@ -45,10 +45,18 @@ export async function validateBody<T extends z.ZodType>(
 
 // ─── 공통 Zod 스키마 ───
 
+// optional 이메일: 빈 문자열을 null로 전처리 후 형식 검증.
+// (클라이언트 폼 초기값이 ""인데 사용자가 이메일을 안 적으면 그대로 ""가 전송되어
+// .email() 검증이 항상 실패하던 버그를 차단)
+const optionalEmail = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+  z.string().email("이메일 형식이 올바르지 않습니다").nullable().optional(),
+);
+
 export const customerSchema = z.object({
   name: safeStringMin(1, "이름은 필수입니다"),
   phone: safeStringNullable(),
-  email: z.string().email("이메일 형식이 올바르지 않습니다").nullable().optional(),
+  email: optionalEmail,
   address: safeStringNullable(),
   source: safeStringNullable(),
   status: z.enum(["상담중", "계약완료", "시공중", "완료", "이탈", "시공완료", "A/S", "VIP"]).optional().default("상담중"),

@@ -57,10 +57,19 @@ export default function CustomersPage() {
     setSaving(true);
     setSaveError(null);
     try {
+      // 빈 문자열은 서버 검증을 통과시키기 위해 null로 변환.
+      const payload = {
+        name: form.name.trim(),
+        phone: form.phone.trim() || null,
+        email: form.email.trim() || null,
+        address: form.address.trim() || null,
+        memo: form.memo.trim() || null,
+        status: form.status,
+      };
       const res = await apiFetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         setShowModal(false);
