@@ -63,15 +63,26 @@ export const customerSchema = z.object({
   memo: safeStringNullable(),
 });
 
+// 클라이언트 폼이 빈 문자열을 보내면 그대로 enum/UUID/date 검증이 실패해
+// 사용자가 "현장 등록이 안 됨"으로 경험하던 케이스를 차단.
+// 모든 optional 필드에 동일하게 적용.
+const emptyToNull = <T extends z.ZodTypeAny>(schema: T) =>
+  z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+    schema,
+  );
+
 export const siteSchema = z.object({
   name: safeStringMin(1, "현장명은 필수입니다"),
-  customerId: z.string().uuid().nullable().optional(),
+  customerId: emptyToNull(z.string().uuid().nullable().optional()),
   address: safeStringNullable(),
-  buildingType: z.enum(["아파트", "빌라", "오피스텔", "주택", "상가"]).nullable().optional(),
+  buildingType: emptyToNull(
+    z.enum(["아파트", "빌라", "오피스텔", "주택", "상가"]).nullable().optional(),
+  ),
   areaPyeong: z.number().positive().nullable().optional(),
   status: z.enum(["상담", "상담중", "견적중", "계약", "계약완료", "시공중", "완료", "시공완료", "A/S"]).optional().default("상담중"),
-  startDate: z.string().nullable().optional(),
-  endDate: z.string().nullable().optional(),
+  startDate: emptyToNull(z.string().nullable().optional()),
+  endDate: emptyToNull(z.string().nullable().optional()),
   memo: safeStringNullable(),
 });
 

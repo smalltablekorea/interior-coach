@@ -53,6 +53,7 @@ export default function SitesPage() {
     memo: "",
   });
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -76,31 +77,62 @@ export default function SitesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const res = await apiFetch("/api/sites", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        areaPyeong: form.areaPyeong ? parseFloat(form.areaPyeong) : null,
+    setSaveError(null);
+    try {
+      // 빈 문자열은 enum/UUID/date 검증을 통과시키기 위해 null로 변환.
+      const payload = {
+        name: form.name.trim(),
         customerId: form.customerId || null,
-      }),
-    });
-    if (res.ok) {
-      setShowModal(false);
-      setForm({
-        name: "",
-        customerId: "",
-        address: "",
-        buildingType: "",
-        areaPyeong: "",
-        status: "상담중",
-        startDate: "",
-        endDate: "",
-        memo: "",
+        address: form.address.trim() || null,
+        buildingType: form.buildingType || null,
+        areaPyeong: form.areaPyeong ? parseFloat(form.areaPyeong) : null,
+        status: form.status,
+        startDate: form.startDate || null,
+        endDate: form.endDate || null,
+        memo: form.memo.trim() || null,
+      };
+      const res = await apiFetch("/api/sites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      fetchData();
+      if (res.ok) {
+        setShowModal(false);
+        setForm({
+          name: "",
+          customerId: "",
+          address: "",
+          buildingType: "",
+          areaPyeong: "",
+          status: "상담중",
+          startDate: "",
+          endDate: "",
+          memo: "",
+        });
+        fetchData();
+      } else {
+        let detail = "";
+        try {
+          const body = await res.json();
+          detail = body?.error || body?.message || "";
+        } catch {
+          /* body 파싱 실패 시 status만 안내 */
+        }
+        if (res.status === 403) {
+          setSaveError(detail || "워크스페이스 권한이 없습니다. 헤더에서 워크스페이스를 확인하거나 다시 로그인해주세요.");
+        } else if (res.status === 400) {
+          setSaveError(detail || "입력값을 확인해주세요. 현장명은 필수입니다.");
+        } else if (res.status === 401) {
+          setSaveError("세션이 만료되었습니다. 다시 로그인해주세요.");
+        } else {
+          setSaveError(detail || `저장에 실패했습니다 (HTTP ${res.status}).`);
+        }
+      }
+    } catch {
+      setSaveError("네트워크 오류로 저장하지 못했습니다. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const filtered = sites.filter((s) => {
@@ -236,11 +268,16 @@ export default function SitesPage() {
       {/* Modal */}
       <Modal
         open={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => { setShowModal(false); setSaveError(null); }}
         title="현장 등록"
         maxWidth="max-w-xl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {saveError && (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+              {saveError}
+            </div>
+          )}
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">현장명 *</label>
             <KoreanInput
