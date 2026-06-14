@@ -162,7 +162,11 @@ ${ctaNote}
   const response = await callAnthropicWithRetry((client) =>
     client.messages.create({
       model: MODELS.HAIKU,
-      max_tokens: 4000,
+      // 7-15개 Q&A (각 답변 300-800자) 배열 JSON 출력에 8000 토큰 필요.
+      // 2026-06-06 비용 보호 차원에서 4000으로 줄였다가 응답이 잘려
+      // "Unterminated string in JSON" parse 실패로 2일 연속 cron 다운 → 8000 복구.
+      // haiku 모델이라 출력 비용 $5/M × 8K ≈ $0.04/일.
+      max_tokens: 8000,
       temperature: 0.7,
       system: cachedSystem(QNA_SYSTEM_PROMPT),
       messages: [{ role: "user", content: userPrompt }],
@@ -176,7 +180,19 @@ ${ctaNote}
     usage: response.usage,
   });
 
-  return extractJson(response);
+  // JSON parse 실패 시 안전망: 부분 응답이라도 살리고 일부 결과 반환.
+  // extractJson은 throw하므로 try/catch로 감싸 cron 자체는 정상 종료.
+  try {
+    return extractJson(response) as Array<{
+      title: string;
+      content: string;
+      answer: string;
+      category: string;
+    }>;
+  } catch (e) {
+    console.error("[qna/generate] JSON parse 실패 — 응답 일부 발췌 후 종료", e);
+    return [];
+  }
 }
 
 export const GET = createCronRoute({
