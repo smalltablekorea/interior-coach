@@ -5,6 +5,7 @@ import { Check, X, ChevronDown, ArrowRight, Wallet, Clock, FileText, Lightbulb, 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/plans";
+import { ExpiringBlock } from "@/components/util/ExpiringBlock";
 
 // ─── Plan Data ───
 
@@ -931,6 +932,16 @@ export default function PricingPage() {
           </div>
         </div>
       </header>
+
+      {/* 전면 무료화 안내 — 7/31 자정 지나면 자동 숨김 */}
+      <ExpiringBlock until="2026-08-01T00:00:00+09:00">
+        <div className="bg-[var(--green)]/10 border-y border-[var(--green)]/30">
+          <div className="max-w-7xl mx-auto px-6 py-3 flex flex-col sm:flex-row items-center justify-center gap-2 text-sm">
+            <span className="font-semibold text-[var(--green)]">🎉 7월 31일까지 전체 기능 무료</span>
+            <span className="text-[var(--muted)]">— 가입만 하시면 Starter·Pro의 모든 기능을 결제 없이 사용 가능합니다 (카드 등록 불필요)</span>
+          </div>
+        </div>
+      </ExpiringBlock>
 
       {/* Hero */}
       <section className="max-w-7xl mx-auto px-6 pt-16 pb-12 text-center">
