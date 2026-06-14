@@ -243,12 +243,21 @@ function SignupForm() {
             <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">
               인테리어코치
             </h1>
-            <p className="mt-1 text-sm text-[var(--green)] font-medium">
-              🎁 Pro 3주 무료 + 견적코치 10회 (6/8 00시까지)
-            </p>
-            <p className="mt-0.5 text-xs text-[var(--muted)]">
-              카드 등록 불필요
-            </p>
+            {/* 시한부 카피: 마감 시각이 지나면 자동 숨김 → 기본 14일 안내로 폴백 */}
+            {Date.now() < new Date("2026-06-08T00:00:00+09:00").getTime() ? (
+              <>
+                <p className="mt-1 text-sm text-[var(--green)] font-medium">
+                  🎁 Pro 3주 무료 + 견적코치 10회 (6/8 00시까지)
+                </p>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">
+                  카드 등록 불필요
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                14일 무료 체험 · 카드 등록 불필요
+              </p>
+            )}
           </div>
         </div>
 
