@@ -27,6 +27,7 @@ export default function WorkersPage() {
   const [filterTrade, setFilterTrade] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -52,20 +53,40 @@ export default function WorkersPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const res = await apiFetch("/api/workers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
+    setSaveError(null);
+    try {
+      const payload = {
+        name: form.name.trim(),
+        phone: form.phone.trim() || null,
+        trade: form.trade,
         dailyWage: form.dailyWage ? parseInt(form.dailyWage) : null,
-      }),
-    });
-    if (res.ok) {
-      setShowModal(false);
-      setForm({ name: "", phone: "", trade: "목공", dailyWage: "", memo: "" });
-      fetchWorkers();
+        memo: form.memo.trim() || null,
+      };
+      const res = await apiFetch("/api/workers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        setShowModal(false);
+        setForm({ name: "", phone: "", trade: "목공", dailyWage: "", memo: "" });
+        fetchWorkers();
+      } else {
+        let detail = "";
+        try {
+          const body = await res.json();
+          detail = body?.error || body?.message || "";
+        } catch { /* parse 실패 */ }
+        if (res.status === 403) setSaveError(detail || "워크스페이스 권한이 없습니다.");
+        else if (res.status === 400) setSaveError(detail || "입력값을 확인해주세요. 이름·직종은 필수입니다.");
+        else if (res.status === 401) setSaveError("세션이 만료되었습니다. 다시 로그인해주세요.");
+        else setSaveError(detail || `저장에 실패했습니다 (HTTP ${res.status}).`);
+      }
+    } catch {
+      setSaveError("네트워크 오류로 저장하지 못했습니다.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const filtered = workers.filter((w) => {
@@ -189,8 +210,13 @@ export default function WorkersPage() {
       )}
 
       {/* Modal */}
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="작업자 등록">
+      <Modal open={showModal} onClose={() => { setShowModal(false); setSaveError(null); }} title="작업자 등록">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {saveError && (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">이름 *</label>

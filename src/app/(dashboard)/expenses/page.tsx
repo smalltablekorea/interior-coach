@@ -62,6 +62,7 @@ export default function ExpensesPage() {
   const [filterCategory, setFilterCategory] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [budget, setBudget] = useState<BudgetData | null>(null);
 
   const [form, setForm] = useState({
@@ -144,14 +145,21 @@ export default function ExpensesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setSaveError(null);
     try {
+      const payload = {
+        siteId: form.siteId || null,
+        category: form.category,
+        description: form.description.trim() || null,
+        amount: parseInt(form.amount) || 0,
+        date: form.date || null,
+        paymentMethod: form.paymentMethod || null,
+        vendor: form.vendor.trim() || null,
+      };
       const res = await apiFetch("/api/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          amount: parseInt(form.amount) || 0,
-        }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         setShowModal(false);
@@ -166,11 +174,22 @@ export default function ExpensesPage() {
           vendor: "",
         });
         loadExpenses();
+      } else {
+        let detail = "";
+        try {
+          const body = await res.json();
+          detail = body?.error || body?.message || "";
+        } catch { /* parse 실패 */ }
+        if (res.status === 403) setSaveError(detail || "워크스페이스 권한이 없습니다.");
+        else if (res.status === 400) setSaveError(detail || "입력값을 확인해주세요.");
+        else if (res.status === 401) setSaveError("세션이 만료되었습니다. 다시 로그인해주세요.");
+        else setSaveError(detail || `저장에 실패했습니다 (HTTP ${res.status}).`);
       }
     } catch {
-      // ignore
+      setSaveError("네트워크 오류로 저장하지 못했습니다.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const openEditExpense = (expense: Expense) => {
@@ -503,8 +522,13 @@ export default function ExpensesPage() {
       )}
 
       {/* New Expense Modal */}
-      <Modal open={showModal} onClose={() => setShowModal(false)} title="지출 등록">
+      <Modal open={showModal} onClose={() => { setShowModal(false); setSaveError(null); }} title="지출 등록">
         <form onSubmit={handleSubmit} className="space-y-4">
+          {saveError && (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+              {saveError}
+            </div>
+          )}
           <div>
             <label className="block text-sm text-[var(--muted)] mb-1">현장</label>
             <select

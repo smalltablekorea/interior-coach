@@ -42,6 +42,7 @@ export default function EstimatesPage() {
   const [filterStatus, setFilterStatus] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     siteId: "",
@@ -96,24 +97,40 @@ export default function EstimatesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const res = await apiFetch("/api/estimates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        siteId: form.siteId || null,
-        totalAmount,
-        profitRate: parseFloat(form.profitRate),
-        overheadRate: parseFloat(form.overheadRate),
-        vatEnabled: form.vatEnabled,
-        items: items.filter((item) => item.itemName),
-      }),
-    });
-    if (res.ok) {
-      setShowModal(false);
-      setItems([{ category: "철거", itemName: "", unit: "식", quantity: 1, unitPrice: 0, amount: 0 }]);
-      fetchData();
+    setSaveError(null);
+    try {
+      const res = await apiFetch("/api/estimates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          siteId: form.siteId || null,
+          totalAmount,
+          profitRate: parseFloat(form.profitRate),
+          overheadRate: parseFloat(form.overheadRate),
+          vatEnabled: form.vatEnabled,
+          items: items.filter((item) => item.itemName),
+        }),
+      });
+      if (res.ok) {
+        setShowModal(false);
+        setItems([{ category: "철거", itemName: "", unit: "식", quantity: 1, unitPrice: 0, amount: 0 }]);
+        fetchData();
+      } else {
+        let detail = "";
+        try {
+          const body = await res.json();
+          detail = body?.error || body?.message || "";
+        } catch { /* parse 실패 */ }
+        if (res.status === 403) setSaveError(detail || "워크스페이스 권한이 없습니다.");
+        else if (res.status === 400) setSaveError(detail || "입력값을 확인해주세요.");
+        else if (res.status === 401) setSaveError("세션이 만료되었습니다. 다시 로그인해주세요.");
+        else setSaveError(detail || `저장에 실패했습니다 (HTTP ${res.status}).`);
+      }
+    } catch {
+      setSaveError("네트워크 오류로 저장하지 못했습니다.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const filtered = estimates.filter((e) => {
@@ -230,11 +247,16 @@ export default function EstimatesPage() {
       {/* New Estimate Modal */}
       <Modal
         open={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => { setShowModal(false); setSaveError(null); }}
         title="견적 작성"
         maxWidth="max-w-2xl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
+          {saveError && (
+            <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-400">
+              {saveError}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-[var(--muted)] mb-1">현장</label>
