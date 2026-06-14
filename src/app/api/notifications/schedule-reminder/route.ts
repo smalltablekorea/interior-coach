@@ -48,7 +48,7 @@ export const POST = createCronRoute({
         .where(
           and(
             eq(constructionPhases.plannedStart, targetDate),
-            eq(constructionPhases.status, "대기"),
+            eq(constructionPhases.status, "예정"),
             isNull(sites.deletedAt),
           ),
         );

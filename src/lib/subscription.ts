@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { subscriptions, usageRecords, user as userTable } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { type PlanId, PLANS, isPlanAtLeast, FEATURE_REQUIRED_PLAN, type FeatureKey } from "@/lib/plans";
+import { isFreePeriodActive } from "@/lib/subscription/free-period";
 
 /** 관리자 / 테스트 계정 — 모든 패키지 무제한 이용 */
 const UNLIMITED_EMAILS = [
@@ -46,6 +47,20 @@ export async function getUserSubscription(userId: string): Promise<UserSubscript
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
+
+  // 전면 무료화 기간 — 모든 사용자에게 Pro 권한 부여.
+  // 실제 구독 상태(trialEndsAt 등)는 보존하되 plan만 pro로 오버라이드.
+  // 마감 시각 도달 즉시 자동으로 정상 로직 복귀.
+  if (isFreePeriodActive()) {
+    const sub = rows[0];
+    return {
+      plan: "pro",
+      status: sub?.status || "active",
+      billingCycle: sub?.billingCycle || "monthly",
+      trialEndsAt: sub?.trialEndsAt ?? null,
+      currentPeriodEnd: sub?.currentPeriodEnd ?? null,
+    };
+  }
 
   if (rows.length === 0) {
     return {

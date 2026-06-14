@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         category,
         plannedStart: plannedStart || null,
         plannedEnd: plannedEnd || null,
-        status: status || "대기",
+        status: status || "예정",
         memo: memo || null,
         sortOrder: (maxOrder?.max ?? 0) + 1,
       })

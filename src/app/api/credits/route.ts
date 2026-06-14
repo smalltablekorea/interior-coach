@@ -4,6 +4,7 @@ import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, serverError } from "@/lib/api/response";
 import { isPromoEligibleUser, startTrialForNewUser } from "@/lib/subscription/trial";
+import { isFreePeriodActive } from "@/lib/subscription/free-period";
 
 /** GET: 분석권 잔여 횟수 조회 */
 export async function GET() {
@@ -11,6 +12,11 @@ export async function GET() {
   if (!auth.ok) return auth.response;
 
   try {
+    // 전면 무료화 기간: 분석권 무제한으로 응답 (실제 행은 조회·갱신 안 함)
+    if (isFreePeriodActive()) {
+      return ok({ total: 0, used: 0, remaining: 0, unlimited: true });
+    }
+
     let [row] = await db
       .select()
       .from(analysisCredits)

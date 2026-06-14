@@ -5,6 +5,7 @@ import { and, sql } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
+import { isFreePeriodActive } from "@/lib/subscription/free-period";
 
 /** POST: 분석권 1회 사용하여 프로 분석 잠금해제 */
 export async function POST(request: NextRequest) {
@@ -19,6 +20,26 @@ export async function POST(request: NextRequest) {
 
     if (!area || !grade) {
       return err("area, grade 필수");
+    }
+
+    // 전면 무료화 기간: 분석권 차감 우회. 분석 결과만 저장 후 무제한으로 응답.
+    if (isFreePeriodActive()) {
+      const [result] = await db
+        .insert(analysisResults)
+        .values({
+          userId: uid,
+          workspaceId: wid,
+          area,
+          grade,
+          buildingType: buildingType || "apt",
+          profitRate: profitRate ?? 20,
+          overheadRate: overheadRate ?? 6,
+          vatEnabled: vatEnabled ?? false,
+          resultData: resultData || null,
+          creditUsed: false,
+        })
+        .returning();
+      return ok({ success: true, analysisId: result.id, remainingCredits: -1, unlimited: true });
     }
 
     // 조건부 UPDATE + RETURNING 으로 한도 검사와 차감을 한 트랜잭션 안에서 처리.

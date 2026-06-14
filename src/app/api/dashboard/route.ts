@@ -265,7 +265,7 @@ export async function GET() {
         .where(and(
           workspaceFilter(constructionPhases.workspaceId, constructionPhases.userId, wid, uid),
           gte(constructionPhases.plannedStart, today), lte(constructionPhases.plannedStart, nextWeekStr),
-          eq(constructionPhases.status, "대기"), eq(sites.status, "시공중"), isNull(sites.deletedAt),
+          eq(constructionPhases.status, "예정"), eq(sites.status, "시공중"), isNull(sites.deletedAt),
         )),
       db.selectDistinct({ siteId: materialOrders.siteId }).from(materialOrders)
         .where(and(

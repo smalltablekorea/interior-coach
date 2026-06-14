@@ -245,7 +245,7 @@ function SignupForm() {
               인테리어코치
             </h1>
             <ExpiringBlock
-              until="2026-06-08T00:00:00+09:00"
+              until="2026-08-01T00:00:00+09:00"
               fallback={
                 <p className="mt-1 text-sm text-[var(--muted)]">
                   14일 무료 체험 · 카드 등록 불필요
@@ -253,10 +253,10 @@ function SignupForm() {
               }
             >
               <p className="mt-1 text-sm text-[var(--green)] font-medium">
-                🎁 Pro 3주 무료 + 견적코치 10회 (6/8 00시까지)
+                🎉 7/31까지 전체 기능 무료
               </p>
               <p className="mt-0.5 text-xs text-[var(--muted)]">
-                카드 등록 불필요
+                카드 등록 불필요 · 모든 Pro 기능 즉시 사용
               </p>
             </ExpiringBlock>
           </div>

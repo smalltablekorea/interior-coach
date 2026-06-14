@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         category,
         plannedStart: plannedStart || null,
         plannedEnd: plannedEnd || null,
-        status: status || "대기",
+        status: status || "예정",
         progress: progress ?? (status === "완료" ? 100 : 0),
         memo: memo || null,
       })

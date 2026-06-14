@@ -159,7 +159,7 @@ export default function EstimateCoachPage() {
 
 
   // ─── 분석권 & 프로 분석 상태 ───
-  const [credits, setCredits] = useState<{ total: number; used: number; remaining: number } | null>(null);
+  const [credits, setCredits] = useState<{ total: number; used: number; remaining: number; unlimited?: boolean } | null>(null);
   const [proUnlocked, setProUnlocked] = useState(false);
   const [proLoading, setProLoading] = useState(false);
   const [proError, setProError] = useState<string | null>(null);
@@ -719,13 +719,13 @@ export default function EstimateCoachPage() {
             {credits !== null && (
               <span className="text-xs text-[var(--muted)]">
                 <Shield size={12} className="inline mr-1" />
-                보유 {credits.remaining}회
+                {credits.unlimited ? "무제한 (전면 무료 기간)" : `보유 ${credits.remaining}회`}
               </span>
             )}
             {!proUnlocked && (
               <button
                 onClick={handleUnlockPro}
-                disabled={proLoading || (credits !== null && credits.remaining <= 0)}
+                disabled={proLoading || (credits !== null && !credits.unlimited && credits.remaining <= 0)}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {proLoading ? (
@@ -733,7 +733,7 @@ export default function EstimateCoachPage() {
                 ) : (
                   <Zap size={16} />
                 )}
-                {proLoading ? "분석 저장 중..." : "프로분석 (분석권 1회)"}
+                {proLoading ? "분석 저장 중..." : (credits?.unlimited ? "프로분석 (무료)" : "프로분석 (분석권 1회)")}
               </button>
             )}
           </div>
@@ -1473,7 +1473,7 @@ export default function EstimateCoachPage() {
               <h2 className="text-sm font-medium">프로 분석 리포트</h2>
               {credits !== null && (
                 <span className="ml-auto text-xs px-2.5 py-1 rounded-full bg-[var(--green)]/10 text-[var(--green)]">
-                  보유 분석권: {credits.remaining}회
+                  {credits.unlimited ? "전면 무료 기간 · 무제한" : `보유 분석권: ${credits.remaining}회`}
                 </span>
               )}
             </div>
@@ -1519,7 +1519,7 @@ export default function EstimateCoachPage() {
                     </div>
                   )}
 
-                  {credits !== null && credits.remaining > 0 ? (
+                  {credits !== null && (credits.unlimited || credits.remaining > 0) ? (
                     <button
                       onClick={handleUnlockPro}
                       disabled={proLoading}
@@ -1533,7 +1533,7 @@ export default function EstimateCoachPage() {
                       ) : (
                         <>
                           <Unlock size={16} />
-                          분석권 1회 사용하여 프로 분석 보기
+                          {credits.unlimited ? "프로 분석 보기 (무료)" : "분석권 1회 사용하여 프로 분석 보기"}
                         </>
                       )}
                     </button>

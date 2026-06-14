@@ -39,9 +39,10 @@ describe("Constants — 상수 무결성", () => {
   });
 
   it("PHASE_STATUSES has standard states", () => {
-    expect(PHASE_STATUSES).toContain("대기");
+    expect(PHASE_STATUSES).toContain("예정");
     expect(PHASE_STATUSES).toContain("진행중");
     expect(PHASE_STATUSES).toContain("완료");
+    expect(PHASE_STATUSES).toContain("보류");
   });
 
   it("all constant arrays are typed as readonly (no runtime mutation expected)", () => {
