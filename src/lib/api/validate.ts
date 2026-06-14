@@ -98,13 +98,13 @@ export const estimateItemSchema = z.object({
 });
 
 export const estimateSchema = z.object({
-  siteId: z.string().uuid().nullable().optional(),
+  siteId: emptyToNull(z.string().uuid().nullable().optional()),
   version: z.number().int().positive().optional().default(1),
   totalAmount: z.number().min(0).optional().default(0),
   profitRate: z.number().min(0).max(100).optional().default(0),
   overheadRate: z.number().min(0).max(100).optional().default(0),
   vatEnabled: z.boolean().optional().default(true),
-  grade: z.string().nullable().optional(),
+  grade: emptyToNull(z.string().nullable().optional()),
   status: z.enum(["초안", "작성중", "발송", "확정", "승인", "거절"]).optional().default("작성중"),
   memo: safeStringNullable(),
   metadata: z.any().nullable().optional(),
@@ -112,12 +112,12 @@ export const estimateSchema = z.object({
 });
 
 export const contractSchema = z.object({
-  siteId: z.string().uuid().nullable().optional(),
-  estimateId: z.string().uuid().nullable().optional(),
+  siteId: emptyToNull(z.string().uuid().nullable().optional()),
+  estimateId: emptyToNull(z.string().uuid().nullable().optional()),
   contractAmount: z.number().min(0, "계약금액은 필수입니다"),
   deposit: z.number().min(0).optional().default(0),
   status: z.enum(["계약대기", "서명완료", "진행중", "완료", "해지"]).optional().default("계약대기"),
-  contractDate: z.string().nullable().optional(),
+  contractDate: emptyToNull(z.string().nullable().optional()),
   memo: safeStringNullable(),
 });
 
@@ -130,14 +130,14 @@ export const workerSchema = z.object({
 });
 
 export const expenseSchema = z.object({
-  siteId: z.string().uuid().nullable().optional(),
+  siteId: emptyToNull(z.string().uuid().nullable().optional()),
   category: z.enum(["자재비", "인건비", "운반비", "장비비", "기타"], { message: "카테고리는 필수입니다" }),
   description: safeStringNullable(),
   amount: z.number().min(0, "금액은 필수입니다"),
-  date: z.string().nullable().optional(),
+  date: emptyToNull(z.string().nullable().optional()),
   paymentMethod: safeStringNullable(),
   vendor: safeStringNullable(),
-  receiptUrl: z.string().url().nullable().optional(),
+  receiptUrl: emptyToNull(z.string().url().nullable().optional()),
 });
 
 export const materialSchema = z.object({

@@ -16,6 +16,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import { signIn, signUp } from "@/lib/auth-client";
+import { ExpiringBlock } from "@/components/util/ExpiringBlock";
 
 /**
  * 회원가입 직후: 워크스페이스가 없으면 setup?tab=create 로 보내 업체명 입력.
@@ -243,21 +244,21 @@ function SignupForm() {
             <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">
               인테리어코치
             </h1>
-            {/* 시한부 카피: 마감 시각이 지나면 자동 숨김 → 기본 14일 안내로 폴백 */}
-            {Date.now() < new Date("2026-06-08T00:00:00+09:00").getTime() ? (
-              <>
-                <p className="mt-1 text-sm text-[var(--green)] font-medium">
-                  🎁 Pro 3주 무료 + 견적코치 10회 (6/8 00시까지)
+            <ExpiringBlock
+              until="2026-06-08T00:00:00+09:00"
+              fallback={
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  14일 무료 체험 · 카드 등록 불필요
                 </p>
-                <p className="mt-0.5 text-xs text-[var(--muted)]">
-                  카드 등록 불필요
-                </p>
-              </>
-            ) : (
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                14일 무료 체험 · 카드 등록 불필요
+              }
+            >
+              <p className="mt-1 text-sm text-[var(--green)] font-medium">
+                🎁 Pro 3주 무료 + 견적코치 10회 (6/8 00시까지)
               </p>
-            )}
+              <p className="mt-0.5 text-xs text-[var(--muted)]">
+                카드 등록 불필요
+              </p>
+            </ExpiringBlock>
           </div>
         </div>
 
