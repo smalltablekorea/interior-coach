@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 
 interface Props {
   /**
@@ -29,42 +29,40 @@ interface Props {
  * ```
  *
  * 동작:
- * - 초기 렌더(SSR + 첫 hydration)는 children 표시 → React hydration 불일치 없음
- * - 마운트 직후 현재 시각 확인, 마감 지났으면 fallback으로 교체
- * - 페이지를 열어둔 사용자도 자동 전환되도록:
- *   · 마감까지 1시간 이내: 매 분 재확인
+ * - `useSyncExternalStore`로 외부 시각을 구독 (React 19 권장 패턴)
+ * - SSR: false → children 렌더 (서버·클라이언트 hydration 일치)
+ * - 클라이언트: 마운트 시점에 정확한 마감 여부 결정
+ * - 페이지를 열어둔 사용자도 자동 전환되도록 주기 폴링:
+ *   · 마감까지 1시간 이내: 매 분
  *   · 24시간 이내: 매 5분
  *   · 그 외: 매 1시간
  *
  * 주의:
- * - 마감 이후 첫 방문자는 children이 1프레임(≈16ms) 보였다가 fallback으로
- *   바뀜. 시각적으로 거의 인식 불가. SEO에 노출되면 안 되는 컨텐츠라면
- *   이 컴포넌트 대신 서버에서 직접 분기할 것.
+ * - SEO 노출되는 컨텐츠라면 이 컴포넌트 대신 서버 컴포넌트에서 분기할 것.
  */
 export function ExpiringBlock({ until, children, fallback = null }: Props) {
   const deadlineMs =
     typeof until === "string" ? new Date(until).getTime() : until.getTime();
 
-  const [expired, setExpired] = useState(false);
-
-  useEffect(() => {
-    // 마운트 시점에 정확한 마감 여부 결정
-    setExpired(Date.now() >= deadlineMs);
-
-    const remaining = deadlineMs - Date.now();
-    if (remaining <= 0) return; // 이미 마감 → 타이머 불필요
-
-    // 마감까지 남은 시간에 따라 폴링 주기 자동 조절
-    const intervalMs =
-      remaining < 60 * 60 * 1000 ? 60_000 :
-      remaining < 24 * 60 * 60 * 1000 ? 5 * 60_000 :
-      60 * 60 * 1000;
-
-    const id = setInterval(() => {
-      if (Date.now() >= deadlineMs) setExpired(true);
-    }, intervalMs);
-    return () => clearInterval(id);
-  }, [deadlineMs]);
+  const expired = useSyncExternalStore(
+    (onChange) => subscribeToDeadline(deadlineMs, onChange),
+    () => Date.now() >= deadlineMs, // client snapshot
+    () => false,                     // server snapshot — children 표시
+  );
 
   return <>{expired ? fallback : children}</>;
+}
+
+function subscribeToDeadline(deadlineMs: number, onChange: () => void): () => void {
+  const remaining = deadlineMs - Date.now();
+  if (remaining <= 0) return () => {};
+
+  // 폴링 주기: 마감 임박할수록 촘촘하게
+  const intervalMs =
+    remaining < 60 * 60 * 1000 ? 60_000 :
+    remaining < 24 * 60 * 60 * 1000 ? 5 * 60_000 :
+    60 * 60 * 1000;
+
+  const id = setInterval(onChange, intervalMs);
+  return () => clearInterval(id);
 }
