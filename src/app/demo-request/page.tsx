@@ -11,7 +11,6 @@ export const metadata: Metadata = {
     title: "데모 신청 | 인테리어코치",
     description:
       "인테리어 업체 현장 운영 올인원 SaaS. 30분 라이브 데모로 직접 확인하세요.",
-    images: ["/landing/og-hero.png"],
   },
   alternates: {
     canonical: "/demo-request",

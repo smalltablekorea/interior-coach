@@ -10,7 +10,6 @@ export const metadata: Metadata = {
     title: "인테리어코치 | 인테리어 업체 현장 운영 올인원 SaaS",
     description:
       "공정 매니저·견적·계약·지출·정산·세무를 한 화면에서 관리하세요. 14일 무료, 카드 등록 불필요.",
-    images: ["/landing/og-hero.png"],
     type: "website",
     locale: "ko_KR",
   },
@@ -18,7 +17,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "인테리어코치",
     description: "현장 운영 올인원 SaaS",
-    images: ["/landing/og-hero.png"],
   },
   alternates: {
     canonical: "/",

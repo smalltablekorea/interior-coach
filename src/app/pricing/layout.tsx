@@ -9,7 +9,6 @@ export const metadata: Metadata = {
     title: "인테리어코치 요금제",
     description:
       "무료 플랜부터 프리미엄까지 — 인테리어 업체 규모에 맞는 합리적 요금제. 14일 무료 체험.",
-    images: ["/landing/og-hero.png"],
   },
   alternates: {
     canonical: "/pricing",
