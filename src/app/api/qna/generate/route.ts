@@ -203,6 +203,24 @@ export const GET = createCronRoute({
 
     const generated = await generateQnaBatch(totalCount);
 
+    // JSON parse 실패 안전망이 빈 배열을 반환한 경우, drizzle .values([]) 호출이
+    // "values() must be called with at least one value"로 throw → cron 실패.
+    // 빈 배열이면 정상 종료 후 0건으로 로깅.
+    if (generated.length === 0) {
+      const config = getCurrentMonthConfig();
+      return {
+        processed: 0,
+        metadata: {
+          date: todayKST,
+          month: config.month,
+          season: config.season,
+          pending: 0,
+          answered: 0,
+          note: "generated empty (AI JSON parse 실패 가능)",
+        },
+      };
+    }
+
     const rows = generated.map((item) => {
       const isPending = Math.random() < 0.1;
       const createdAt = randomKSTTime(todayKST);
