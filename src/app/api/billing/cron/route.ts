@@ -1,41 +1,28 @@
-import { NextRequest, NextResponse } from "next/server";
 import { processRenewals, processRetries, processTrialExpirations } from "@/lib/billing";
+import { createCronRoute } from "@/lib/cron/monitor";
 
 /**
- * POST /api/billing/cron
- * 구독 자동 갱신 + 결제 재시도 + 트라이얼 만료 CRON
- * Vercel Cron 또는 외부 CRON에서 매일 1회 호출
- * 헤더에 CRON_SECRET을 포함해야 합니다
+ * Vercel Cron: 구독 자동 갱신 + 결제 재시도 + 트라이얼 만료 (매일 02:00)
+ * createCronRoute가 CRON_SECRET 검증 + cron_execution_logs 적재 + 실패 알림 모두 처리.
  */
-export async function POST(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
+export const POST = createCronRoute({
+  name: "billing/cron",
+  handler: async () => {
     const [renewals, retries, trials] = await Promise.all([
       processRenewals(),
       processRetries(),
       processTrialExpirations(),
     ]);
-
-    return NextResponse.json({
-      success: true,
-      renewals: { processed: renewals.length, results: renewals },
-      retries: { processed: retries.length, results: retries },
-      trials: { processed: trials.length, results: trials },
-    });
-  } catch (error) {
-    console.error("[Billing CRON] Error:", error);
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500 }
-    );
-  }
-}
+    return {
+      processed: renewals.length + retries.length + trials.length,
+      metadata: {
+        renewals: renewals.length,
+        retries: retries.length,
+        trials: trials.length,
+      },
+    };
+  },
+});
 
 // Vercel Cron 호환: 기본 GET 호출도 동일 핸들러로 처리.
 export const GET = POST;

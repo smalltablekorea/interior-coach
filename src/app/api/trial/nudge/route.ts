@@ -1,50 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { subscriptions, usageRecords, sites, customers, user as userTable } from "@/lib/db/schema";
 import { eq, and, gte, lte, sql, isNull } from "drizzle-orm";
 import { createNotification } from "@/lib/notifications";
 import { sendTrialNudgeEmail } from "@/lib/trial-emails";
 import { PLANS } from "@/lib/plans";
+import { createCronRoute } from "@/lib/cron/monitor";
 
 /**
- * POST /api/trial/nudge
- * 무료체험 → 유료 전환 넛지/알림 시스템
- * D-7, D-3, D-1 인앱 알림 + 이메일 + 사용량 기반 넛지
- * Vercel Cron에서 매일 1회 호출
+ * Vercel Cron: 무료체험 → 유료 전환 넛지/알림 (매일 10:00)
+ * D-7, D-3, D-1 인앱 알림 + 이메일 + 사용량 기반 넛지.
+ * createCronRoute가 CRON_SECRET 검증 + cron_execution_logs 적재 + 실패 알림 처리.
  */
-export async function POST(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
+export const POST = createCronRoute({
+  name: "trial/nudge",
+  handler: async () => {
     const [inAppResults, emailResults, usageResults] = await Promise.all([
       processTrialDayNotifications(),
       processTrialEmailSequence(),
       processUsageBasedNudges(),
     ]);
-
-    return NextResponse.json({
-      success: true,
+    return {
       processed: inAppResults.length + emailResults.length + usageResults.length,
-      inApp: { count: inAppResults.length, results: inAppResults },
-      email: { count: emailResults.length, results: emailResults },
-      usage: { count: usageResults.length, results: usageResults },
-    });
-  } catch (error) {
-    console.error("[Trial Nudge CRON] Error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+      metadata: {
+        inAppSent: inAppResults.length,
+        emailSent: emailResults.length,
+        usageNudges: usageResults.length,
+        emailFailures: emailResults.filter((r) => !r.success).length,
       },
-      { status: 500 }
-    );
-  }
-}
+    };
+  },
+});
 
 /**
  * D-7, D-3, D-1 인앱 알림 처리
