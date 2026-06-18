@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { WorkspaceRole } from "@/lib/workspace/permissions";
+import { apiFetch } from "@/lib/api-client";
 
 interface WorkspaceInfo {
   id: string;
@@ -54,7 +55,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const fetchCurrent = useCallback(async () => {
     try {
-      const res = await fetch("/api/workspace/current");
+      const res = await apiFetch("/api/workspace/current");
       if (!res.ok) throw new Error("fetch failed");
       const data = await res.json();
       if (data.workspace) {
@@ -75,7 +76,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const fetchList = useCallback(async () => {
     try {
-      const res = await fetch("/api/workspace");
+      const res = await apiFetch("/api/workspace");
       if (!res.ok) return;
       const data = await res.json();
       setWorkspaceList(data.workspaces || []);
@@ -92,7 +93,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const switchWorkspace = useCallback(
     async (workspaceId: string) => {
       try {
-        const res = await fetch("/api/workspace/current", {
+        const res = await apiFetch("/api/workspace/current", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ workspaceId }),

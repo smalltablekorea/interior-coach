@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "@/lib/auth-client";
+import { apiFetch } from "@/lib/api-client";
 
 interface TrialStatus {
   isLoading: boolean;
@@ -64,7 +65,7 @@ export function useTrialStatus() {
       setStatus(prev => ({ ...prev, isLoading: true, error: null }));
 
       // Fetch subscription info
-      const subResponse = await fetch("/api/subscription");
+      const subResponse = await apiFetch("/api/subscription");
       if (!subResponse.ok) throw new Error("Failed to fetch subscription");
       const subData = await subResponse.json();
 

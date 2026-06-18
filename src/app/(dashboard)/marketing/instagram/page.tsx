@@ -406,8 +406,36 @@ export default function InstagramPage() {
   };
 
   const handleSaveContent = async () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (!generated) return;
+    try {
+      const res = await apiFetch("/api/marketing/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel: "instagram",
+          title: generated.title || generated.body.slice(0, 80),
+          body: `${generated.body}\n\n${generated.hashtags.join(" ")}`,
+          status: "draft",
+          metadata: {
+            contentType,
+            format,
+            carouselCount: format === "carousel" ? carouselCount : undefined,
+            siteId: selectedSiteId || undefined,
+            hashtags: generated.hashtags,
+            keywords: generated.keywords,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        alert(`저장 실패: ${j?.error || res.status}`);
+        return;
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (e) {
+      alert(`저장 실패: ${e instanceof Error ? e.message : "네트워크 오류"}`);
+    }
   };
 
   /* ══════════════════ Analytics ══════════════════ */

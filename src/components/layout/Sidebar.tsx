@@ -39,6 +39,7 @@ import { isAgencyOperator } from "@/lib/agency/operator";
 import PlanBadge from "@/components/subscription/PlanBadge";
 import type { FeatureKey } from "@/lib/plans";
 import { checkPermission, pathToCategory, type WorkspaceRole } from "@/lib/workspace/permissions";
+import { apiFetch } from "@/lib/api-client";
 
 interface NavItem {
   href: string;
@@ -137,7 +138,7 @@ export default function Sidebar() {
     let cancelled = false;
     (async () => {
       try {
-        const r = await fetch("/api/agency/alerts?unresolved=true&limit=1");
+        const r = await apiFetch("/api/agency/alerts?unresolved=true&limit=1");
         if (!r.ok) return;
         const j = await r.json();
         if (!cancelled) setAgencyAlertsCount(j.unresolvedCount || 0);

@@ -482,9 +482,35 @@ export default function YouTubePage() {
     }
   };
 
-  const handleSaveSEO = () => {
-    setSeoSaved(true);
-    setTimeout(() => setSeoSaved(false), 2000);
+  const handleSaveSEO = async () => {
+    if (!seoResult) return;
+    try {
+      const res = await apiFetch("/api/marketing/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel: "youtube",
+          title: seoResult.title,
+          body: seoResult.body,
+          status: "draft",
+          metadata: {
+            contentType: seoContentType,
+            siteId: seoSiteId || undefined,
+            hashtags: seoResult.hashtags,
+            keywords: seoResult.keywords,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        alert(`저장 실패: ${j?.error || res.status}`);
+        return;
+      }
+      setSeoSaved(true);
+      setTimeout(() => setSeoSaved(false), 2000);
+    } catch (e) {
+      alert(`저장 실패: ${e instanceof Error ? e.message : "네트워크 오류"}`);
+    }
   };
 
   /* ── Analytics handlers ── */

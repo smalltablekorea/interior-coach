@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import type { PlanId, FeatureKey, FeatureLimits } from "@/lib/plans";
 import { PLANS, isPlanAtLeast, FEATURE_REQUIRED_PLAN } from "@/lib/plans";
+import { apiFetch } from "@/lib/api-client";
 
 interface SubscriptionData {
   subscription: {
@@ -58,7 +59,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   const [loading, setLoading] = useState(true);
 
   const fetchSubscription = useCallback(() => {
-    fetch("/api/subscription")
+    apiFetch("/api/subscription")
       .then((r) => {
         if (!r.ok) throw new Error("API error");
         return r.json();
@@ -123,7 +124,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
     try {
       // For paid plans, use billing/payment endpoint for actual payment
       if (newPlan !== "free") {
-        const res = await fetch("/api/billing/payment", {
+        const res = await apiFetch("/api/billing/payment", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ plan: newPlan, billingCycle }),
@@ -135,7 +136,7 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
         return false;
       }
       // Downgrade to free — just update subscription
-      const res = await fetch("/api/subscription", {
+      const res = await apiFetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan: newPlan }),
