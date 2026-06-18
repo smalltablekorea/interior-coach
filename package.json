@@ -13,7 +13,7 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.80.0",
+    "@anthropic-ai/sdk": "^0.104.2",
     "@neondatabase/serverless": "^1.0.2",
     "@tosspayments/tosspayments-sdk": "^2.7.0",
     "@vercel/blob": "^2.3.1",

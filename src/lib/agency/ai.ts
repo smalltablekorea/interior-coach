@@ -18,8 +18,14 @@ import type {
 } from "@/lib/db/schema";
 import type { MaterialCandidate } from "@/lib/agency/materials-cite";
 import { formatMaterialsContext } from "@/lib/agency/materials-cite";
+import { MODELS } from "@/lib/api/ai-helpers";
 
-export const GEN_MODEL = "claude-sonnet-4-6";
+/**
+ * 마케팅 대행 콘텐츠 생성 모델 — 중앙 관리되는 MODELS.SONNET 재export.
+ * 향후 Sonnet 새 버전 출시 시 src/lib/api/ai-helpers.ts:MODELS 한 곳만 변경하면
+ * 전체 AI 호출(견적코치·세무·마케팅·대행 등)이 자동 적용.
+ */
+export const GEN_MODEL = MODELS.SONNET;
 export const AGENCY_AI_ENABLED = process.env.AGENCY_AI_ENABLED === "true";
 
 export type Channel = "naver_blog" | "threads" | "instagram";
