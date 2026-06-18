@@ -244,6 +244,27 @@ export default function TaxDashboardPage() {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="space-y-4 animate-fade-up">
+        <h1 className="text-2xl font-bold">세무/회계</h1>
+        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-6 text-sm text-red-400 flex items-start gap-3">
+          <AlertCircle size={20} className="flex-shrink-0 mt-0.5" />
+          <div>
+            <div className="font-semibold mb-1">세무 데이터를 불러오지 못했습니다</div>
+            <div className="text-red-300/80">{loadError}</div>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition-colors text-xs font-medium"
+            >
+              다시 시도
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const pctChange = (curr: number, prev: number) => {
     if (!prev) return curr > 0 ? "+100%" : "0%";
     const p = Math.round(((curr - prev) / prev) * 100);
