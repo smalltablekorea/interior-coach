@@ -61,15 +61,15 @@ export default function TaxExpensesPage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/tax?type=expenses").then((r) => r.json()),
-      fetch("/api/sites").then((r) => r.json()),
-      fetch("/api/tax?type=vendors").then((r) => r.json()),
+      fetch("/api/tax?type=expenses").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/tax?type=vendors").then((r) => (r.ok ? r.json() : [])),
     ]).then(([exp, s, v]) => {
-      setRows(exp);
-      setSites(s);
-      setVendors(v);
+      setRows(Array.isArray(exp) ? exp : []);
+      setSites(Array.isArray(s) ? s : []);
+      setVendors(Array.isArray(v) ? v : []);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => { setRows([]); setSites([]); setVendors([]); setLoading(false); });
   };
 
   useEffect(() => { fetchData(); }, []);

@@ -53,13 +53,14 @@ export default function TaxRevenuePage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/tax?type=revenue").then((r) => r.json()),
-      fetch("/api/sites").then((r) => r.json()),
+      fetch("/api/tax?type=revenue").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
     ]).then(([rev, s]) => {
-      setRows(rev);
-      setSites(s);
+      // 401/500 시 r.json()이 객체일 수 있어 Array 가드 추가
+      setRows(Array.isArray(rev) ? rev : []);
+      setSites(Array.isArray(s) ? s : []);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => { setRows([]); setSites([]); setLoading(false); });
   };
 
   useEffect(() => { fetchData(); }, []);

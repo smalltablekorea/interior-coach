@@ -84,13 +84,13 @@ export default function TaxPayrollPage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/tax/payroll").then((r) => r.json()),
-      fetch("/api/sites").then((r) => r.json()).catch(() => []),
+      fetch("/api/tax/payroll").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/sites").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     ]).then(([p, s]) => {
       setRows(Array.isArray(p) ? p : []);
       setSites(Array.isArray(s) ? s : []);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch(() => { setRows([]); setSites([]); setLoading(false); });
   };
 
   useEffect(() => { fetchData(); }, []);

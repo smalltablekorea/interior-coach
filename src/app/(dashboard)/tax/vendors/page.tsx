@@ -35,7 +35,14 @@ export default function TaxVendorsPage() {
   const [form, setForm] = useState(emptyForm);
 
   const fetchData = () => {
-    fetch("/api/tax?type=vendors").then((r) => r.json()).then((d) => { setRows(d); setLoading(false); }).catch(() => setLoading(false));
+    fetch("/api/tax?type=vendors")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        // 401/500이면 d=null. 빈 배열 유지로 페이지 흰화면 방지.
+        setRows(Array.isArray(d) ? d : []);
+        setLoading(false);
+      })
+      .catch(() => { setRows([]); setLoading(false); });
   };
 
   useEffect(() => { fetchData(); }, []);

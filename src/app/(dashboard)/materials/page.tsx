@@ -110,17 +110,18 @@ export default function MaterialsPage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/materials").then((r) => r.json()),
-      fetch("/api/materials?type=orders").then((r) => r.json()),
-      fetch("/api/sites").then((r) => r.json()),
+      fetch("/api/materials").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/materials?type=orders").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/sites").then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([matData, ordData, siteData]) => {
+        // 401/500이면 null. items 폴백 → 빈 배열로 흰화면 방지.
         setMaterials(Array.isArray(matData) ? matData : matData?.items ?? []);
         setOrders(Array.isArray(ordData) ? ordData : ordData?.items ?? []);
         setSites(Array.isArray(siteData) ? siteData : siteData?.items ?? []);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => { setMaterials([]); setOrders([]); setSites([]); setLoading(false); });
   };
 
   useEffect(() => { fetchData(); }, []);
