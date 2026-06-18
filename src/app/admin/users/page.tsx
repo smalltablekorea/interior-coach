@@ -134,6 +134,43 @@ export default function AdminUsersPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={async () => {
+                const ok = confirm(
+                  `전체 가입자에게 "7월 31일까지 전체 기능 무료" 공지를 발송할까요?\n\n(이미 받은 사용자는 자동 건너뜀)`,
+                );
+                if (!ok) return;
+                try {
+                  const res = await fetch("/api/admin/broadcast", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({
+                      type: "system",
+                      title: "🎉 7월 31일까지 전체 기능 무료",
+                      message: "결제 없이 모든 Pro 기능을 사용하실 수 있습니다. 카드 등록 불필요.",
+                      link: "/dashboard",
+                      dedupeKey: "free-period-2026-07-31",
+                    }),
+                  });
+                  const json = await res.json();
+                  const data = json?.data ?? json;
+                  if (!res.ok) {
+                    alert(`발송 실패: ${json?.error || res.status}`);
+                    return;
+                  }
+                  alert(
+                    `발송 완료\n- 신규 발송: ${data.sent}명\n- 이미 받음(건너뜀): ${data.skipped}명\n- 전체: ${data.total}명`,
+                  );
+                } catch (e) {
+                  alert(`발송 실패: ${e instanceof Error ? e.message : "네트워크 오류"}`);
+                }
+              }}
+              className="px-3 py-2 rounded-lg border border-[var(--green)]/30 bg-[var(--green)]/10 text-[var(--green)] text-sm hover:bg-[var(--green)]/15"
+              title="전체 가입자에게 7/31 무료 공지 in-app 알림 발송"
+            >
+              📢 7/31 무료 공지 발송
+            </button>
+            <button
               onClick={load}
               disabled={loading}
               className="px-3 py-2 rounded-lg border border-[var(--border)] text-sm hover:bg-white/[0.04] flex items-center gap-1.5 disabled:opacity-50"

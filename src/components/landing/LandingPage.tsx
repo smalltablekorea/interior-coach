@@ -1,4 +1,5 @@
 import LandingNav from "./LandingNav";
+import LandingTracker from "./LandingTracker";
 import HeroSection from "./sections/HeroSection";
 import PainPointSection from "./sections/PainPointSection";
 import FeaturesSection from "./sections/FeaturesSection";
@@ -15,6 +16,7 @@ import Link from "next/link";
 export default function LandingPage() {
   return (
     <div className="landing-premium min-h-screen">
+      <LandingTracker />
       <ExpiringBlock until="2026-08-01T00:00:00+09:00">
         <div className="bg-[var(--green)] text-black text-center text-sm py-2 px-4 font-medium">
           🎉 7월 31일까지 전체 기능 무료 — 카드 등록 없이 가입만 하면 모든 Pro 기능 사용 가능 ·
