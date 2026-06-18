@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, MapPin, Search, Plus, X, Trash2, RefreshCw, ChevronUp, ChevronDown, Save } from "lucide-react";
 import Link from "next/link";
@@ -112,7 +114,7 @@ export default function ScheduleGeneratorPage() {
   const [siteSearch, setSiteSearch] = useState("");
 
   useEffect(() => {
-    fetch("/api/sites", { credentials: "include" })
+    apiFetch("/api/sites", { credentials: "include" })
       .then(r => r.json())
       .then(data => { setSites(Array.isArray(data) ? data : []); setSitesLoading(false); })
       .catch(() => setSitesLoading(false));
@@ -414,7 +416,7 @@ export default function ScheduleGeneratorPage() {
     setSaveSuccess(false);
     try {
       const siteName = selectedSite?.name || "공정표";
-      const res = await fetch("/api/schedule-planner", {
+      const res = await apiFetch("/api/schedule-planner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

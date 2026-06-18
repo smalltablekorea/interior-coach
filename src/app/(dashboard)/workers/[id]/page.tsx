@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -38,7 +40,7 @@ export default function WorkerDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/workers/${id}`)
+    apiFetch(`/api/workers/${id}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.error) setWorker(null);
@@ -55,7 +57,7 @@ export default function WorkerDetailPage() {
       dailyWage: editForm.dailyWage ? Number(editForm.dailyWage) : null,
     };
     try {
-      await fetch(`/api/workers/${id}`, {
+      await apiFetch(`/api/workers/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -79,7 +81,7 @@ export default function WorkerDetailPage() {
 
   const handleDelete = async () => {
     try {
-      await fetch(`/api/workers/${id}`, { method: "DELETE" });
+      await apiFetch(`/api/workers/${id}`, { method: "DELETE" });
     } catch {}
     window.location.href = "/workers";
   };

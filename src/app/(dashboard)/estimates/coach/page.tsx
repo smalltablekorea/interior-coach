@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -109,7 +111,7 @@ export default function EstimateCoachPage() {
       const gradeLabel = GRADES.find((g) => g.key === cg)?.label || cg;
       const bt = BUILDING_TYPES.find((b) => b.key === buildingType)?.label || buildingType;
 
-      const res = await fetch("/api/estimate-coach/generate-subs", {
+      const res = await apiFetch("/api/estimate-coach/generate-subs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ catId, catName: cat.name, area, grade: cg, gradeLabel, buildingType: bt }),
@@ -168,7 +170,7 @@ export default function EstimateCoachPage() {
   // 분석권 조회
   const fetchCredits = useCallback(async () => {
     try {
-      const res = await fetch("/api/credits");
+      const res = await apiFetch("/api/credits");
       if (res.ok) {
         const data = await res.json();
         setCredits(data);
@@ -210,7 +212,7 @@ export default function EstimateCoachPage() {
         duration,
       };
 
-      const res = await fetch("/api/credits/use", {
+      const res = await apiFetch("/api/credits/use", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -382,7 +384,7 @@ export default function EstimateCoachPage() {
     setMessages((prev) => [...prev, userMsg]);
 
     try {
-      const res = await fetch("/api/estimate-coach", {
+      const res = await apiFetch("/api/estimate-coach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

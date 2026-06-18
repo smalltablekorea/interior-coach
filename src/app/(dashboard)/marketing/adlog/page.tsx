@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
@@ -135,7 +137,7 @@ export default function AdlogPage() {
   /* ── Fetch connection status ── */
   const fetchConnectionStatus = useCallback(async () => {
     try {
-      const r = await fetch("/api/marketing/adlog/connect");
+      const r = await apiFetch("/api/marketing/adlog/connect");
       if (r.ok) {
         const data = await r.json();
         setConnection(data);
@@ -150,7 +152,7 @@ export default function AdlogPage() {
     setSyncing(true);
     setSyncError("");
     try {
-      const r = await fetch("/api/marketing/adlog/sync");
+      const r = await apiFetch("/api/marketing/adlog/sync");
       if (!r.ok) {
         const err = await r.json();
         setSyncError(err.error || "동기화 실패");
@@ -180,7 +182,7 @@ export default function AdlogPage() {
     setConnecting(true);
     setConnectError("");
     try {
-      const r = await fetch("/api/marketing/adlog/connect", {
+      const r = await apiFetch("/api/marketing/adlog/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ adlogId, adlogPassword }),
@@ -201,7 +203,7 @@ export default function AdlogPage() {
   /* ── Disconnect ── */
   const handleDisconnect = async () => {
     try {
-      await fetch("/api/marketing/adlog/connect", { method: "DELETE" });
+      await apiFetch("/api/marketing/adlog/connect", { method: "DELETE" });
       setConnection({ connected: false });
       setSyncData(null);
       setAdlogId("");

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -74,8 +76,8 @@ export default function MyPage() {
   const fetchData = useCallback(async () => {
     try {
       const [creditData, analysesData] = await Promise.all([
-        fetch("/api/credits").then((r) => (r.ok ? r.json() : null)),
-        fetch("/api/credits/analyses").then((r) => (r.ok ? r.json() : null)),
+        apiFetch("/api/credits").then((r) => (r.ok ? r.json() : null)),
+        apiFetch("/api/credits/analyses").then((r) => (r.ok ? r.json() : null)),
       ]);
       if (creditData) setCredit(creditData);
       if (Array.isArray(analysesData)) setAnalyses(analysesData);
@@ -97,7 +99,7 @@ export default function MyPage() {
     setUnlockError(null);
 
     try {
-      const res = await fetch("/api/credits/use", {
+      const res = await apiFetch("/api/credits/use", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

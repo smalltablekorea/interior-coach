@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { fmtShort, fmtDate } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Wallet, BarChart3 } from "lucide-react";
@@ -54,7 +56,7 @@ export default function SettlementPage() {
 
   // 1단계: 요약 + 현장 목록
   useEffect(() => {
-    fetch("/api/reports/settlement", { credentials: "include" })
+    apiFetch("/api/reports/settlement", { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
         const payload = data?.data ?? data; // ok() 래퍼 / 원시 응답 모두 호환
@@ -75,7 +77,7 @@ export default function SettlementPage() {
   useEffect(() => {
     if (!selectedSiteId) return;
     setDetailLoading(true);
-    fetch(`/api/reports/settlement?siteId=${selectedSiteId}`, { credentials: "include" })
+    apiFetch(`/api/reports/settlement?siteId=${selectedSiteId}`, { credentials: "include" })
       .then((r) => r.json())
       .then((data) => {
         const payload = (data?.data ?? data) as SiteDetail;

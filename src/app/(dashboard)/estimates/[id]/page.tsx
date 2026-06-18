@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -52,7 +54,7 @@ export default function EstimateDetailPage() {
   const [historyItems, setHistoryItems] = useState<{ id: string; action: string; changes: unknown; createdAt: string; userName: string }[]>([]);
 
   useEffect(() => {
-    fetch(`/api/estimates/${id}`)
+    apiFetch(`/api/estimates/${id}`)
       .then((r) => r.json())
       .then((data) => {
         setEstimate(data);
@@ -68,7 +70,7 @@ export default function EstimateDetailPage() {
   const handleShare = async () => {
     setSharing(true);
     try {
-      const res = await fetch(`/api/estimates/${id}/share`, {
+      const res = await apiFetch(`/api/estimates/${id}/share`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ expiresInDays: 30 }),
@@ -90,7 +92,7 @@ export default function EstimateDetailPage() {
   const handleShowHistory = async () => {
     if (showHistory) { setShowHistory(false); return; }
     try {
-      const res = await fetch(`/api/estimates/${id}/history`);
+      const res = await apiFetch(`/api/estimates/${id}/history`);
       const data = await res.json();
       setHistoryItems(data.history || []);
     } catch { /* ignore */ }
@@ -101,7 +103,7 @@ export default function EstimateDetailPage() {
     const name = prompt("템플릿 이름을 입력하세요:");
     if (!name) return;
     try {
-      await fetch("/api/estimates/templates", {
+      await apiFetch("/api/estimates/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, fromEstimateId: id }),
@@ -136,7 +138,7 @@ export default function EstimateDetailPage() {
     if (!estimate) return;
     setSaving(true);
     try {
-      await fetch(`/api/estimates/${id}`, {
+      await apiFetch(`/api/estimates/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: editItems }),

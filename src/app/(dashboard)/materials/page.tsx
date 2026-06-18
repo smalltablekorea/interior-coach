@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { Plus, Package, Search, Pencil, Trash2, ChevronDown, ChevronRight, Filter, Camera, Upload, X, Check, Loader2, AlertCircle, CalendarDays, RotateCcw } from "lucide-react";
 import Modal from "@/components/ui/Modal";
@@ -110,9 +112,9 @@ export default function MaterialsPage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/materials").then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/materials?type=orders").then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/sites").then((r) => (r.ok ? r.json() : null)),
+      apiFetch("/api/materials").then((r) => (r.ok ? r.json() : null)),
+      apiFetch("/api/materials?type=orders").then((r) => (r.ok ? r.json() : null)),
+      apiFetch("/api/sites").then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([matData, ordData, siteData]) => {
         // 401/500이면 null. items 폴백 → 빈 배열로 흰화면 방지.
@@ -290,7 +292,7 @@ export default function MaterialsPage() {
       for (let i = 0; i < receiptImages.length; i++) {
         setAnalyzeProgress({ current: i + 1, total: receiptImages.length });
         const img = receiptImages[i];
-        const res = await fetch("/api/analyze-receipt", {
+        const res = await apiFetch("/api/analyze-receipt", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ image: img.base64, mimeType: img.mimeType }),
@@ -337,7 +339,7 @@ export default function MaterialsPage() {
 
     setSavingReceipt(true);
     try {
-      const res = await fetch("/api/analyze-receipt", {
+      const res = await apiFetch("/api/analyze-receipt", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -374,7 +376,7 @@ export default function MaterialsPage() {
     setSaving(true);
     const qty = parseFloat(ordForm.quantity) || 1;
     const price = parseInt(ordForm.unitPrice) || 0;
-    const res = await fetch("/api/materials?type=orders", {
+    const res = await apiFetch("/api/materials?type=orders", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...ordForm, siteId: ordForm.siteId || null, quantity: qty, unitPrice: price, totalAmount: qty * price }),
@@ -399,7 +401,7 @@ export default function MaterialsPage() {
     setSaving(true);
     const qty = parseFloat(editOrdForm.quantity) || 1;
     const price = parseInt(editOrdForm.unitPrice) || 0;
-    const res = await fetch("/api/materials?type=orders", {
+    const res = await apiFetch("/api/materials?type=orders", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -422,7 +424,7 @@ export default function MaterialsPage() {
   };
 
   const handleDeleteOrd = async (ordId: string) => {
-    const res = await fetch(`/api/materials?type=orders&id=${ordId}`, { method: "DELETE" });
+    const res = await apiFetch(`/api/materials?type=orders&id=${ordId}`, { method: "DELETE" });
     if (res.ok) {
       fetchData();
     }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -62,7 +64,7 @@ export default function AgencyJobDetailPage() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`/api/agency/clients/${clientId}/jobs/${jobId}`);
+      const r = await apiFetch(`/api/agency/clients/${clientId}/jobs/${jobId}`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "조회 실패");
       setJob(j.job);
@@ -93,7 +95,7 @@ export default function AgencyJobDetailPage() {
           .map((s) => s.trim())
           .filter(Boolean),
       };
-      const r = await fetch(`/api/agency/clients/${clientId}/jobs/${jobId}`, {
+      const r = await apiFetch(`/api/agency/clients/${clientId}/jobs/${jobId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -113,7 +115,7 @@ export default function AgencyJobDetailPage() {
     setBusy(true);
     setError(null);
     try {
-      const r = await fetch(`/api/agency/clients/${clientId}/jobs/${jobId}`, {
+      const r = await apiFetch(`/api/agency/clients/${clientId}/jobs/${jobId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),

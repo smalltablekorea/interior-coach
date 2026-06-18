@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
@@ -299,7 +301,7 @@ export default function YouTubePage() {
   useEffect(() => {
     const fetchSites = async () => {
       try {
-        const res = await fetch("/api/sites");
+        const res = await apiFetch("/api/sites");
         if (res.ok) {
           const data = await res.json();
           setSites(data.map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })));
@@ -342,7 +344,7 @@ export default function YouTubePage() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/marketing/channels?channel=youtube")
+    apiFetch("/api/marketing/channels?channel=youtube")
       .then(r => r.json())
       .then(data => { if (data) setChannelConnection(data); })
       .catch(() => {});
@@ -352,7 +354,7 @@ export default function YouTubePage() {
   const fetchPlatformStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await fetch("/api/marketing/youtube/stats");
+      const res = await apiFetch("/api/marketing/youtube/stats");
       if (res.ok) {
         const data = await res.json();
         setPlatformStats(data);
@@ -440,7 +442,7 @@ export default function YouTubePage() {
     setSeoSaved(false);
 
     try {
-      const res = await fetch("/api/marketing/content/generate", {
+      const res = await apiFetch("/api/marketing/content/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -515,7 +517,7 @@ export default function YouTubePage() {
     setGeneratedOutline(null);
 
     try {
-      const res = await fetch("/api/marketing/content/generate", {
+      const res = await apiFetch("/api/marketing/content/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1471,7 +1473,7 @@ export default function YouTubePage() {
                   <button
                     onClick={async () => {
                       try {
-                        await fetch("/api/marketing/oauth/refresh", {
+                        await apiFetch("/api/marketing/oauth/refresh", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ channel: "youtube" }),
@@ -1488,7 +1490,7 @@ export default function YouTubePage() {
                   <button
                     onClick={async () => {
                       try {
-                        await fetch("/api/marketing/channels", {
+                        await apiFetch("/api/marketing/channels", {
                           method: "DELETE",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ channel: "youtube" }),

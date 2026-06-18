@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -47,7 +49,7 @@ export default function ContractDetailPage() {
   const [paymentToComplete, setPaymentToComplete] = useState<Payment | null>(null);
 
   const fetchContract = () => {
-    fetch(`/api/contracts/${id}`)
+    apiFetch(`/api/contracts/${id}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.error) setContract(null);
@@ -75,7 +77,7 @@ export default function ContractDetailPage() {
     if (!contract) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/contracts/${id}`, {
+      const res = await apiFetch(`/api/contracts/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -95,7 +97,7 @@ export default function ContractDetailPage() {
   };
 
   const handleDelete = async () => {
-    await fetch(`/api/contracts/${id}`, { method: "DELETE" });
+    await apiFetch(`/api/contracts/${id}`, { method: "DELETE" });
     router.push("/contracts");
   };
 
@@ -113,7 +115,7 @@ export default function ContractDetailPage() {
     if (!paymentToComplete) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/contracts/${id}`, {
+      const res = await apiFetch(`/api/contracts/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

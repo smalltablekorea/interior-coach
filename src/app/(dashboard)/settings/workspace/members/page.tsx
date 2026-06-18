@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useState, useEffect, useCallback } from "react";
 import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
 import {
@@ -58,7 +60,7 @@ export default function WorkspaceMembersPage() {
 
   const fetchMembers = useCallback(async () => {
     try {
-      const res = await fetch("/api/workspace/members");
+      const res = await apiFetch("/api/workspace/members");
       if (!res.ok) throw new Error("조회 실패");
       const data = await res.json();
       setMembers(data.members || []);
@@ -75,7 +77,7 @@ export default function WorkspaceMembersPage() {
 
   const handleRoleChange = async (memberId: string, newRole: string) => {
     try {
-      const res = await fetch("/api/workspace/members", {
+      const res = await apiFetch("/api/workspace/members", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memberId, role: newRole }),
@@ -94,7 +96,7 @@ export default function WorkspaceMembersPage() {
   const handleRemove = async (memberId: string, memberName: string) => {
     if (!confirm(`${memberName}님을 워크스페이스에서 제거하시겠습니까?`)) return;
     try {
-      const res = await fetch("/api/workspace/members", {
+      const res = await apiFetch("/api/workspace/members", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memberId }),
@@ -115,7 +117,7 @@ export default function WorkspaceMembersPage() {
     setInviteLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/workspace/invite", {
+      const res = await apiFetch("/api/workspace/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: inviteEmail, role: inviteRole }),

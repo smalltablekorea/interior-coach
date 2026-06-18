@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Building2, Hammer, Package,
@@ -165,13 +167,13 @@ export default function SchedulePage() {
     setInlineEditId(null);
     // optimistic update
     setPhases(prev => prev.map(p => p.id === phaseId ? { ...p, category: inlineEditVal.trim() } : p));
-    await fetch("/api/schedule", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: phaseId, category: inlineEditVal.trim() }) });
+    await apiFetch("/api/schedule", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: phaseId, category: inlineEditVal.trim() }) });
   };
 
   const handleQuickAdd = async (siteId: string, dateStr: string) => {
     const category = prompt("공정명을 입력하세요");
     if (!category?.trim()) return;
-    await fetch("/api/schedule", {
+    await apiFetch("/api/schedule", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ siteId, category: category.trim(), plannedStart: dateStr, plannedEnd: dateStr, status: "진행중", progress: 0 }),
@@ -200,7 +202,7 @@ export default function SchedulePage() {
     }
     // optimistic
     setPhases(prev => prev.map(p => p.id === phaseId ? { ...p, plannedStart: newStart, plannedEnd: newEnd, actualStart: null, actualEnd: null } : p));
-    await fetch("/api/schedule", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: phaseId, plannedStart: newStart, plannedEnd: newEnd }) });
+    await apiFetch("/api/schedule", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: phaseId, plannedStart: newStart, plannedEnd: newEnd }) });
   };
 
   const fetchData = (centerMonth: string) => {
@@ -211,7 +213,7 @@ export default function SchedulePage() {
       const d = new Date(cy, cm - 1 + off, 1);
       months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     }
-    Promise.all(months.map(m => fetch(`/api/schedule?month=${m}`).then(r => r.json()).catch(() => null)))
+    Promise.all(months.map(m => apiFetch(`/api/schedule?month=${m}`).then(r => r.json()).catch(() => null)))
       .then(results => {
         const sMap = new Map<string, SiteEvent>();
         const pMap = new Map<string, PhaseEvent>();
@@ -287,21 +289,21 @@ export default function SchedulePage() {
     try {
       const method = editingPhaseId ? "PUT" : "POST";
       const body = editingPhaseId ? { id: editingPhaseId, ...phaseForm } : phaseForm;
-      await fetch("/api/schedule", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      await apiFetch("/api/schedule", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       setShowPhaseModal(false);
       fetchData(currentMonth);
     } finally { setSaving(false); }
   };
   const handleDeletePhase = async (phaseId: string) => {
     if (!confirm("이 공정을 삭제하시겠습니까?")) return;
-    await fetch(`/api/schedule?id=${phaseId}`, { method: "DELETE" });
+    await apiFetch(`/api/schedule?id=${phaseId}`, { method: "DELETE" });
     fetchData(currentMonth);
   };
   const handleTogglePhase = async (phaseId: string, currentlyDone: boolean) => {
     const newStatus = currentlyDone ? "진행중" : "완료";
     const newProgress = currentlyDone ? 50 : 100;
     setPhases((prev) => prev.map((p) => (p.id === phaseId ? { ...p, status: newStatus, progress: newProgress } : p)));
-    await fetch("/api/schedule", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: phaseId, status: newStatus, progress: newProgress }) });
+    await apiFetch("/api/schedule", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: phaseId, status: newStatus, progress: newProgress }) });
   };
 
   /* ===== CALENDAR VIEW DATA ===== */

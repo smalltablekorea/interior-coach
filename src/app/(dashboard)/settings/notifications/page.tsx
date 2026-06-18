@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -101,8 +103,8 @@ export default function NotificationSettingsPage() {
   // ── Fetch Settings + Recipients ──
   useEffect(() => {
     Promise.all([
-      fetch("/api/notification-settings").then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/notification-recipients").then((r) => (r.ok ? r.json() : [])),
+      apiFetch("/api/notification-settings").then((r) => (r.ok ? r.json() : null)),
+      apiFetch("/api/notification-recipients").then((r) => (r.ok ? r.json() : [])),
     ])
       .then(([settingsData, recipientData]) => {
         if (settingsData) setSettings(settingsData);
@@ -114,7 +116,7 @@ export default function NotificationSettingsPage() {
 
   // ── Fetch Logs (+ 30초 폴링) ──
   const fetchLogs = useCallback(() => {
-    fetch("/api/notification-logs")
+    apiFetch("/api/notification-logs")
       .then((r) => (r.ok ? r.json() : []))
       .then((data) => { if (Array.isArray(data)) setLogs(data); })
       .catch(() => {});
@@ -137,7 +139,7 @@ export default function NotificationSettingsPage() {
     setError(null);
 
     try {
-      const res = await fetch("/api/notification-settings", {
+      const res = await apiFetch("/api/notification-settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eventType, [field]: !prev }),
@@ -162,7 +164,7 @@ export default function NotificationSettingsPage() {
     }
     setAddingSaving(true);
     try {
-      const res = await fetch("/api/notification-recipients", {
+      const res = await apiFetch("/api/notification-recipients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim(), phone, role: addingRole }),
@@ -185,7 +187,7 @@ export default function NotificationSettingsPage() {
     const prev = recipients;
     setRecipients((r) => r.filter((x) => x.id !== id));
     try {
-      const res = await fetch(`/api/notification-recipients?id=${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/notification-recipients?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
     } catch {
       setRecipients(prev);

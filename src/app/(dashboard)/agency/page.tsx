@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -35,7 +37,7 @@ export default function AgencyDashboardPage() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch("/api/agency/alerts?unresolved=true&limit=3");
+        const r = await apiFetch("/api/agency/alerts?unresolved=true&limit=3");
         const j = await r.json();
         if (r.ok) {
           setUnresolvedCount(j.unresolvedCount || 0);

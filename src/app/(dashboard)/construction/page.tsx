@@ -104,31 +104,50 @@ export default function ConstructionPage() {
     setShowEditModal(true);
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editPhase) return;
-    setPhases((prev) =>
-      prev.map((p) =>
-        p.id === editPhase.id
-          ? {
-              ...p,
-              category: editForm.category,
-              plannedStart: editForm.plannedStart || null,
-              plannedEnd: editForm.plannedEnd || null,
-              progress: parseInt(editForm.progress) || 0,
-              status: editForm.status,
-              memo: editForm.memo || null,
-            }
-          : p
-      )
-    );
-    setShowEditModal(false);
-    setEditPhase(null);
+    setSaving(true);
+    try {
+      const res = await apiFetch(`/api/construction/${editPhase.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: editForm.category,
+          plannedStart: editForm.plannedStart || null,
+          plannedEnd: editForm.plannedEnd || null,
+          progress: parseInt(editForm.progress) || 0,
+          status: editForm.status,
+          memo: editForm.memo || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || "수정에 실패했습니다. 다시 시도해주세요.");
+        return;
+      }
+      setShowEditModal(false);
+      setEditPhase(null);
+      fetchData();
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeletePhase = (phaseId: string) => {
-    setPhases((prev) => prev.filter((p) => p.id !== phaseId));
-    setDeletePhaseId(null);
+  const handleDeletePhase = async (phaseId: string) => {
+    setSaving(true);
+    try {
+      const res = await apiFetch(`/api/construction/${phaseId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || "삭제에 실패했습니다.");
+        return;
+      }
+      setDeletePhaseId(null);
+      fetchData();
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Filter phases

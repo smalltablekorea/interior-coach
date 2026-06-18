@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Sparkles, RefreshCw, ExternalLink } from "lucide-react";
@@ -38,7 +40,7 @@ export default function AgencyClientReportsPage() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`/api/agency/clients/${clientId}/monthly-reports`);
+      const r = await apiFetch(`/api/agency/clients/${clientId}/monthly-reports`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "조회 실패");
       setReports(j.items || []);
@@ -55,7 +57,7 @@ export default function AgencyClientReportsPage() {
     setGenerating(true);
     setError(null);
     try {
-      const r = await fetch(`/api/agency/clients/${clientId}/monthly-reports`, {
+      const r = await apiFetch(`/api/agency/clients/${clientId}/monthly-reports`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ yearMonth }),

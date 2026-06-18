@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import { RefreshCw, AlertTriangle, AlertCircle, Info, Check, RotateCcw } from "lucide-react";
 
@@ -61,7 +63,7 @@ export default function AgencyAlertsPage() {
 
   const toggle = async (alertId: string, currentlyResolved: boolean) => {
     try {
-      const r = await fetch(`/api/agency/alerts/${alertId}`, {
+      const r = await apiFetch(`/api/agency/alerts/${alertId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: currentlyResolved ? "reopen" : "resolve" }),

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
@@ -267,7 +269,7 @@ export default function InstagramPage() {
   /* ══════════════════ Fetch Sites ══════════════════ */
   const fetchSites = useCallback(async () => {
     try {
-      const res = await fetch("/api/sites");
+      const res = await apiFetch("/api/sites");
       if (res.ok) {
         const data = await res.json();
         setSites(Array.isArray(data) ? data : data.sites || []);
@@ -294,7 +296,7 @@ export default function InstagramPage() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/marketing/channels?channel=instagram")
+    apiFetch("/api/marketing/channels?channel=instagram")
       .then(r => r.json())
       .then(data => { if (data) setChannelConnection(data); })
       .catch(() => {});
@@ -304,7 +306,7 @@ export default function InstagramPage() {
   const fetchPlatformStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await fetch("/api/marketing/instagram/stats");
+      const res = await apiFetch("/api/marketing/instagram/stats");
       if (res.ok) {
         const data = await res.json();
         setPlatformStats(data);
@@ -358,7 +360,7 @@ export default function InstagramPage() {
     setHashtagsCopied(false);
 
     try {
-      const res = await fetch("/api/marketing/content/generate", {
+      const res = await apiFetch("/api/marketing/content/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1194,7 +1196,7 @@ export default function InstagramPage() {
               <button
                 onClick={async () => {
                   try {
-                    await fetch("/api/marketing/oauth/refresh", {
+                    await apiFetch("/api/marketing/oauth/refresh", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ channel: "instagram" }),
@@ -1211,7 +1213,7 @@ export default function InstagramPage() {
               <button
                 onClick={async () => {
                   try {
-                    await fetch("/api/marketing/channels", {
+                    await apiFetch("/api/marketing/channels", {
                       method: "DELETE",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({ channel: "instagram" }),

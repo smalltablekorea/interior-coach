@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -44,7 +46,7 @@ export default function NewEstimatePage() {
   ]);
 
   useEffect(() => {
-    fetch("/api/sites")
+    apiFetch("/api/sites")
       .then((r) => r.json())
       .then(setSites)
       .catch(() => {});
@@ -90,7 +92,7 @@ export default function NewEstimatePage() {
 
   const handleSubmit = async () => {
     setSaving(true);
-    const res = await fetch("/api/estimates", {
+    const res = await apiFetch("/api/estimates", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

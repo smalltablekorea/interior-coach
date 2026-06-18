@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { fmtDate } from "@/lib/utils";
@@ -172,7 +174,7 @@ export default function MarketingPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("/api/marketing");
+        const res = await apiFetch("/api/marketing");
         if (res.ok) {
           const data: MarketingData = await res.json();
           setTotalContent(data.totalContent ?? 0);
@@ -216,7 +218,7 @@ export default function MarketingPage() {
   const submitInquiry = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("/api/marketing/inquiries", {
+      const res = await apiFetch("/api/marketing/inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(inquiryForm),

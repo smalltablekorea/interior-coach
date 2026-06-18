@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useMemo } from "react";
 import { Plus, Search, Pencil, Trash2, Filter, ArrowLeft, CheckCircle2, XCircle, DollarSign } from "lucide-react";
 import Link from "next/link";
@@ -53,8 +55,8 @@ export default function TaxRevenuePage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/tax?type=revenue").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
+      apiFetch("/api/tax?type=revenue").then((r) => (r.ok ? r.json() : [])),
+      apiFetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
     ]).then(([rev, s]) => {
       // 401/500 시 r.json()이 객체일 수 있어 Array 가드 추가
       setRows(Array.isArray(rev) ? rev : []);
@@ -102,19 +104,19 @@ export default function TaxRevenuePage() {
     const supply = parseInt(form.supplyAmount) || 0;
     const vat = parseInt(form.vatAmount) || 0;
     const payload = { ...form, supplyAmount: supply, vatAmount: vat, totalAmount: supply + vat, id: editId };
-    const res = await fetch(`/api/tax?type=revenue`, { method: editId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await apiFetch(`/api/tax?type=revenue`, { method: editId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (res.ok) { setShowModal(false); fetchData(); }
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/tax?type=revenue&id=${id}`, { method: "DELETE" });
+    await apiFetch(`/api/tax?type=revenue&id=${id}`, { method: "DELETE" });
     setDeleteId(null);
     fetchData();
   };
 
   const toggleCollected = async (r: Revenue) => {
-    await fetch(`/api/tax?type=revenue`, {
+    await apiFetch(`/api/tax?type=revenue`, {
       method: "PUT", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...r, isCollected: !r.isCollected, collectedAt: !r.isCollected ? new Date().toISOString().slice(0, 10) : null }),
     });

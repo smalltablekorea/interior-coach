@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import { fmtDate } from "@/lib/utils";
 import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
@@ -238,7 +240,7 @@ export default function SmsAutomationPage() {
   const fetchSolapiStats = useCallback(async () => {
     setSolapiLoading(true);
     try {
-      const res = await fetch("/api/marketing/sms/stats");
+      const res = await apiFetch("/api/marketing/sms/stats");
       if (res.ok) {
         const data = await res.json();
         if (!data.error) setSolapiStats(data);
@@ -257,7 +259,7 @@ export default function SmsAutomationPage() {
       const params = new URLSearchParams();
       if (leadGradeFilter) params.set("grade", leadGradeFilter);
       if (leadStatusFilter) params.set("status", leadStatusFilter);
-      const res = await fetch(`/api/marketing/sms/leads?${params}`);
+      const res = await apiFetch(`/api/marketing/sms/leads?${params}`);
       if (res.ok) {
         const data = await res.json();
         setLeads(data.leads || []);
@@ -268,14 +270,14 @@ export default function SmsAutomationPage() {
 
   const fetchCampaigns = useCallback(async () => {
     try {
-      const res = await fetch("/api/marketing/sms/campaigns");
+      const res = await apiFetch("/api/marketing/sms/campaigns");
       if (res.ok) setCampaigns(await res.json());
     } catch { /* */ }
   }, []);
 
   const fetchOutreach = useCallback(async () => {
     try {
-      const res = await fetch("/api/marketing/sms/outreach");
+      const res = await apiFetch("/api/marketing/sms/outreach");
       if (res.ok) {
         const data = await res.json();
         setOutreachLogs(data.logs || []);
@@ -286,7 +288,7 @@ export default function SmsAutomationPage() {
 
   const fetchTemplates = useCallback(async () => {
     try {
-      const res = await fetch("/api/marketing/sms/content");
+      const res = await apiFetch("/api/marketing/sms/content");
       if (res.ok) setTemplates(await res.json());
     } catch { /* */ }
   }, []);
@@ -301,7 +303,7 @@ export default function SmsAutomationPage() {
   const submitLead = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("/api/marketing/sms/leads", {
+      const res = await apiFetch("/api/marketing/sms/leads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -319,7 +321,7 @@ export default function SmsAutomationPage() {
 
   const updateLeadStatus = async (id: string, status: string) => {
     try {
-      await fetch("/api/marketing/sms/leads", {
+      await apiFetch("/api/marketing/sms/leads", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, status }),
@@ -330,7 +332,7 @@ export default function SmsAutomationPage() {
 
   const updateLeadGrade = async (id: string, grade: string) => {
     try {
-      await fetch("/api/marketing/sms/leads", {
+      await apiFetch("/api/marketing/sms/leads", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, grade }),
@@ -341,7 +343,7 @@ export default function SmsAutomationPage() {
 
   const deleteLead = async (id: string) => {
     try {
-      await fetch("/api/marketing/sms/leads", {
+      await apiFetch("/api/marketing/sms/leads", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
@@ -353,7 +355,7 @@ export default function SmsAutomationPage() {
   const submitCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("/api/marketing/sms/campaigns", {
+      const res = await apiFetch("/api/marketing/sms/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(campaignForm),
@@ -369,7 +371,7 @@ export default function SmsAutomationPage() {
   const submitTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("/api/marketing/sms/content", {
+      const res = await apiFetch("/api/marketing/sms/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(templateForm),
@@ -386,7 +388,7 @@ export default function SmsAutomationPage() {
     e.preventDefault();
     if (!sendTarget) return;
     try {
-      const res = await fetch("/api/marketing/sms/outreach", {
+      const res = await apiFetch("/api/marketing/sms/outreach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

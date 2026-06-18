@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
@@ -211,12 +213,12 @@ export default function ThreadsPage() {
     try {
       const [postsRes, templatesRes, rulesRes, commentsRes, accountRes, sitesRes] =
         await Promise.all([
-          fetch("/api/marketing/threads/posts"),
-          fetch("/api/marketing/threads/templates"),
-          fetch("/api/marketing/threads/auto-rules"),
-          fetch("/api/marketing/threads/comments"),
-          fetch("/api/marketing/threads/account"),
-          fetch("/api/sites"),
+          apiFetch("/api/marketing/threads/posts"),
+          apiFetch("/api/marketing/threads/templates"),
+          apiFetch("/api/marketing/threads/auto-rules"),
+          apiFetch("/api/marketing/threads/comments"),
+          apiFetch("/api/marketing/threads/account"),
+          apiFetch("/api/sites"),
         ]);
 
       setPosts(await postsRes.json());
@@ -252,7 +254,7 @@ export default function ThreadsPage() {
 
   // Load channel connection
   useEffect(() => {
-    fetch("/api/marketing/channels?channel=threads")
+    apiFetch("/api/marketing/channels?channel=threads")
       .then(r => r.json())
       .then(data => { if (data) setChannelConnection(data); })
       .catch(() => {});
@@ -262,7 +264,7 @@ export default function ThreadsPage() {
   const fetchPlatformStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await fetch("/api/marketing/threads/stats");
+      const res = await apiFetch("/api/marketing/threads/stats");
       if (res.ok) {
         const data = await res.json();
         setPlatformStats(data);
@@ -363,13 +365,13 @@ export default function ThreadsPage() {
     };
 
     if (editingPost) {
-      await fetch("/api/marketing/threads/posts", {
+      await apiFetch("/api/marketing/threads/posts", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: editingPost.id, ...payload }),
       });
     } else {
-      await fetch("/api/marketing/threads/posts", {
+      await apiFetch("/api/marketing/threads/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -380,7 +382,7 @@ export default function ThreadsPage() {
   };
 
   const deletePost = async (id: string) => {
-    await fetch(`/api/marketing/threads/posts?id=${id}`, { method: "DELETE" });
+    await apiFetch(`/api/marketing/threads/posts?id=${id}`, { method: "DELETE" });
     fetchAll();
   };
 
@@ -388,7 +390,7 @@ export default function ThreadsPage() {
     setGenerating(true);
     try {
       const category = templates.find((t) => t.id === postForm.templateId)?.category || "일상";
-      const res = await fetch("/api/marketing/threads/generate", {
+      const res = await apiFetch("/api/marketing/threads/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -443,13 +445,13 @@ export default function ThreadsPage() {
   const saveTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingTemplate) {
-      await fetch("/api/marketing/threads/templates", {
+      await apiFetch("/api/marketing/threads/templates", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: editingTemplate.id, ...templateForm }),
       });
     } else {
-      await fetch("/api/marketing/threads/templates", {
+      await apiFetch("/api/marketing/threads/templates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(templateForm),
@@ -460,7 +462,7 @@ export default function ThreadsPage() {
   };
 
   const deleteTemplate = async (id: string) => {
-    await fetch(`/api/marketing/threads/templates?id=${id}`, { method: "DELETE" });
+    await apiFetch(`/api/marketing/threads/templates?id=${id}`, { method: "DELETE" });
     fetchAll();
   };
 
@@ -474,13 +476,13 @@ export default function ThreadsPage() {
   const saveRule = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingRule) {
-      await fetch("/api/marketing/threads/auto-rules", {
+      await apiFetch("/api/marketing/threads/auto-rules", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: editingRule.id, ...ruleForm, templateId: ruleForm.templateId || null }),
       });
     } else {
-      await fetch("/api/marketing/threads/auto-rules", {
+      await apiFetch("/api/marketing/threads/auto-rules", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...ruleForm, templateId: ruleForm.templateId || null }),
@@ -491,7 +493,7 @@ export default function ThreadsPage() {
   };
 
   const toggleRule = async (rule: AutoRule) => {
-    await fetch("/api/marketing/threads/auto-rules", {
+    await apiFetch("/api/marketing/threads/auto-rules", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: rule.id, isActive: !rule.isActive }),
@@ -500,13 +502,13 @@ export default function ThreadsPage() {
   };
 
   const deleteRule = async (id: string) => {
-    await fetch(`/api/marketing/threads/auto-rules?id=${id}`, { method: "DELETE" });
+    await apiFetch(`/api/marketing/threads/auto-rules?id=${id}`, { method: "DELETE" });
     fetchAll();
   };
 
   /* ── Comment Actions ── */
   const generateReply = async (commentId: string) => {
-    await fetch("/api/marketing/threads/comments", {
+    await apiFetch("/api/marketing/threads/comments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ commentId }),
@@ -515,7 +517,7 @@ export default function ThreadsPage() {
   };
 
   const updateCommentStatus = async (id: string, replyStatus: string) => {
-    await fetch("/api/marketing/threads/comments", {
+    await apiFetch("/api/marketing/threads/comments", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id, replyStatus }),
@@ -526,7 +528,7 @@ export default function ThreadsPage() {
   /* ── Account ── */
   const saveAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch("/api/marketing/threads/account", {
+    await apiFetch("/api/marketing/threads/account", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username: accountUsername }),
@@ -536,7 +538,7 @@ export default function ThreadsPage() {
   };
 
   const disconnectAccount = async () => {
-    await fetch("/api/marketing/threads/account", { method: "DELETE" });
+    await apiFetch("/api/marketing/threads/account", { method: "DELETE" });
     fetchAll();
   };
 
@@ -1136,7 +1138,7 @@ export default function ThreadsPage() {
                   <button
                     onClick={async () => {
                       try {
-                        await fetch("/api/marketing/oauth/refresh", {
+                        await apiFetch("/api/marketing/oauth/refresh", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ channel: "threads" }),
@@ -1153,7 +1155,7 @@ export default function ThreadsPage() {
                   <button
                     onClick={async () => {
                       try {
-                        await fetch("/api/marketing/channels", {
+                        await apiFetch("/api/marketing/channels", {
                           method: "DELETE",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ channel: "threads" }),

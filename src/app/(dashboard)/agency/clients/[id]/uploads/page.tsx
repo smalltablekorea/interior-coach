@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Bell, RefreshCw, AlertTriangle } from "lucide-react";
@@ -36,7 +38,7 @@ export default function AgencyClientUploadsPage() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`/api/agency/clients/${clientId}/uploads`);
+      const r = await apiFetch(`/api/agency/clients/${clientId}/uploads`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "조회 실패");
       setUploads(j.items || []);
@@ -54,7 +56,7 @@ export default function AgencyClientUploadsPage() {
   const sendReminder = async (kind: "weekly" | "missing") => {
     setReminderStatus("발송 중...");
     try {
-      const r = await fetch(`/api/agency/clients/${clientId}/reminder`, {
+      const r = await apiFetch(`/api/agency/clients/${clientId}/reminder`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind }),

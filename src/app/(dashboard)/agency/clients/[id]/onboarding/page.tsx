@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Copy, Check, Upload, X, ExternalLink } from "lucide-react";
@@ -50,7 +52,7 @@ export default function OnboardingPage() {
 
   const refresh = useCallback(async () => {
     try {
-      const r = await fetch(`/api/agency/clients/${clientId}`);
+      const r = await apiFetch(`/api/agency/clients/${clientId}`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "조회 실패");
       setClient(j.client);
@@ -87,7 +89,7 @@ export default function OnboardingPage() {
         threadsHandle: form.get("threadsHandle") || null,
         instagramBusinessId: form.get("instagramBusinessId") || null,
       };
-      const r = await fetch(`/api/agency/clients/${clientId}`, {
+      const r = await apiFetch(`/api/agency/clients/${clientId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -110,7 +112,7 @@ export default function OnboardingPage() {
       fd.append("file", file);
       fd.append("caption", caption);
       fd.append("type", "past_work");
-      const r = await fetch(`/api/agency/clients/${clientId}/brand-assets`, {
+      const r = await apiFetch(`/api/agency/clients/${clientId}/brand-assets`, {
         method: "POST",
         body: fd,
       });

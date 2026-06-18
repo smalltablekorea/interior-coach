@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -41,7 +43,7 @@ export default function AgencyClientJobsPage() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch(`/api/agency/clients/${clientId}/jobs`);
+      const r = await apiFetch(`/api/agency/clients/${clientId}/jobs`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "조회 실패");
       setJobs(j.items || []);
@@ -62,7 +64,7 @@ export default function AgencyClientJobsPage() {
     setError(null);
     setLastResult(null);
     try {
-      const r = await fetch(`/api/agency/clients/${clientId}/jobs/generate`, {
+      const r = await apiFetch(`/api/agency/clients/${clientId}/jobs/generate`, {
         method: "POST",
       });
       const j = await r.json();

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
@@ -124,7 +126,7 @@ export default function TaxDashboardPage() {
   const year = new Date().getFullYear();
 
   useEffect(() => {
-    fetch(`/api/tax?type=dashboard&year=${year}`)
+    apiFetch(`/api/tax?type=dashboard&year=${year}`)
       .then(async (r) => {
         if (!r.ok) {
           // 401/403/500 응답이 setData 로 들어가면 data.revenueByMonth 접근에서

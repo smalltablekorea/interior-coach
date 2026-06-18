@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useMemo } from "react";
 import { Plus, Search, Pencil, Trash2, ArrowLeft, Receipt, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -61,9 +63,9 @@ export default function TaxExpensesPage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/tax?type=expenses").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/tax?type=vendors").then((r) => (r.ok ? r.json() : [])),
+      apiFetch("/api/tax?type=expenses").then((r) => (r.ok ? r.json() : [])),
+      apiFetch("/api/sites").then((r) => (r.ok ? r.json() : [])),
+      apiFetch("/api/tax?type=vendors").then((r) => (r.ok ? r.json() : [])),
     ]).then(([exp, s, v]) => {
       setRows(Array.isArray(exp) ? exp : []);
       setSites(Array.isArray(s) ? s : []);
@@ -111,13 +113,13 @@ export default function TaxExpensesPage() {
     const supply = parseInt(form.supplyAmount) || 0;
     const vat = parseInt(form.vatAmount) || 0;
     const payload = { ...form, supplyAmount: supply, vatAmount: vat, totalAmount: supply + vat, id: editId };
-    const res = await fetch(`/api/tax?type=expenses`, { method: editId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await apiFetch(`/api/tax?type=expenses`, { method: editId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (res.ok) { setShowModal(false); fetchData(); }
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/tax?type=expenses&id=${id}`, { method: "DELETE" });
+    await apiFetch(`/api/tax?type=expenses&id=${id}`, { method: "DELETE" });
     setDeleteId(null);
     fetchData();
   };

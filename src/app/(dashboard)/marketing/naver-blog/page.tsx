@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
@@ -228,7 +230,7 @@ export default function NaverBlogPage() {
 
   const fetchPosts = useCallback(async () => {
     try {
-      const res = await fetch("/api/marketing/posts?channel=naver_blog");
+      const res = await apiFetch("/api/marketing/posts?channel=naver_blog");
       if (res.ok) {
         const data = await res.json();
         setPosts(data?.items ?? data ?? []);
@@ -240,7 +242,7 @@ export default function NaverBlogPage() {
 
   const fetchKeywords = useCallback(async () => {
     try {
-      const res = await fetch("/api/marketing/keywords?channel=naver");
+      const res = await apiFetch("/api/marketing/keywords?channel=naver");
       if (res.ok) {
         const data = await res.json();
         setKeywords(data?.items ?? data ?? []);
@@ -252,7 +254,7 @@ export default function NaverBlogPage() {
 
   const fetchSites = useCallback(async () => {
     try {
-      const res = await fetch("/api/sites");
+      const res = await apiFetch("/api/sites");
       if (res.ok) {
         const data = await res.json();
         setSites(Array.isArray(data) ? data : data?.items ?? []);
@@ -264,7 +266,7 @@ export default function NaverBlogPage() {
 
   const fetchChannelConnection = useCallback(async () => {
     try {
-      const res = await fetch("/api/marketing/channels?channel=naver_blog");
+      const res = await apiFetch("/api/marketing/channels?channel=naver_blog");
       if (res.ok) {
         const data = await res.json();
         if (data) setChannelConnection(data);
@@ -285,7 +287,7 @@ export default function NaverBlogPage() {
   const fetchPlatformStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await fetch("/api/marketing/naver-blog/stats");
+      const res = await apiFetch("/api/marketing/naver-blog/stats");
       if (res.ok) {
         const data = await res.json();
         if (!data.error) setPlatformStats(data);
@@ -328,7 +330,7 @@ export default function NaverBlogPage() {
     e.preventDefault();
     try {
       if (editingPost) {
-        const res = await fetch(`/api/marketing/posts/${editingPost.id}`, {
+        const res = await apiFetch(`/api/marketing/posts/${editingPost.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -346,7 +348,7 @@ export default function NaverBlogPage() {
           setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
         }
       } else {
-        const res = await fetch("/api/marketing/posts", {
+        const res = await apiFetch("/api/marketing/posts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -374,7 +376,7 @@ export default function NaverBlogPage() {
   const deletePost = async (id: string) => {
     if (!confirm("이 포스트를 삭제하시겠습니까?")) return;
     try {
-      await fetch(`/api/marketing/posts/${id}`, { method: "DELETE" });
+      await apiFetch(`/api/marketing/posts/${id}`, { method: "DELETE" });
       setPosts((prev) => prev.filter((p) => p.id !== id));
     } catch {
       /* silent */
@@ -392,7 +394,7 @@ export default function NaverBlogPage() {
     setSaveSuccess(false);
 
     try {
-      const res = await fetch("/api/marketing/content/generate", {
+      const res = await apiFetch("/api/marketing/content/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -441,7 +443,7 @@ export default function NaverBlogPage() {
   const saveGeneratedContent = async () => {
     if (!generatedContent) return;
     try {
-      const res = await fetch("/api/marketing/posts", {
+      const res = await apiFetch("/api/marketing/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -470,7 +472,7 @@ export default function NaverBlogPage() {
   const submitKeyword = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch("/api/marketing/keywords", {
+      const res = await apiFetch("/api/marketing/keywords", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -534,7 +536,7 @@ export default function NaverBlogPage() {
     setConnectMessage(null);
     try {
       const blogId = blogIdInput.trim();
-      const res = await fetch("/api/marketing/channels", {
+      const res = await apiFetch("/api/marketing/channels", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -560,7 +562,7 @@ export default function NaverBlogPage() {
 
   const disconnectBlog = async () => {
     try {
-      const res = await fetch("/api/marketing/channels", {
+      const res = await apiFetch("/api/marketing/channels", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ channel: "naver_blog" }),

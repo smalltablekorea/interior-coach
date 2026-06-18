@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useRef } from "react";
 import { ArrowLeft, Send, Bot, User, Loader2, MessageSquare } from "lucide-react";
 import Link from "next/link";
@@ -34,7 +36,7 @@ export default function TaxAiAdvisorPage() {
   const { checkFeature } = useSubscription();
 
   useEffect(() => {
-    fetch("/api/tax/ai-advisor")
+    apiFetch("/api/tax/ai-advisor")
       .then((r) => r.json())
       .then((data) => { setHistory(data); setLoading(false); })
       .catch(() => setLoading(false));
@@ -53,7 +55,7 @@ export default function TaxAiAdvisorPage() {
     setQuestion("");
 
     try {
-      const res = await fetch("/api/tax/ai-advisor", {
+      const res = await apiFetch("/api/tax/ai-advisor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: text }),

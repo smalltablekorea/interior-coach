@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useMemo } from "react";
 import { Plus, Search, Pencil, Trash2, ArrowLeft, HardHat, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
@@ -84,8 +86,8 @@ export default function TaxPayrollPage() {
 
   const fetchData = () => {
     Promise.all([
-      fetch("/api/tax/payroll").then((r) => (r.ok ? r.json() : [])),
-      fetch("/api/sites").then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      apiFetch("/api/tax/payroll").then((r) => (r.ok ? r.json() : [])),
+      apiFetch("/api/sites").then((r) => (r.ok ? r.json() : [])).catch(() => []),
     ]).then(([p, s]) => {
       setRows(Array.isArray(p) ? p : []);
       setSites(Array.isArray(s) ? s : []);
@@ -139,7 +141,7 @@ export default function TaxPayrollPage() {
       netAmount: taxes.netAmount,
       id: editId,
     };
-    const res = await fetch("/api/tax/payroll", {
+    const res = await apiFetch("/api/tax/payroll", {
       method: editId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -149,13 +151,13 @@ export default function TaxPayrollPage() {
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/tax/payroll?id=${id}`, { method: "DELETE" });
+    await apiFetch(`/api/tax/payroll?id=${id}`, { method: "DELETE" });
     setDeleteId(null);
     fetchData();
   };
 
   const togglePaid = async (r: Payroll) => {
-    await fetch("/api/tax/payroll", {
+    await apiFetch("/api/tax/payroll", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...r, isPaid: !r.isPaid }),

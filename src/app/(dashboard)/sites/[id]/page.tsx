@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -136,7 +138,7 @@ export default function SiteDetailPage() {
   const photosLoadedRef = useRef(false);
 
   useEffect(() => {
-    fetch(`/api/sites/${id}`)
+    apiFetch(`/api/sites/${id}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.error) setSite(null);
@@ -145,7 +147,7 @@ export default function SiteDetailPage() {
       })
       .catch(() => setLoading(false));
 
-    fetch(`/api/sites/${id}/health-score`)
+    apiFetch(`/api/sites/${id}/health-score`)
       .then((r) => r.json())
       .then((data) => setHealthScore(data))
       .catch(() => {});
@@ -229,7 +231,7 @@ export default function SiteDetailPage() {
       if (editForm.endDate) body.endDate = editForm.endDate;
       if (editForm.memo) body.memo = editForm.memo;
 
-      const res = await fetch(`/api/sites/${id}`, {
+      const res = await apiFetch(`/api/sites/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -246,7 +248,7 @@ export default function SiteDetailPage() {
 
   const handleDelete = async () => {
     try {
-      await fetch(`/api/sites/${id}`, { method: "DELETE" });
+      await apiFetch(`/api/sites/${id}`, { method: "DELETE" });
     } catch {
       // ignore errors in demo mode
     }
@@ -259,7 +261,7 @@ export default function SiteDetailPage() {
     setCommentText("");
 
     try {
-      const res = await fetch(`/api/photos/${photoId}/comments`, {
+      const res = await apiFetch(`/api/photos/${photoId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ authorName: "나", text }),
@@ -321,7 +323,7 @@ export default function SiteDetailPage() {
       formData.append("date", today);
 
       try {
-        const res = await fetch(`/api/sites/${id}/photos`, {
+        const res = await apiFetch(`/api/sites/${id}/photos`, {
           method: "POST",
           body: formData,
         });
@@ -969,7 +971,7 @@ export default function SiteDetailPage() {
                               const text = (e.target as HTMLInputElement).value.trim();
                               (e.target as HTMLInputElement).value = "";
                               try {
-                                const res = await fetch(`/api/photos/${photo.id}/comments`, {
+                                const res = await apiFetch(`/api/photos/${photo.id}/comments`, {
                                   method: "POST",
                                   headers: { "Content-Type": "application/json" },
                                   body: JSON.stringify({ authorName: "나", text }),

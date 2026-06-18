@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { RefreshCw, Clock, CheckCircle2, AlertCircle, Ban } from "lucide-react";
@@ -54,7 +56,7 @@ export default function AgencyAllJobsPage() {
       if (statusFilter !== "all") qs.set("status", statusFilter);
       if (channelFilter !== "all") qs.set("channel", channelFilter);
       if (clientFilter !== "all") qs.set("clientId", clientFilter);
-      const r = await fetch(`/api/agency/jobs?${qs.toString()}`);
+      const r = await apiFetch(`/api/agency/jobs?${qs.toString()}`);
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "조회 실패");
       setJobs(j.items || []);

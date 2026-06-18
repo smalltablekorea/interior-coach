@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useMemo } from "react";
 import { Plus, Search, Pencil, Trash2, ArrowLeft, Users, Star, StarOff, Building } from "lucide-react";
 import Link from "next/link";
@@ -35,7 +37,7 @@ export default function TaxVendorsPage() {
   const [form, setForm] = useState(emptyForm);
 
   const fetchData = () => {
-    fetch("/api/tax?type=vendors")
+    apiFetch("/api/tax?type=vendors")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         // 401/500이면 d=null. 빈 배열 유지로 페이지 흰화면 방지.
@@ -69,13 +71,13 @@ export default function TaxVendorsPage() {
     e.preventDefault();
     setSaving(true);
     const payload = { ...form, id: editId };
-    const res = await fetch(`/api/tax?type=vendors`, { method: editId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const res = await apiFetch(`/api/tax?type=vendors`, { method: editId ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
     if (res.ok) { setShowModal(false); fetchData(); }
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/tax?type=vendors&id=${id}`, { method: "DELETE" });
+    await apiFetch(`/api/tax?type=vendors&id=${id}`, { method: "DELETE" });
     setDeleteId(null);
     fetchData();
   };

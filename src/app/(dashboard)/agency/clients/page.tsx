@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Plus, Copy, Check, ExternalLink } from "lucide-react";
@@ -39,7 +41,7 @@ export default function AgencyClientsPage() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await fetch("/api/agency/clients");
+      const r = await apiFetch("/api/agency/clients");
       const j = await r.json();
       setClients(j.items || []);
     } catch (e) {
@@ -66,7 +68,7 @@ export default function AgencyClientsPage() {
         contractMonths: Number(form.get("contractMonths") || 3),
         monthlyPrice: Number(form.get("monthlyPrice") || 300000),
       };
-      const r = await fetch("/api/agency/clients", {
+      const r = await apiFetch("/api/agency/clients", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

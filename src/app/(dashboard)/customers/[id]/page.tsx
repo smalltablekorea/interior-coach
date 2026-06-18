@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -88,7 +90,7 @@ export default function CustomerDetailPage() {
   const generatePortalLink = async () => {
     setPortalGenerating(true);
     try {
-      const res = await fetch("/api/portal/generate", {
+      const res = await apiFetch("/api/portal/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customerId: id }),
@@ -109,7 +111,7 @@ export default function CustomerDetailPage() {
   };
 
   const fetchCustomer = () => {
-    fetch(`/api/customers/${id}`)
+    apiFetch(`/api/customers/${id}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.error) setCustomer(null);
@@ -121,7 +123,7 @@ export default function CustomerDetailPage() {
 
   const fetchCommLogs = () => {
     setCommLoading(true);
-    fetch(`/api/customers/${id}/communications`)
+    apiFetch(`/api/customers/${id}/communications`)
       .then((r) => r.json())
       .then((data) => {
         setCommLogs(data);
@@ -141,7 +143,7 @@ export default function CustomerDetailPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/customers/${id}`, {
+      const res = await apiFetch(`/api/customers/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editForm),
@@ -156,13 +158,13 @@ export default function CustomerDetailPage() {
 
   const handleDelete = async () => {
     try {
-      await fetch(`/api/customers/${id}`, { method: "DELETE" });
+      await apiFetch(`/api/customers/${id}`, { method: "DELETE" });
     } catch {}
     window.location.href = "/customers";
   };
 
   const handleStatusChange = async (newStatus: string) => {
-    await fetch(`/api/customers/${id}`, {
+    await apiFetch(`/api/customers/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: newStatus }),
@@ -173,7 +175,7 @@ export default function CustomerDetailPage() {
   const handleCommSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCommSaving(true);
-    const res = await fetch(`/api/customers/${id}/communications`, {
+    const res = await apiFetch(`/api/customers/${id}/communications`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(commForm),

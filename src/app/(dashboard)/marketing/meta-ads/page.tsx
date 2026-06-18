@@ -1,5 +1,7 @@
 "use client";
 
+
+import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
@@ -199,7 +201,7 @@ export default function MetaAdsPage() {
   /* ── Fetch campaigns ── */
   const fetchCampaigns = useCallback(async () => {
     try {
-      const res = await fetch("/api/marketing/campaigns?channel=meta");
+      const res = await apiFetch("/api/marketing/campaigns?channel=meta");
       if (res.ok) {
         const data = await res.json();
         setCampaigns(data?.items ?? (Array.isArray(data) ? data : []));
@@ -228,7 +230,7 @@ export default function MetaAdsPage() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/marketing/channels?channel=meta_ads")
+    apiFetch("/api/marketing/channels?channel=meta_ads")
       .then(r => r.json())
       .then(data => { if (data) setChannelConnection(data); })
       .catch(() => {});
@@ -238,7 +240,7 @@ export default function MetaAdsPage() {
   const fetchPlatformStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      const res = await fetch("/api/marketing/meta-ads/stats");
+      const res = await apiFetch("/api/marketing/meta-ads/stats");
       if (res.ok) {
         const data = await res.json();
         setPlatformStats(data);
@@ -320,7 +322,7 @@ export default function MetaAdsPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await fetch("/api/marketing/campaigns", {
+      const res = await apiFetch("/api/marketing/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1056,7 +1058,7 @@ export default function MetaAdsPage() {
                   <button
                     onClick={async () => {
                       try {
-                        await fetch("/api/marketing/oauth/refresh", {
+                        await apiFetch("/api/marketing/oauth/refresh", {
                           method: "POST",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ channel: "meta_ads" }),
@@ -1073,7 +1075,7 @@ export default function MetaAdsPage() {
                   <button
                     onClick={async () => {
                       try {
-                        await fetch("/api/marketing/channels", {
+                        await apiFetch("/api/marketing/channels", {
                           method: "DELETE",
                           headers: { "Content-Type": "application/json" },
                           body: JSON.stringify({ channel: "meta_ads" }),
