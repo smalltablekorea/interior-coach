@@ -120,13 +120,48 @@ const TYPE_COLORS: Record<string, string> = {
 export default function TaxDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const year = new Date().getFullYear();
 
   useEffect(() => {
     fetch(`/api/tax?type=dashboard&year=${year}`)
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(async (r) => {
+        if (!r.ok) {
+          // 401/403/500 응답이 setData 로 들어가면 data.revenueByMonth 접근에서
+          // undefined 폭발 → 페이지 흰화면. 에러 상태로 분리.
+          let detail = "";
+          try {
+            const body = await r.json();
+            detail = body?.error || body?.message || "";
+          } catch { /* ignore */ }
+          if (r.status === 401) setLoadError("세션이 만료되었습니다. 다시 로그인해주세요.");
+          else if (r.status === 403) setLoadError(detail || "워크스페이스 권한이 없습니다. 헤더에서 워크스페이스를 확인해주세요.");
+          else setLoadError(detail || `세무 데이터를 불러오지 못했습니다 (HTTP ${r.status}).`);
+          setLoading(false);
+          return null;
+        }
+        return r.json();
+      })
+      .then((d) => {
+        if (d) {
+          // ok() 래퍼/원시 응답 모두 호환 + 누락 필드 기본값으로 페이지 죽음 방지
+          const payload = (d?.data ?? d) as Partial<DashboardData>;
+          setData({
+            revenueByMonth: payload.revenueByMonth ?? [],
+            expensesByMonth: payload.expensesByMonth ?? [],
+            expensesByCategory: payload.expensesByCategory ?? [],
+            uncollected: payload.uncollected ?? { total: 0, count: 0 },
+            upcoming: payload.upcoming ?? [],
+            summary: payload.summary ?? { yearRevenue: 0, yearExpense: 0, yearProfit: 0, estimatedVat: 0 },
+          });
+        }
+        setLoading(false);
+      })
+      .catch((e) => {
+        console.error("[tax] dashboard fetch failed", e);
+        setLoadError("네트워크 오류로 세무 데이터를 불러오지 못했습니다.");
+        setLoading(false);
+      });
   }, [year]);
 
   // Build upcoming schedule from static + DB

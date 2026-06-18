@@ -9,8 +9,12 @@ import {
   taxCalendar,
   sites,
   customers,
+  contracts,
+  contractPayments,
+  expenses,
+  materialOrders,
 } from "@/lib/db/schema";
-import { eq, sql, and, gte, lte, desc } from "drizzle-orm";
+import { eq, sql, and, gte, lte, desc, ne, isNull } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, err, serverError } from "@/lib/api/response";
@@ -77,16 +81,110 @@ export async function GET(request: NextRequest) {
         .orderBy(taxCalendar.dueDate)
         .limit(10);
 
-      const yearRevenue = revenueByMonth.reduce((s, r) => s + Number(r.total), 0);
-      const yearExpense = expensesByMonth.reduce((s, r) => s + Number(r.total), 0);
+      // 분기된 데이터 모델 통합 — legacy 현장 흐름(contract_payments / expenses / material_orders)도 합산해야
+      // 사용자가 세무 UI 외부에서 입력한 매출/지출이 세무 대시보드에 노출됨.
+      const [legacyRevenueByMonth, legacyExpensesByMonth, legacyMaterialByMonth, legacyUncollected] = await Promise.all([
+        db
+          .select({
+            month: sql<string>`TO_CHAR(${contractPayments.paidDate}::date, 'YYYY-MM')`,
+            total: sql<number>`COALESCE(SUM(${contractPayments.amount}), 0)::int`,
+          })
+          .from(contractPayments)
+          .innerJoin(contracts, eq(contractPayments.contractId, contracts.id))
+          .where(and(
+            workspaceFilter(contracts.workspaceId, contracts.userId, wid, uid),
+            isNull(contracts.deletedAt),
+            eq(contractPayments.status, "완납"),
+            gte(contractPayments.paidDate, yearStart),
+            lte(contractPayments.paidDate, yearEnd),
+          ))
+          .groupBy(sql`TO_CHAR(${contractPayments.paidDate}::date, 'YYYY-MM')`),
+        db
+          .select({
+            month: sql<string>`TO_CHAR(${expenses.date}::date, 'YYYY-MM')`,
+            total: sql<number>`COALESCE(SUM(${expenses.amount}), 0)::int`,
+          })
+          .from(expenses)
+          .where(and(
+            workspaceFilter(expenses.workspaceId, expenses.userId, wid, uid),
+            isNull(expenses.deletedAt),
+            gte(expenses.date, yearStart),
+            lte(expenses.date, yearEnd),
+          ))
+          .groupBy(sql`TO_CHAR(${expenses.date}::date, 'YYYY-MM')`),
+        db
+          .select({
+            month: sql<string>`TO_CHAR(${materialOrders.orderedDate}::date, 'YYYY-MM')`,
+            total: sql<number>`COALESCE(SUM(${materialOrders.totalAmount}), 0)::int`,
+          })
+          .from(materialOrders)
+          .where(and(
+            workspaceFilter(materialOrders.workspaceId, materialOrders.userId, wid, uid),
+            ne(materialOrders.status, "취소"),
+            gte(materialOrders.orderedDate, yearStart),
+            lte(materialOrders.orderedDate, yearEnd),
+          ))
+          .groupBy(sql`TO_CHAR(${materialOrders.orderedDate}::date, 'YYYY-MM')`),
+        db
+          .select({
+            total: sql<number>`COALESCE(SUM(${contractPayments.amount}), 0)::int`,
+            count: sql<number>`COUNT(*)::int`,
+          })
+          .from(contractPayments)
+          .innerJoin(contracts, eq(contractPayments.contractId, contracts.id))
+          .where(and(
+            workspaceFilter(contracts.workspaceId, contracts.userId, wid, uid),
+            isNull(contracts.deletedAt),
+            eq(contractPayments.status, "미수"),
+          )),
+      ]);
+
+      // 월별 합산: 세무 + legacy
+      const mergeByMonth = (
+        primary: { month: string; total: number; supply?: number; vat?: number }[],
+        secondary: { month: string; total: number }[],
+      ) => {
+        const map = new Map<string, { month: string; total: number; supply: number; vat: number }>();
+        primary.forEach((r) => map.set(r.month, { month: r.month, total: Number(r.total), supply: Number(r.supply ?? r.total), vat: Number(r.vat ?? 0) }));
+        secondary.forEach((r) => {
+          const existing = map.get(r.month);
+          if (existing) {
+            existing.total += Number(r.total);
+            existing.supply += Number(r.total);
+          } else {
+            map.set(r.month, { month: r.month, total: Number(r.total), supply: Number(r.total), vat: 0 });
+          }
+        });
+        return Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month));
+      };
+
+      const mergedRevenueByMonth = mergeByMonth(revenueByMonth, legacyRevenueByMonth);
+      const mergedExpensesByMonth = mergeByMonth(
+        expensesByMonth,
+        // 지출 = 일반 expenses + 자재 발주
+        [...legacyExpensesByMonth, ...legacyMaterialByMonth].reduce<{ month: string; total: number }[]>((acc, r) => {
+          const found = acc.find((x) => x.month === r.month);
+          if (found) found.total += Number(r.total);
+          else acc.push({ month: r.month, total: Number(r.total) });
+          return acc;
+        }, []),
+      );
+
+      const yearRevenue = mergedRevenueByMonth.reduce((s, r) => s + Number(r.total), 0);
+      const yearExpense = mergedExpensesByMonth.reduce((s, r) => s + Number(r.total), 0);
       const yearRevenueVat = revenueByMonth.reduce((s, r) => s + Number(r.vat), 0);
       const yearExpenseVat = expensesByMonth.reduce((s, r) => s + Number(r.vat), 0);
 
+      const mergedUncollected = {
+        total: Number(uncollected[0]?.total ?? 0) + Number(legacyUncollected[0]?.total ?? 0),
+        count: Number(uncollected[0]?.count ?? 0) + Number(legacyUncollected[0]?.count ?? 0),
+      };
+
       return ok({
-        revenueByMonth,
-        expensesByMonth,
+        revenueByMonth: mergedRevenueByMonth,
+        expensesByMonth: mergedExpensesByMonth,
         expensesByCategory,
-        uncollected: uncollected[0],
+        uncollected: mergedUncollected,
         upcoming,
         summary: {
           yearRevenue,
@@ -198,6 +296,16 @@ export async function GET(request: NextRequest) {
         .from(taxCalendar)
         .where(workspaceFilter(taxCalendar.workspaceId, taxCalendar.userId, wid, uid))
         .orderBy(taxCalendar.dueDate);
+      return ok(rows);
+    }
+
+    if (type === "invoices") {
+      // 세금계산서 — 홈택스 연동 준비 중. 빈 배열 반환으로 호환성 유지.
+      const rows = await db
+        .select()
+        .from(taxInvoices)
+        .where(workspaceFilter(taxInvoices.workspaceId, taxInvoices.userId, wid, uid))
+        .orderBy(desc(taxInvoices.issueDate));
       return ok(rows);
     }
 
