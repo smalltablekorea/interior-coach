@@ -1,7 +1,7 @@
 /**
  * QC (Quality Check) AI 레이어.
  *
- * - QC 모델: claude-haiku-4-5-20251001 (Q1=c)
+ * - QC 모델: MODELS.HAIKU (중앙 관리 — src/lib/api/ai-helpers.ts)
  * - 통과 임계점: 80점 (Q2=b)
  * - AGENCY_AI_ENABLED=false면 mock (Q8=c)
  * - SEO는 AI 자체 판단 (Q7=a)
@@ -11,8 +11,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { agencyClients } from "@/lib/db/schema";
 import type { Channel } from "@/lib/agency/ai";
 import { AGENCY_AI_ENABLED } from "@/lib/agency/ai";
+import { MODELS } from "@/lib/api/ai-helpers";
 
-export const QC_MODEL = "claude-haiku-4-5-20251001";
+export const QC_MODEL = MODELS.HAIKU;
 export const QC_THRESHOLD = 80;
 
 type Client = typeof agencyClients.$inferSelect;
