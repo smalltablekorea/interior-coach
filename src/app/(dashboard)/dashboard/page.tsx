@@ -378,10 +378,19 @@ export default function DashboardPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  // 60초 폴링 + 탭 복귀 시 리프레시
+  // 60초 폴링 + 탭 복귀 시 리프레시 — KPI/현장 목록도 함께 갱신해
+  // 다른 화면(현장·지출·계약)에서 데이터를 수정한 뒤 돌아왔을 때 즉시 반영되도록 한다.
   useEffect(() => {
     const refresh = () => {
-      apiFetch("/api/dashboard/today").then((r) => (r.ok ? r.json() : null)).then((d) => { if (d?.alerts) setTodayData(d); });
+      Promise.all([
+        apiFetch("/api/sites").then((r) => (r.ok ? r.json() : null)),
+        apiFetch("/api/dashboard").then((r) => (r.ok ? r.json() : null)),
+        apiFetch("/api/dashboard/today").then((r) => (r.ok ? r.json() : null)),
+      ]).then(([siteData, dashData, todayResult]) => {
+        if (Array.isArray(siteData)) setSites(siteData);
+        if (dashData?.kpi) setDashboard(dashData);
+        if (todayResult?.alerts) setTodayData(todayResult);
+      }).catch(() => {/* swallow */});
     };
     const handleVisibility = () => { if (document.visibilityState === "visible") refresh(); };
     document.addEventListener("visibilitychange", handleVisibility);

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import {
   sites, constructionPhases, contracts, contractPayments,
   estimates, materialOrders, expenses,
+  taxRevenue, taxExpenses,
 } from "@/lib/db/schema";
 import { eq, sql, and, gte, lte, ne, or, desc, isNull, inArray } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
@@ -100,10 +101,26 @@ export async function GET() {
         .from(sites).where(and(siteBase, eq(sites.status, "시공중"))),
     ]);
 
+    // 세무 모듈 데이터도 합산 — 사용자가 어디 입력하든 대시보드 KPI에 반영되도록 통합
+    const [taxRevThisMonth, taxRevLastMonth, taxExpThisMonth] = await Promise.all([
+      db.select({ total: sql<number>`coalesce(sum(${taxRevenue.totalAmount}), 0)::int` })
+        .from(taxRevenue)
+        .where(and(workspaceFilter(taxRevenue.workspaceId, taxRevenue.userId, wid, uid), gte(taxRevenue.date, startOfMonth), lte(taxRevenue.date, endOfMonth))),
+      db.select({ total: sql<number>`coalesce(sum(${taxRevenue.totalAmount}), 0)::int` })
+        .from(taxRevenue)
+        .where(and(workspaceFilter(taxRevenue.workspaceId, taxRevenue.userId, wid, uid), gte(taxRevenue.date, lastMonthStart), lte(taxRevenue.date, lastMonthEnd))),
+      db.select({ total: sql<number>`coalesce(sum(${taxExpenses.totalAmount}), 0)::int` })
+        .from(taxExpenses)
+        .where(and(workspaceFilter(taxExpenses.workspaceId, taxExpenses.userId, wid, uid), gte(taxExpenses.date, startOfMonth), lte(taxExpenses.date, endOfMonth))),
+    ]);
+
+    const mergedThisMonthRevenue = thisMonthPaid.total + Number(taxRevThisMonth[0]?.total ?? 0);
+    const mergedLastMonthRevenue = lastMonthPaid.total + Number(taxRevLastMonth[0]?.total ?? 0);
+
     // KPI 계산
     const collectionRate = totalContractAmt.total > 0 ? Math.round((totalPaidAll.total / totalContractAmt.total) * 100) : 0;
-    const revenueTrend = thisMonthPaid.total >= lastMonthPaid.total ? "up" : "down";
-    const totalExpenses = thisMonthExp.total + thisMonthMat.total;
+    const revenueTrend = mergedThisMonthRevenue >= mergedLastMonthRevenue ? "up" : "down";
+    const totalExpenses = thisMonthExp.total + thisMonthMat.total + Number(taxExpThisMonth[0]?.total ?? 0);
     const burnRate = budgetTotal.total > 0 ? Math.round((totalExpenses / budgetTotal.total) * 100) : 0;
     const todayTasks = thisWeekPhases.filter(
       (p) => p.plannedStart && p.plannedEnd && p.plannedStart <= today && p.plannedEnd >= today,
@@ -355,7 +372,7 @@ export async function GET() {
     return ok({
       kpi: {
         activeSites: { count: activeSiteCount.count, total: totalSiteCount.count },
-        monthlyRevenue: { amount: thisMonthPaid.total, collectionRate, lastMonthAmount: lastMonthPaid.total, trend: revenueTrend },
+        monthlyRevenue: { amount: mergedThisMonthRevenue, collectionRate, lastMonthAmount: mergedLastMonthRevenue, trend: revenueTrend },
         monthlyExpenses: { amount: totalExpenses, budgetTotal: budgetTotal.total, burnRate, overBudget: burnRate > 100 },
         weeklySchedule: { count: thisWeekPhases.length, todayCount: todayTasks.length, todayTasks: todayTasks.map((t) => ({ category: t.category, siteName: t.siteName })) },
       },
