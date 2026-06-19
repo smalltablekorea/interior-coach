@@ -188,6 +188,13 @@ export default function AdminUsersPage() {
             >
               📢 7/31 무료 공지 발송
             </button>
+            <Link
+              href="/admin/activity"
+              className="px-3 py-2 rounded-lg border border-[var(--border)] text-sm hover:bg-white/[0.04] flex items-center gap-1.5"
+              title="최근 7일 로그인 + 이번달 이용 시간 TOP"
+            >
+              📈 활동 통계
+            </Link>
             <button
               onClick={load}
               disabled={loading}
