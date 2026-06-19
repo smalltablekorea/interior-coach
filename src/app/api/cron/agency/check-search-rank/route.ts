@@ -6,25 +6,19 @@ import {
   agencyContentJobs,
   agencyClients,
 } from "@/lib/db/schema";
-import { ok, err, serverError } from "@/lib/api/response";
 import { searchRank, hashtagsToKeywords, NAVER_SEARCH_ENABLED } from "@/lib/agency/naver-search";
+import { createCronRoute } from "@/lib/cron/monitor";
 
 /**
- * Vercel Cron: 검색 순위 자동 체크.
+ * Vercel Cron: 검색 순위 자동 체크 (매일 04:00 KST).
  *
  * 대상: search_rank_check_scheduled_at < now() AND search_rank_result IS NULL AND channel = 'naver_blog'.
- * 인증: Authorization: Bearer ${CRON_SECRET}.
- *
- * 환경변수 NAVER_CLIENT_ID/SECRET 없으면 mock 결과로 저장.
+ * NAVER_CLIENT_ID/SECRET 없으면 mock 결과로 저장.
+ * createCronRoute가 CRON_SECRET 검증 + cron_execution_logs 적재 + 실패 알림 처리.
  */
-export async function POST(request: Request) {
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return err("Unauthorized", 401);
-  }
-
-  try {
+export const POST = createCronRoute({
+  name: "agency/check-search-rank",
+  handler: async () => {
     // 처리 대상 조회
     const targets = await db
       .select({
@@ -54,6 +48,8 @@ export async function POST(request: Request) {
       mock: boolean;
       error?: string;
     }> = [];
+
+    let errorCount = 0;
 
     for (const t of targets) {
       const keywords = hashtagsToKeywords(t.draftHashtags as string[] | null).slice(0, 5);
@@ -102,6 +98,7 @@ export async function POST(request: Request) {
           mock: !NAVER_SEARCH_ENABLED,
         });
       } catch (e) {
+        errorCount++;
         results.push({
           publicationId: t.publicationId,
           keywordCount: 0,
@@ -111,20 +108,16 @@ export async function POST(request: Request) {
       }
     }
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `[agency:cron:rank] processed=${targets.length} naver_enabled=${NAVER_SEARCH_ENABLED}`,
-    );
-
-    return ok({
+    return {
       processed: targets.length,
-      naverEnabled: NAVER_SEARCH_ENABLED,
-      results,
-    });
-  } catch (error) {
-    return serverError(error);
-  }
-}
+      metadata: {
+        targetCount: targets.length,
+        errorCount,
+        naverEnabled: NAVER_SEARCH_ENABLED,
+      },
+    };
+  },
+});
 
-// dev 편의: GET도 동일 동작
+// dev 편의 + Vercel Cron 호환: GET도 동일 동작
 export const GET = POST;
