@@ -15,9 +15,9 @@ interface PricingPlan {
 }
 
 function ctaLabelFor(id: string): string {
-  if (id === "free") return "무료로 시작하기";
+  if (id === "free") return "무료 회원가입";
   if (id === "enterprise") return "영업팀 문의";
-  return "14일 무료 체험";
+  return "무료 회원가입";
 }
 
 function toPricingPlan(plan: PlanConfig): PricingPlan {

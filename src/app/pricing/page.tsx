@@ -97,7 +97,7 @@ const PLANS: Plan[] = [
     badge: "가장 인기",
     highlighted: true,
     darkTheme: false,
-    ctaText: "14일 무료 체험",
+    ctaText: "무료 회원가입",
     ctaHref: "/auth/login",
     color: "green",
     valueMessage: "블로그 대행 + 세무사 + 현장관리앱 = 최소 95만원 → 29.9만원에 전부!",
@@ -636,7 +636,7 @@ function CostCalculator() {
               href="/auth/login"
               className="w-full py-3 rounded-xl bg-[var(--green)] text-black font-semibold text-center text-sm hover:opacity-90 transition-opacity block"
             >
-              Pro 14일 무료 체험하기
+              무료 회원가입하기
             </Link>
           </div>
         </div>
@@ -857,11 +857,11 @@ function CTASection() {
         <h2 className="text-2xl md:text-3xl font-bold">
           아직 고민되시나요?
           <br />
-          14일 무료로 직접 써보세요.
+          무료로 직접 써보세요.
         </h2>
         <p className="text-[var(--muted)] mt-3 max-w-lg mx-auto">
-          카드 등록 후 Pro 플랜의 모든 기능을 14일간 무료로 체험하세요.
-          체험 기간 내 해지하면 비용이 청구되지 않습니다.
+          카드 등록 없이 회원가입만 하시면 Pro 플랜의 모든 기능을 사용하실 수 있습니다.
+          (2026-07-31까지 전체 기능 무료)
         </p>
 
         {/* Stats */}
@@ -888,7 +888,7 @@ function CTASection() {
             href="/auth/login"
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-[var(--green)] text-black font-semibold hover:opacity-90 transition-opacity"
           >
-            Pro 14일 무료 체험
+            무료 회원가입
             <ArrowRight size={18} />
           </Link>
           <Link

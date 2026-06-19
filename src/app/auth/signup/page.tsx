@@ -342,7 +342,7 @@ function SignupForm() {
               disabled={busy}
               className="mt-2 w-full py-2.5 rounded-xl bg-[var(--green)] text-black font-semibold hover:bg-[var(--green-hover)] transition-colors disabled:opacity-50"
             >
-              {isLoading ? "계정 생성 중..." : "무료 체험 시작"}
+              {isLoading ? "계정 생성 중..." : "무료 회원가입"}
             </button>
           </form>
 

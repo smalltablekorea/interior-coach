@@ -13,7 +13,7 @@ export const landingCopy = {
       { label: "FAQ", href: "#faq" },
     ],
     ctaLogin: { label: "로그인", href: "/auth/login" },
-    ctaSignup: { label: "14일 무료 시작", href: "/auth/signup" },
+    ctaSignup: { label: "무료 회원가입", href: "/auth/signup" },
   },
 
   hero: {
@@ -21,7 +21,7 @@ export const landingCopy = {
     titleLines: ["현장 5개, 폴더 12개,", "엑셀 20장 — 이제 한 곳에서."],
     subtitle:
       "공정 매니저, 현장 손익, 견적·계약·정산까지.\n현장 하나당 화면 하나로 정리됩니다.",
-    primaryCta: { label: "14일 무료 시작", href: "/auth/signup" },
+    primaryCta: { label: "무료 회원가입", href: "/auth/signup" },
     secondaryCta: { label: "데모 신청", href: "/demo-request" },
     meta: "카드 등록 불필요 · 2분 만에 첫 현장 등록",
   },
@@ -218,7 +218,7 @@ export const landingCopy = {
           "AI 세무 상담 10회/월",
           "Excel 내보내기",
         ],
-        ctaLabel: "14일 무료 시작",
+        ctaLabel: "무료 회원가입",
         ctaHref: "/auth/signup?plan=starter",
         highlight: false,
       },
@@ -236,7 +236,7 @@ export const landingCopy = {
           "세무·회계 전체 + OCR 영수증 스캔",
           "AI 세무 상담 무제한",
         ],
-        ctaLabel: "14일 무료 시작",
+        ctaLabel: "무료 회원가입",
         ctaHref: "/auth/signup?plan=pro",
         highlight: true,
         badge: "가장 인기",
@@ -306,7 +306,7 @@ export const landingCopy = {
     title: "오늘 현장 등록, 내일 바로 쓰실 수 있습니다",
     subtitle:
       "14일 무료. 카드 등록 불필요. 해지는 버튼 한 번.\n먼저 써보시고 결정하셔도 늦지 않습니다.",
-    primary: { label: "14일 무료 시작", href: "/auth/signup" },
+    primary: { label: "무료 회원가입", href: "/auth/signup" },
     secondary: { label: "데모 신청", href: "/demo-request" },
   },
 } as const;
