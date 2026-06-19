@@ -60,11 +60,9 @@ function fmtHm(s: string): string {
 
 function fmtDuration(seconds: number): string {
   if (seconds <= 0) return "0분";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0 && m > 0) return `${h}시간 ${m}분`;
-  if (h > 0) return `${h}시간`;
-  return `${m}분`;
+  // 누적 이용 시간을 분 단위로 표시 (운영자가 비교하기 쉽도록)
+  const totalMinutes = Math.round(seconds / 60);
+  return `${totalMinutes.toLocaleString()}분`;
 }
 
 function fmtWeekDayKo(dateStr: string): string {

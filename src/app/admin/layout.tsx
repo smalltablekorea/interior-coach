@@ -10,6 +10,7 @@ import {
   Sparkles,
   Mail,
   Megaphone,
+  Send,
 } from "lucide-react";
 
 const NAV: Array<{
@@ -23,6 +24,7 @@ const NAV: Array<{
   { href: "/admin/crons", label: "Cron 실행", icon: Clock },
   { href: "/admin/ai-usage", label: "AI 사용량", icon: Sparkles },
   { href: "/admin/demo-requests", label: "데모 신청", icon: Mail },
+  { href: "/admin/broadcast", label: "공지 발송", icon: Send },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
