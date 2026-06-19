@@ -174,20 +174,38 @@ export async function GET(_request: NextRequest) {
       INNER JOIN "user" u ON u.id = pu.user_id
       ORDER BY pu.total_seconds DESC
       LIMIT 30
-    `)) as unknown as Array<{
-      userId: string;
-      email: string;
-      name: string;
-      totalSeconds: number;
-      sessionCount: number;
-      activeDays: number;
-      firstEvent: Date;
-      lastEvent: Date;
-    }>;
+    `)) as unknown as
+      | {
+          rows: Array<{
+            userId: string;
+            email: string;
+            name: string;
+            totalSeconds: number;
+            sessionCount: number;
+            activeDays: number;
+            firstEvent: Date;
+            lastEvent: Date;
+          }>;
+        }
+      | Array<{
+          userId: string;
+          email: string;
+          name: string;
+          totalSeconds: number;
+          sessionCount: number;
+          activeDays: number;
+          firstEvent: Date;
+          lastEvent: Date;
+        }>;
+
+    // drizzle pg driver는 { rows, rowCount } / neon-http는 raw array를 반환 — 양쪽 호환
+    const rowsList = Array.isArray(monthRows)
+      ? monthRows
+      : (monthRows.rows ?? []);
 
     return ok({
       weekLogins,
-      monthTopUsers: monthRows.map((u) => ({
+      monthTopUsers: rowsList.map((u) => ({
         userId: u.userId,
         email: u.email,
         name: u.name,
