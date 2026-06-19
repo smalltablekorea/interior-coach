@@ -53,10 +53,11 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     // 제외:
-    //   - auth 라우트, 정적 파일, 포탈 (공개), favicon, 랜딩/가격 페이지
+    //   - auth 라우트, 정적 파일, 포탈 (공개), favicon, 랜딩/가격/약관/환불 공개 페이지
     //   - robots.txt·sitemap.xml(SEO 크롤러용 공개), 이미지·폰트 등 정적 에셋(OG 이미지 포함)
+    //   - demo-request: 잠재 고객(미가입자)이 데모 신청하는 공개 페이지 — 인증 게이트 걸면 안 됨
     //   - Vercel CRON 호출 경로: 자체 CRON_SECRET Bearer 검증을 별도로 수행하므로
     //     미들웨어의 세션 쿠키 체크에서 401로 막히면 안 됨. 누락 시 매일 알림/결제/넛지 cron이 무동작.
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|auth|portal|pricing|qna|terms|refund-policy|api/auth|api/portal|api/qna|api/v1|api/cron|api/track-event|api/demo-request|api/notifications/process|api/notifications/check-payments|api/notifications/schedule-reminder|api/billing/cron|api/trial/nudge|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf)).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|auth|portal|pricing|qna|terms|refund-policy|demo-request|api/auth|api/portal|api/qna|api/v1|api/cron|api/track-event|api/demo-request|api/notifications/process|api/notifications/check-payments|api/notifications/schedule-reminder|api/billing/cron|api/trial/nudge|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf)).*)",
   ],
 };
