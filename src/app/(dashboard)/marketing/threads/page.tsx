@@ -364,21 +364,29 @@ export default function ThreadsPage() {
       scheduledAt: postForm.scheduledAt || null,
     };
 
-    if (editingPost) {
-      await apiFetch("/api/marketing/threads/posts", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingPost.id, ...payload }),
-      });
-    } else {
-      await apiFetch("/api/marketing/threads/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+    try {
+      const res = editingPost
+        ? await apiFetch("/api/marketing/threads/posts", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: editingPost.id, ...payload }),
+          })
+        : await apiFetch("/api/marketing/threads/posts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        alert(`저장 실패: ${j?.error || res.status}`);
+        return;
+      }
+      setShowPostModal(false);
+      fetchAll();
+    } catch (e) {
+      alert(`저장 실패: ${e instanceof Error ? e.message : "네트워크 오류"}`);
     }
-    setShowPostModal(false);
-    fetchAll();
   };
 
   const deletePost = async (id: string) => {
@@ -444,21 +452,28 @@ export default function ThreadsPage() {
 
   const saveTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingTemplate) {
-      await apiFetch("/api/marketing/threads/templates", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingTemplate.id, ...templateForm }),
-      });
-    } else {
-      await apiFetch("/api/marketing/threads/templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(templateForm),
-      });
+    try {
+      const res = editingTemplate
+        ? await apiFetch("/api/marketing/threads/templates", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: editingTemplate.id, ...templateForm }),
+          })
+        : await apiFetch("/api/marketing/threads/templates", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(templateForm),
+          });
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        alert(`저장 실패: ${j?.error || res.status}`);
+        return;
+      }
+      setShowTemplateModal(false);
+      fetchAll();
+    } catch (e) {
+      alert(`저장 실패: ${e instanceof Error ? e.message : "네트워크 오류"}`);
     }
-    setShowTemplateModal(false);
-    fetchAll();
   };
 
   const deleteTemplate = async (id: string) => {
@@ -475,21 +490,28 @@ export default function ThreadsPage() {
 
   const saveRule = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingRule) {
-      await apiFetch("/api/marketing/threads/auto-rules", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: editingRule.id, ...ruleForm, templateId: ruleForm.templateId || null }),
-      });
-    } else {
-      await apiFetch("/api/marketing/threads/auto-rules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...ruleForm, templateId: ruleForm.templateId || null }),
-      });
+    try {
+      const res = editingRule
+        ? await apiFetch("/api/marketing/threads/auto-rules", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: editingRule.id, ...ruleForm, templateId: ruleForm.templateId || null }),
+          })
+        : await apiFetch("/api/marketing/threads/auto-rules", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...ruleForm, templateId: ruleForm.templateId || null }),
+          });
+      if (!res.ok) {
+        const j = await res.json().catch(() => null);
+        alert(`저장 실패: ${j?.error || res.status}`);
+        return;
+      }
+      setShowRuleModal(false);
+      fetchAll();
+    } catch (e) {
+      alert(`저장 실패: ${e instanceof Error ? e.message : "네트워크 오류"}`);
     }
-    setShowRuleModal(false);
-    fetchAll();
   };
 
   const toggleRule = async (rule: AutoRule) => {
