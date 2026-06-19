@@ -7,6 +7,7 @@ import {
   analysisCredits,
   workspaces,
   aiUsage,
+  session as sessionTable,
 } from "@/lib/db/schema";
 import { requireSystemAdmin } from "@/lib/api-auth";
 import { ok, serverError } from "@/lib/api/response";
@@ -94,13 +95,58 @@ export async function GET(request: NextRequest) {
       for (const u of usage) aiUsageMap.set(u.userId, u.count);
     }
 
+    // 3-2) 각 사용자의 마지막 로그인 시각 (max session.createdAt)
+    const lastLoginMap = new Map<string, Date>();
+    if (userIds.length > 0) {
+      const lastLogins = await db
+        .select({
+          userId: sessionTable.userId,
+          lastAt: sql<Date>`max(${sessionTable.createdAt})`,
+        })
+        .from(sessionTable)
+        .where(inArray(sessionTable.userId, userIds))
+        .groupBy(sessionTable.userId);
+      for (const l of lastLogins) {
+        if (l.lastAt) lastLoginMap.set(l.userId, new Date(l.lastAt));
+      }
+    }
+
     // 4) 총합 + 통계 (전역, 검색 무관)
+    // 오늘(=현재 KST 자정 이후) 로그인한 사용자 수 = 오늘 새 session 만든 unique userId 수.
+    // KST 자정 = UTC 어제 15:00. 현재 시각 KST 로 옮긴 뒤 그날 자정 epoch 를 구하고 다시 UTC 로.
+    const kstOffsetMs = 9 * 60 * 60 * 1000;
+    const kstNowMs = Date.now() + kstOffsetMs;
+    const kstStartOfDayMs = Math.floor(kstNowMs / 86400000) * 86400000;
+    const todayStart = new Date(kstStartOfDayMs - kstOffsetMs);
+
+    const [todayLoginRow] = await db
+      .select({
+        count: sql<number>`count(distinct ${sessionTable.userId})::int`,
+      })
+      .from(sessionTable)
+      .where(gte(sessionTable.createdAt, todayStart));
+
     const [totals] = await db
       .select({
         total: sql<number>`count(*)::int`,
         promo: sql<number>`count(*) filter (where ${userTable.createdAt} >= ${SIGNUP_PROMO_START} and ${userTable.createdAt} < ${SIGNUP_PROMO_DEADLINE})::int`,
       })
       .from(userTable);
+
+    // 오늘 로그인한 사용자 상세 (이메일/이름)
+    const todayLoginUsers = await db
+      .selectDistinct({
+        userId: sessionTable.userId,
+        email: userTable.email,
+        name: userTable.name,
+        firstLoginToday: sql<Date>`min(${sessionTable.createdAt})`,
+        lastLoginToday: sql<Date>`max(${sessionTable.createdAt})`,
+      })
+      .from(sessionTable)
+      .innerJoin(userTable, eq(sessionTable.userId, userTable.id))
+      .where(gte(sessionTable.createdAt, todayStart))
+      .groupBy(sessionTable.userId, userTable.email, userTable.name)
+      .orderBy(desc(sql`max(${sessionTable.createdAt})`));
 
     const items = rows.map((r) => {
       const now = Date.now();
@@ -128,6 +174,7 @@ export async function GET(request: NextRequest) {
         aiCalls24h: aiUsageMap.get(r.id) ?? 0,
         createdAt: r.createdAt,
         isPromoSignup,
+        lastLoginAt: lastLoginMap.get(r.id) ?? null,
       };
     });
 
@@ -136,6 +183,14 @@ export async function GET(request: NextRequest) {
       meta: {
         total: totals.total,
         promoSignups: totals.promo,
+        todayLoginCount: todayLoginRow?.count ?? 0,
+        todayLoginUsers: todayLoginUsers.map((u) => ({
+          userId: u.userId,
+          email: u.email,
+          name: u.name,
+          firstLoginToday: u.firstLoginToday,
+          lastLoginToday: u.lastLoginToday,
+        })),
         returned: items.length,
         offset,
         limit,

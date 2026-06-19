@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, RefreshCw, Users, Gift, Sparkles, AlertTriangle } from "lucide-react";
+import { Search, RefreshCw, Users, Gift, Sparkles, AlertTriangle, LogIn } from "lucide-react";
 
 interface UserRow {
   id: string;
@@ -23,11 +23,22 @@ interface UserRow {
   aiCalls24h: number;
   createdAt: string;
   isPromoSignup: boolean;
+  lastLoginAt: string | null;
+}
+
+interface TodayLoginUser {
+  userId: string;
+  email: string;
+  name: string;
+  firstLoginToday: string | null;
+  lastLoginToday: string | null;
 }
 
 interface Meta {
   total: number;
   promoSignups: number;
+  todayLoginCount: number;
+  todayLoginUsers: TodayLoginUser[];
   returned: number;
   offset: number;
   limit: number;
@@ -50,7 +61,8 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
-  const [filter, setFilter] = useState<"all" | "promo" | "trialing" | "no_workspace">("all");
+  const [filter, setFilter] = useState<"all" | "promo" | "trialing" | "no_workspace" | "today_login">("all");
+  const [showTodayPanel, setShowTodayPanel] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -82,13 +94,18 @@ export default function AdminUsersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const todayLoginIds = useMemo(() => {
+    return new Set((meta?.todayLoginUsers ?? []).map((u) => u.userId));
+  }, [meta]);
+
   const filtered = useMemo(() => {
     if (filter === "all") return items;
     if (filter === "promo") return items.filter((u) => u.isPromoSignup);
     if (filter === "trialing") return items.filter((u) => u.status === "trialing");
     if (filter === "no_workspace") return items.filter((u) => !u.hasWorkspace);
+    if (filter === "today_login") return items.filter((u) => todayLoginIds.has(u.id));
     return items;
-  }, [items, filter]);
+  }, [items, filter, todayLoginIds]);
 
   const stats = useMemo(() => {
     const total = meta?.total ?? items.length;
@@ -96,19 +113,20 @@ export default function AdminUsersPage() {
     const trialing = items.filter((u) => u.status === "trialing").length;
     const noWs = items.filter((u) => !u.hasWorkspace).length;
     const heavyAi = items.filter((u) => u.aiCalls24h >= 50).length;
-    return { total, promo, trialing, noWs, heavyAi };
+    const todayLogin = meta?.todayLoginCount ?? 0;
+    return { total, promo, trialing, noWs, heavyAi, todayLogin };
   }, [items, meta]);
 
   function exportCsv() {
     const headers = [
       "email", "name", "phone", "plan", "status", "trialDaysLeft",
       "creditsTotal", "creditsUsed", "creditsRemaining",
-      "aiCalls24h", "workspace", "createdAt", "isPromo",
+      "aiCalls24h", "workspace", "createdAt", "lastLoginAt", "isPromo",
     ];
     const rows = filtered.map((u) => [
       u.email, u.name, u.phone ?? "", u.plan, u.status,
       u.trialDaysLeft ?? "", u.creditsTotal, u.creditsUsed, u.creditsRemaining,
-      u.aiCalls24h, u.workspaceName ?? "", u.createdAt, u.isPromoSignup ? "yes" : "",
+      u.aiCalls24h, u.workspaceName ?? "", u.createdAt, u.lastLoginAt ?? "", u.isPromoSignup ? "yes" : "",
     ]);
     const csv = [headers, ...rows]
       .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
@@ -189,13 +207,70 @@ export default function AdminUsersPage() {
         </div>
 
         {/* 통계 카드 */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-3">
           <StatCard icon={<Users size={16} />} label="전체 가입자" value={stats.total} />
+          <button
+            type="button"
+            onClick={() => setShowTodayPanel((v) => !v)}
+            className="text-left"
+            title="클릭해서 오늘 로그인한 사용자 목록 보기"
+          >
+            <StatCard
+              icon={<LogIn size={16} />}
+              label="오늘 로그인"
+              value={stats.todayLogin}
+              accent={stats.todayLogin > 0 ? "green" : undefined}
+            />
+          </button>
           <StatCard icon={<Gift size={16} />} label="프로모 가입" value={stats.promo} accent="green" />
           <StatCard icon={<Sparkles size={16} />} label="Trial 중" value={stats.trialing} />
           <StatCard icon={<AlertTriangle size={16} />} label="워크스페이스 없음" value={stats.noWs} accent={stats.noWs > 0 ? "amber" : undefined} />
           <StatCard icon={<AlertTriangle size={16} />} label="24h AI 50+회" value={stats.heavyAi} accent={stats.heavyAi > 0 ? "red" : undefined} />
         </div>
+
+        {/* 오늘 로그인 사용자 패널 (collapsible) */}
+        {showTodayPanel && (
+          <div className="mb-6 rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/5 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <LogIn size={16} className="text-[var(--green)]" />
+                <h2 className="font-semibold">오늘 로그인한 사용자 ({meta?.todayLoginCount ?? 0}명)</h2>
+              </div>
+              <button onClick={() => setShowTodayPanel(false)} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]">접기</button>
+            </div>
+            {(meta?.todayLoginUsers ?? []).length === 0 ? (
+              <p className="text-sm text-[var(--muted)]">오늘 아직 로그인한 사용자가 없습니다.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-xs text-[var(--muted)]">
+                    <tr>
+                      <th className="text-left py-1.5 pr-3">이메일 / 이름</th>
+                      <th className="text-left py-1.5 pr-3">첫 로그인</th>
+                      <th className="text-left py-1.5 pr-3">마지막 로그인</th>
+                      <th className="text-right py-1.5">상세</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(meta?.todayLoginUsers ?? []).map((u) => (
+                      <tr key={u.userId} className="border-t border-[var(--green)]/15">
+                        <td className="py-1.5 pr-3">
+                          <div className="font-medium">{u.email}</div>
+                          <div className="text-xs text-[var(--muted)]">{u.name}</div>
+                        </td>
+                        <td className="py-1.5 pr-3 text-xs text-[var(--muted)]">{fmtDate(u.firstLoginToday)}</td>
+                        <td className="py-1.5 pr-3 text-xs">{fmtDate(u.lastLoginToday)}</td>
+                        <td className="py-1.5 text-right">
+                          <Link href={`/admin/users/${u.userId}`} className="text-xs text-[var(--green)] hover:underline">상세 →</Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 검색 + 필터 */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -211,7 +286,7 @@ export default function AdminUsersPage() {
             />
           </div>
           <div className="flex gap-1 text-xs">
-            {(["all", "promo", "trialing", "no_workspace"] as const).map((f) => (
+            {(["all", "today_login", "promo", "trialing", "no_workspace"] as const).map((f) => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -221,7 +296,7 @@ export default function AdminUsersPage() {
                     : "border-[var(--border)] text-[var(--muted)]"
                 }`}
               >
-                {f === "all" ? "전체" : f === "promo" ? "프로모" : f === "trialing" ? "Trial" : "WS 없음"}
+                {f === "all" ? "전체" : f === "today_login" ? "오늘 로그인" : f === "promo" ? "프로모" : f === "trialing" ? "Trial" : "WS 없음"}
               </button>
             ))}
           </div>
@@ -246,15 +321,16 @@ export default function AdminUsersPage() {
                   <th className="text-right px-3 py-2.5">Trial 남음</th>
                   <th className="text-right px-3 py-2.5">분석권</th>
                   <th className="text-right px-3 py-2.5">24h AI</th>
+                  <th className="text-left px-3 py-2.5">마지막 로그인</th>
                   <th className="text-left px-3 py-2.5">가입일</th>
                   <th className="text-right px-3 py-2.5">상세</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && items.length === 0 ? (
-                  <tr><td colSpan={9} className="px-3 py-12 text-center text-[var(--muted)]">로딩 중...</td></tr>
+                  <tr><td colSpan={10} className="px-3 py-12 text-center text-[var(--muted)]">로딩 중...</td></tr>
                 ) : filtered.length === 0 ? (
-                  <tr><td colSpan={9} className="px-3 py-12 text-center text-[var(--muted)]">결과 없음</td></tr>
+                  <tr><td colSpan={10} className="px-3 py-12 text-center text-[var(--muted)]">결과 없음</td></tr>
                 ) : (
                   filtered.map((u) => (
                     <tr key={u.id} className="border-t border-[var(--border)] hover:bg-white/[0.02] cursor-pointer" onClick={() => window.location.assign(`/admin/users/${u.id}`)}>
@@ -291,6 +367,15 @@ export default function AdminUsersPage() {
                       </td>
                       <td className={`px-3 py-2.5 text-right text-xs ${u.aiCalls24h >= 100 ? "text-red-400 font-medium" : u.aiCalls24h >= 50 ? "text-amber-400" : ""}`}>
                         {u.aiCalls24h}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs">
+                        {u.lastLoginAt ? (
+                          <span className={todayLoginIds.has(u.id) ? "text-[var(--green)] font-medium" : "text-[var(--muted)]"}>
+                            {fmtDate(u.lastLoginAt)}
+                          </span>
+                        ) : (
+                          <span className="text-[var(--muted)]/50">로그인 기록 없음</span>
+                        )}
                       </td>
                       <td className="px-3 py-2.5 text-xs text-[var(--muted)]">{fmtDate(u.createdAt)}</td>
                       <td className="px-3 py-2.5 text-right">
