@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { sql, gte, eq, desc, and } from "drizzle-orm";
+import { sql, gte, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { user as userTable, session as sessionTable } from "@/lib/db/schema";
 import { requireSystemAdmin } from "@/lib/api-auth";
@@ -104,64 +104,106 @@ export async function GET(_request: NextRequest) {
     }
 
     // ─── 2) 이번달 사용 시간 TOP ───
-    // 세션 사용 시간 = updated_at - created_at (better-auth는 활성 시 updated_at 갱신).
-    // 한 세션이 너무 길면(예: 30일 이상) 캡 처리해 이상치 방지.
-    const SESSION_DURATION_CAP_HOURS = 24; // 한 세션당 최대 24시간으로 캡
-    const monthTopUsers = await db
-      .select({
-        userId: sessionTable.userId,
-        email: userTable.email,
-        name: userTable.name,
-        totalDurationSeconds: sql<number>`coalesce(sum(
-          least(
-            extract(epoch from (${sessionTable.updatedAt} - ${sessionTable.createdAt})),
-            ${SESSION_DURATION_CAP_HOURS * 3600}
-          )
-        ), 0)::int`,
-        activeDays: sql<number>`count(distinct (${sessionTable.createdAt} + interval '9 hour')::date)::int`,
-        sessionCount: sql<number>`count(*)::int`,
-        firstSessionUtc: sql<Date>`min(${sessionTable.createdAt})`,
-        lastSessionUtc: sql<Date>`max(${sessionTable.createdAt})`,
-      })
-      .from(sessionTable)
-      .innerJoin(userTable, eq(userTable.id, sessionTable.userId))
-      .where(
-        and(
-          gte(sessionTable.createdAt, monthStart),
-          sql`${sessionTable.updatedAt} > ${sessionTable.createdAt}`,
-        ),
+    // 이전 방식(session.updated_at - created_at)은 better-auth가 토큰 만료 시점에만
+    // updated_at을 갱신해 모든 사용자가 정확히 24h·48h 같은 정수배로만 잡혔음.
+    //
+    // 대안: 사용자의 모든 "활동 이벤트"(session 생성·ai_usage·activity_log)를 시간 순으로
+    //       나열한 뒤 인접 이벤트 간격이 30분 이하면 같은 세션으로 묶음. 각 세션의 길이는
+    //       (마지막 이벤트 - 첫 이벤트) + 5분 (마지막 활동 후 추정 활성 시간).
+    //
+    // 30분 갭 임계 = 일반적인 idle 기준. 5분 padding = 세션이 단일 이벤트일 때 0이 되지 않도록.
+    const GAP_THRESHOLD_SECONDS = 1800; // 30분
+    const TRAILING_PADDING_SECONDS = 300; // 5분
+
+    const monthRows = (await db.execute(sql`
+      WITH events AS (
+        SELECT user_id, created_at FROM session WHERE created_at >= ${monthStart}
+        UNION ALL
+        SELECT user_id, created_at FROM ai_usage WHERE created_at >= ${monthStart}
+        UNION ALL
+        SELECT user_id, created_at FROM activity_log
+          WHERE created_at >= ${monthStart} AND user_id IS NOT NULL
+      ),
+      sorted AS (
+        SELECT user_id, created_at,
+          LAG(created_at) OVER (PARTITION BY user_id ORDER BY created_at) AS prev_at
+        FROM events
+      ),
+      session_marks AS (
+        SELECT user_id, created_at,
+          CASE WHEN prev_at IS NULL
+            OR EXTRACT(EPOCH FROM (created_at - prev_at)) > ${GAP_THRESHOLD_SECONDS}
+            THEN 1 ELSE 0 END AS new_session
+        FROM sorted
+      ),
+      session_ids AS (
+        SELECT user_id, created_at,
+          SUM(new_session) OVER (PARTITION BY user_id ORDER BY created_at) AS session_no
+        FROM session_marks
+      ),
+      session_durations AS (
+        SELECT user_id, session_no,
+          MIN(created_at) AS started_at,
+          MAX(created_at) AS ended_at,
+          EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at)))
+            + ${TRAILING_PADDING_SECONDS} AS seconds
+        FROM session_ids
+        GROUP BY user_id, session_no
+      ),
+      per_user AS (
+        SELECT
+          sd.user_id,
+          ROUND(SUM(sd.seconds))::int AS total_seconds,
+          COUNT(*)::int AS session_count,
+          COUNT(DISTINCT (sd.started_at + interval '9 hour')::date)::int AS active_days,
+          MIN(sd.started_at) AS first_event,
+          MAX(sd.ended_at) AS last_event
+        FROM session_durations sd
+        GROUP BY sd.user_id
       )
-      .groupBy(sessionTable.userId, userTable.email, userTable.name)
-      .orderBy(
-        desc(
-          sql`coalesce(sum(
-            least(
-              extract(epoch from (${sessionTable.updatedAt} - ${sessionTable.createdAt})),
-              ${SESSION_DURATION_CAP_HOURS * 3600}
-            )
-          ), 0)`,
-        ),
-      )
-      .limit(30);
+      SELECT
+        pu.user_id AS "userId",
+        u.email,
+        u.name,
+        pu.total_seconds AS "totalSeconds",
+        pu.session_count AS "sessionCount",
+        pu.active_days AS "activeDays",
+        pu.first_event AS "firstEvent",
+        pu.last_event AS "lastEvent"
+      FROM per_user pu
+      INNER JOIN "user" u ON u.id = pu.user_id
+      ORDER BY pu.total_seconds DESC
+      LIMIT 30
+    `)) as unknown as Array<{
+      userId: string;
+      email: string;
+      name: string;
+      totalSeconds: number;
+      sessionCount: number;
+      activeDays: number;
+      firstEvent: Date;
+      lastEvent: Date;
+    }>;
 
     return ok({
       weekLogins,
-      monthTopUsers: monthTopUsers.map((u) => ({
+      monthTopUsers: monthRows.map((u) => ({
         userId: u.userId,
         email: u.email,
         name: u.name,
-        totalDurationSeconds: u.totalDurationSeconds,
-        totalDurationMinutes: Math.round(u.totalDurationSeconds / 60),
+        totalDurationSeconds: u.totalSeconds,
+        totalDurationMinutes: Math.round(u.totalSeconds / 60),
         activeDays: u.activeDays,
         sessionCount: u.sessionCount,
-        firstSession: new Date(u.firstSessionUtc).toISOString(),
-        lastSession: new Date(u.lastSessionUtc).toISOString(),
+        firstSession: new Date(u.firstEvent).toISOString(),
+        lastSession: new Date(u.lastEvent).toISOString(),
       })),
       meta: {
         weekStartKst: new Date(kstStartOf7DaysAgoMs - kstOffsetMs).toISOString(),
         monthStartKst: monthStart.toISOString(),
-        sessionDurationCapHours: SESSION_DURATION_CAP_HOURS,
-        note: "이용 시간은 세션의 (updated_at - created_at) 합산 (24h/세션 캡). 토큰 갱신 시점 의존이라 실제 활성 시간과는 차이 있을 수 있음.",
+        gapThresholdMinutes: GAP_THRESHOLD_SECONDS / 60,
+        trailingPaddingMinutes: TRAILING_PADDING_SECONDS / 60,
+        note: "활동 이벤트(session·ai_usage·activity_log)를 30분 갭으로 세션화한 추정값. 마지막 활동 후 5분 padding. 도메인 활동(현장 등록 등)이 적으면 실제 화면 활동 시간보다 짧게 잡힐 수 있음.",
       },
     });
   } catch (error) {
