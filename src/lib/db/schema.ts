@@ -11,6 +11,8 @@ import {
   date,
   unique,
   serial,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 // ─── 업체 정보 (레거시) ───
@@ -1710,6 +1712,63 @@ export const agencyMonthlyReports = pgTable(
     unique("agency_monthly_reports_client_month_idx").on(table.clientId, table.yearMonth),
   ],
 );
+
+// ─── 스펙북 ───
+// 현장당 카탈로그 1개. 고객은 공유 토큰으로 선택 → submission 생성.
+// 카탈로그 data: { categories: [{ id, name, options: [SpecOption] }] }
+// SpecOption: { id, name, brand, model, spec, price, memo, imageUrl, color }
+
+export const specbookCatalogs = pgTable("specbook_catalogs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id")
+    .notNull()
+    .unique()
+    .references(() => sites.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  data: jsonb("data").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const specbookTemplates = pgTable("specbook_templates", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").notNull().references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  data: jsonb("data").notNull(),
+  isDefault: boolean("is_default").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const specbookShareTokens = pgTable("specbook_share_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at"),
+  revokedAt: timestamp("revoked_at"),
+  createdBy: text("created_by").notNull().references(() => user.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const specbookSubmissions = pgTable("specbook_submissions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  tokenId: uuid("token_id").references(() => specbookShareTokens.id, { onDelete: "set null" }),
+  customerName: text("customer_name").notNull(),
+  customerSite: text("customer_site"),
+  customerPhone: text("customer_phone"),
+  selections: jsonb("selections").notNull(),
+  status: text("status").notNull().default("new"), // new | confirmed
+  memo: text("memo"),
+  confirmedAt: timestamp("confirmed_at"),
+  confirmedBy: text("confirmed_by").references(() => user.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
 
 // ─── AI 사용량 로그 ───
 // Anthropic 호출당 토큰 사용량 적재. 일/월 quota·청구 검증·이상 탐지에 사용.

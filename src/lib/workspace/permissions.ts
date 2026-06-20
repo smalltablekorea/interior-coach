@@ -14,6 +14,7 @@ export type Category =
   | "marketing"
   | "settlement"
   | "tax"
+  | "specbook"
   | "settings";
 
 export type Action = "read" | "write" | "delete" | "admin";
@@ -36,6 +37,7 @@ const PERMISSION_MATRIX: Record<Category, Record<Action, WorkspaceRole>> = {
   marketing:     { read: "member",  write: "manager", delete: "admin",  admin: "admin" },
   settlement:    { read: "manager", write: "admin",   delete: "admin",  admin: "owner" },
   tax:           { read: "manager", write: "admin",   delete: "admin",  admin: "owner" },
+  specbook:      { read: "viewer",  write: "member",  delete: "manager", admin: "admin" },
   settings:      { read: "admin",   write: "admin",   delete: "owner",  admin: "owner" },
 };
 
@@ -86,6 +88,7 @@ export function pathToCategory(pathname: string): Category | null {
     "/marketing": "marketing",
     "/settlement": "settlement",
     "/tax": "tax",
+    "/specbook": "specbook",
     "/settings": "settings",
   };
   for (const [prefix, cat] of Object.entries(map)) {
