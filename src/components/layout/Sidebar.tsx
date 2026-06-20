@@ -96,6 +96,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/customers", icon: Users, label: "고객 관리" },
       { href: "/estimates", icon: FileText, label: "견적 관리" },
       { href: "/estimates/coach", icon: Sparkles, label: "견적코치 AI" },
+      { href: "/specbook", icon: ClipboardList, label: "스펙북" },
       { href: "/marketing", icon: Megaphone, label: "마케팅", requiredFeature: "marketingAutomation" },
       { href: "/settings", icon: Settings, label: "설정" },
     ],
