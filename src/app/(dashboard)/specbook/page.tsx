@@ -570,22 +570,21 @@ function OptionEditor({ option, onSave, onClose }: {
   });
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="min-h-full flex items-start sm:items-center justify-center p-4">
-        <div
-          className="bg-[var(--background)] border border-[var(--border)] rounded-2xl w-full max-w-lg my-8 shadow-2xl shadow-black/50 relative"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* 헤더 */}
-          <div className="sticky top-0 z-10 bg-[var(--background)] flex items-center justify-between px-6 py-4 border-b border-[var(--border)] rounded-t-2xl">
-            <h3 className="font-semibold">{option ? "자재 편집" : "자재 추가"}</h3>
-            <button onClick={onClose} className="p-1 rounded hover:bg-white/[0.04]" aria-label="닫기">
-              <X size={16} />
-            </button>
-          </div>
+    <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
+      <div
+        className="bg-[var(--background)] border border-[var(--border)] rounded-2xl w-full max-w-2xl max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] shadow-2xl shadow-black/50 flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 헤더 (고정) */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] flex-shrink-0 rounded-t-2xl">
+          <h3 className="font-semibold">{option ? "자재 편집" : "자재 추가"}</h3>
+          <button onClick={onClose} className="p-1 rounded hover:bg-white/[0.04]" aria-label="닫기">
+            <X size={16} />
+          </button>
+        </div>
 
-          {/* 본문 */}
-          <div className="px-6 py-5 space-y-3">
+        {/* 본문 (스크롤) */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
           <Field label="자재명 *" required>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="예: 강마루 SPC"
@@ -623,18 +622,17 @@ function OptionEditor({ option, onSave, onClose }: {
             onImageUrl={(url) => setForm({ ...form, imageUrl: url, color: url ? "" : form.color })}
             onColor={(c) => setForm({ ...form, color: c, imageUrl: c ? "" : form.imageUrl })}
           />
-          </div>
+        </div>
 
-          {/* 푸터 (sticky) */}
-          <div className="sticky bottom-0 bg-[var(--background)] border-t border-[var(--border)] px-6 py-4 flex justify-end gap-2 rounded-b-2xl">
-            <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm hover:bg-white/[0.04]">취소</button>
-            <button
-              onClick={() => { if (!form.name.trim()) { alert("자재명을 입력해주세요"); return; } onSave(form); }}
-              className="px-4 py-2 rounded-lg bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)]"
-            >
-              저장
-            </button>
-          </div>
+        {/* 푸터 (고정) */}
+        <div className="border-t border-[var(--border)] px-6 py-4 flex justify-end gap-2 flex-shrink-0 rounded-b-2xl">
+          <button onClick={onClose} className="px-4 py-2 rounded-lg border border-[var(--border)] text-sm hover:bg-white/[0.04]">취소</button>
+          <button
+            onClick={() => { if (!form.name.trim()) { alert("자재명을 입력해주세요"); return; } onSave(form); }}
+            className="px-4 py-2 rounded-lg bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)]"
+          >
+            저장
+          </button>
         </div>
       </div>
     </div>
