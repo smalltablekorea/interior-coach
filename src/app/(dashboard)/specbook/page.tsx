@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ClipboardList, Plus, Copy, Layers, Link2, Save, RefreshCw,
   ChevronDown, ChevronRight, Trash2, Image as ImageIcon, X, Check,
@@ -616,32 +616,13 @@ function OptionEditor({ option, onSave, onClose }: {
               className="w-full px-3 py-2 rounded-lg bg-transparent border border-[var(--border)] text-sm" />
           </Field>
 
-          {/* 이미지: URL 또는 대표색상 */}
-          <div className="border border-[var(--border)] rounded-xl p-3 space-y-3 bg-white/[0.02]">
-            <p className="text-xs text-[var(--muted)]">이미지 (URL 또는 대표색상 중 선택)</p>
-            <Field label="이미지 URL">
-              <input value={form.imageUrl ?? ""} onChange={(e) => setForm({ ...form, imageUrl: e.target.value, color: e.target.value ? "" : form.color })}
-                placeholder="https://..."
-                className="w-full px-3 py-2 rounded-lg bg-transparent border border-[var(--border)] text-sm" />
-            </Field>
-            <Field label="또는 대표색상">
-              <div className="flex items-center gap-2">
-                <input type="color" value={form.color || "#000000"} onChange={(e) => setForm({ ...form, color: e.target.value, imageUrl: e.target.value ? "" : form.imageUrl })}
-                  className="w-10 h-10 rounded border border-[var(--border)] cursor-pointer" />
-                <input value={form.color ?? ""} onChange={(e) => setForm({ ...form, color: e.target.value })}
-                  placeholder="#RRGGBB"
-                  className="flex-1 px-3 py-2 rounded-lg bg-transparent border border-[var(--border)] text-sm" />
-              </div>
-            </Field>
-            {/* 미리보기 */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-[var(--muted)]">미리보기</span>
-              <div className="w-12 h-12 rounded-lg border border-[var(--border)] overflow-hidden"
-                style={form.color && !form.imageUrl ? { backgroundColor: form.color } : undefined}>
-                {form.imageUrl && <img src={form.imageUrl} alt="" className="w-full h-full object-cover" />}
-              </div>
-            </div>
-          </div>
+          {/* 이미지: 업로드 또는 대표색상 */}
+          <ImageOrColorField
+            imageUrl={form.imageUrl}
+            color={form.color}
+            onImageUrl={(url) => setForm({ ...form, imageUrl: url, color: url ? "" : form.color })}
+            onColor={(c) => setForm({ ...form, color: c, imageUrl: c ? "" : form.imageUrl })}
+          />
           </div>
 
           {/* 푸터 (sticky) */}
@@ -666,6 +647,146 @@ function Field({ label, required, children }: { label: string; required?: boolea
       <span className="block text-xs text-[var(--muted)] mb-1">{label}{required && <span className="text-red-400 ml-0.5">*</span>}</span>
       {children}
     </label>
+  );
+}
+
+// ────────── 이미지/색상 입력 (파일 업로드 + 대표색상) ──────────
+function ImageOrColorField({
+  imageUrl, color, onImageUrl, onColor,
+}: {
+  imageUrl?: string;
+  color?: string;
+  onImageUrl: (url: string) => void;
+  onColor: (color: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function handleFile(file: File) {
+    setError(null);
+    if (file.size > 10 * 1024 * 1024) {
+      setError("10MB 이하의 이미지만 업로드 가능합니다");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      setError("이미지 파일만 업로드 가능합니다");
+      return;
+    }
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("folder", "specbook");
+      const res = await apiFetch("/api/upload", { method: "POST", body: fd });
+      const j = await res.json();
+      const data = j?.data ?? j;
+      if (!res.ok || !data?.url) {
+        setError(j?.error || "업로드 실패");
+        return;
+      }
+      onImageUrl(data.url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "업로드 오류");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div className="border border-[var(--border)] rounded-xl p-3 space-y-3 bg-white/[0.02]">
+      <p className="text-xs text-[var(--muted)]">이미지 (사진 업로드 또는 대표색상 중 선택)</p>
+
+      {/* 업로드 영역 */}
+      <div>
+        <span className="block text-xs text-[var(--muted)] mb-1">사진 업로드</span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/heic"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+            e.target.value = ""; // 같은 파일 재선택 허용
+          }}
+          className="hidden"
+        />
+        {imageUrl ? (
+          <div className="flex items-center gap-3 p-2 rounded-lg bg-white/[0.03] border border-[var(--border)]">
+            <img src={imageUrl} alt="" className="w-16 h-16 rounded object-cover" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-[var(--green)] truncate">업로드 완료</p>
+              <div className="flex gap-2 mt-1">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="text-xs px-2 py-1 rounded bg-white/[0.06] hover:bg-white/[0.1] disabled:opacity-50"
+                >
+                  교체
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onImageUrl("")}
+                  className="text-xs px-2 py-1 rounded text-red-400 hover:bg-red-500/10"
+                >
+                  삭제
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="w-full px-3 py-4 rounded-lg border border-dashed border-[var(--border)] text-sm text-[var(--muted)] hover:border-[var(--green)]/40 hover:text-[var(--foreground)] disabled:opacity-50 flex flex-col items-center gap-1"
+          >
+            <ImageIcon size={20} />
+            <span>{uploading ? "업로드 중..." : "사진 선택 (JPG·PNG·WEBP, 10MB 이내)"}</span>
+          </button>
+        )}
+        {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+      </div>
+
+      {/* 대표색상 */}
+      <Field label="또는 대표색상">
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            value={color || "#000000"}
+            onChange={(e) => onColor(e.target.value)}
+            className="w-10 h-10 rounded border border-[var(--border)] cursor-pointer"
+          />
+          <input
+            value={color ?? ""}
+            onChange={(e) => onColor(e.target.value)}
+            placeholder="#RRGGBB"
+            className="flex-1 px-3 py-2 rounded-lg bg-transparent border border-[var(--border)] text-sm"
+          />
+          {color && (
+            <button
+              type="button"
+              onClick={() => onColor("")}
+              className="text-xs text-red-400 hover:bg-red-500/10 px-2 py-1 rounded"
+            >
+              해제
+            </button>
+          )}
+        </div>
+      </Field>
+
+      {/* 미리보기 */}
+      <div className="flex items-center gap-3">
+        <span className="text-xs text-[var(--muted)]">미리보기</span>
+        <div
+          className="w-12 h-12 rounded-lg border border-[var(--border)] overflow-hidden"
+          style={color && !imageUrl ? { backgroundColor: color } : undefined}
+        >
+          {imageUrl && <img src={imageUrl} alt="" className="w-full h-full object-cover" />}
+        </div>
+      </div>
+    </div>
   );
 }
 

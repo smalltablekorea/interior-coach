@@ -12,13 +12,15 @@ const ALLOWED_TYPES = new Set([
 ]);
 
 export async function POST(request: NextRequest) {
-  const auth = await requireWorkspaceAuth("sites", "write");
+  // folder=specbook 일 땐 specbook:write, 그 외엔 sites:write 권한 검사
+  const formData = await request.formData();
+  const file = formData.get("file") as File | null;
+  const folder = (formData.get("folder") as string) || "general";
+  const category = folder === "specbook" ? "specbook" : "sites";
+  const auth = await requireWorkspaceAuth(category as "specbook" | "sites", "write");
   if (!auth.ok) return auth.response;
 
   try {
-    const formData = await request.formData();
-    const file = formData.get("file") as File | null;
-    const folder = (formData.get("folder") as string) || "general";
 
     if (!file) return err("파일이 필요합니다");
     if (file.size > MAX_SIZE) return err("파일 크기는 10MB 이하만 가능합니다");
