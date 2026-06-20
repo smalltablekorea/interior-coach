@@ -558,7 +558,7 @@ function OptionCard({ option, onEdit, onDelete }: { option: SpecOption; onEdit: 
   );
 }
 
-// ────────── 옵션 편집 모달 ──────────
+// ────────── 옵션 편집 모달 (드래그·리사이즈 가능한 floating window) ──────────
 function OptionEditor({ option, onSave, onClose }: {
   catId: string;
   option: SpecOption | null;
@@ -569,21 +569,124 @@ function OptionEditor({ option, onSave, onClose }: {
     id: uid(), name: "", brand: "", model: "", spec: "", price: undefined, memo: "", imageUrl: "", color: "",
   });
 
+  // ──── 창 위치·크기 상태 ────
+  const INIT_W = 700;
+  const INIT_H = 640;
+  const [pos, setPos] = useState(() => {
+    if (typeof window === "undefined") return { x: 0, y: 0 };
+    return {
+      x: Math.max(16, (window.innerWidth - INIT_W) / 2),
+      y: Math.max(16, (window.innerHeight - INIT_H) / 2),
+    };
+  });
+  const [size, setSize] = useState({ w: INIT_W, h: INIT_H });
+  const [maximized, setMaximized] = useState(false);
+  const prevState = useRef<{ pos: typeof pos; size: typeof size } | null>(null);
+
+  // ESC로 닫기
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // ──── 드래그 ────
+  function startDrag(e: React.MouseEvent) {
+    if (maximized) return;
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const initX = pos.x;
+    const initY = pos.y;
+    const onMove = (ev: MouseEvent) => {
+      const nx = Math.max(0, Math.min(window.innerWidth - 60, initX + ev.clientX - startX));
+      const ny = Math.max(0, Math.min(window.innerHeight - 30, initY + ev.clientY - startY));
+      setPos({ x: nx, y: ny });
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
+
+  // ──── 리사이즈 (우하단) ────
+  function startResize(e: React.MouseEvent) {
+    if (maximized) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const initW = size.w;
+    const initH = size.h;
+    const onMove = (ev: MouseEvent) => {
+      const nw = Math.max(400, Math.min(window.innerWidth - pos.x - 8, initW + ev.clientX - startX));
+      const nh = Math.max(400, Math.min(window.innerHeight - pos.y - 8, initH + ev.clientY - startY));
+      setSize({ w: nw, h: nh });
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
+
+  function toggleMaximize() {
+    if (maximized) {
+      if (prevState.current) {
+        setPos(prevState.current.pos);
+        setSize(prevState.current.size);
+      }
+      setMaximized(false);
+    } else {
+      prevState.current = { pos, size };
+      setPos({ x: 0, y: 0 });
+      setSize({ w: window.innerWidth, h: window.innerHeight });
+      setMaximized(true);
+    }
+  }
+
+  const winStyle = maximized
+    ? { left: 0, top: 0, width: "100vw", height: "100vh" }
+    : { left: pos.x, top: pos.y, width: size.w, height: size.h };
+
   return (
-    <div
-      className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[100] bg-black/40 pointer-events-none">
       <div
-        className="bg-[var(--background)] border border-[var(--border)] rounded-2xl w-full max-w-2xl max-h-full shadow-2xl shadow-black/50 flex flex-col overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        className="absolute bg-[var(--background)] border border-[var(--border)] rounded-2xl shadow-2xl shadow-black/60 flex flex-col overflow-hidden pointer-events-auto"
+        style={winStyle}
       >
-        {/* 헤더 (고정) */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] flex-shrink-0">
-          <h3 className="font-semibold">{option ? "자재 편집" : "자재 추가"}</h3>
-          <button onClick={onClose} className="p-1 rounded hover:bg-white/[0.04]" aria-label="닫기">
-            <X size={16} />
-          </button>
+        {/* 헤더 = 드래그 핸들 */}
+        <div
+          onMouseDown={startDrag}
+          onDoubleClick={toggleMaximize}
+          className={`flex items-center justify-between px-6 py-4 border-b border-[var(--border)] flex-shrink-0 select-none ${maximized ? "" : "cursor-move"}`}
+        >
+          <h3 className="font-semibold flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[var(--green)]" />
+            {option ? "자재 편집" : "자재 추가"}
+            <span className="text-[10px] text-[var(--muted)] font-normal ml-1">
+              (헤더 드래그로 이동, 더블클릭 = 최대화)
+            </span>
+          </h3>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); toggleMaximize(); }}
+              className="p-1.5 rounded hover:bg-white/[0.04]"
+              aria-label={maximized ? "복원" : "최대화"}
+              title={maximized ? "복원" : "최대화"}
+            >
+              {maximized
+                ? <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="5" width="8" height="8" /><path d="M5 3h8v8" /></svg>
+                : <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="10" height="10" /></svg>}
+            </button>
+            <button onClick={onClose} className="p-1.5 rounded hover:bg-white/[0.04]" aria-label="닫기">
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {/* 본문 (스크롤) — min-h-0 이 있어야 flex column 안에서 overflow가 동작 */}
@@ -637,6 +740,19 @@ function OptionEditor({ option, onSave, onClose }: {
             저장
           </button>
         </div>
+
+        {/* 우하단 리사이즈 핸들 */}
+        {!maximized && (
+          <div
+            onMouseDown={startResize}
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-10"
+            title="드래그하여 크기 조절"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" className="text-[var(--muted)]">
+              <path d="M12 2 L14 2 L14 14 L2 14 L2 12 M6 14 L14 6 M10 14 L14 10" stroke="currentColor" fill="none" strokeWidth="1.5" />
+            </svg>
+          </div>
+        )}
       </div>
     </div>
   );
