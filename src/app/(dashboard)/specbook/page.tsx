@@ -570,21 +570,24 @@ function OptionEditor({ option, onSave, onClose }: {
   });
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-[100] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+      onClick={onClose}
+    >
       <div
-        className="bg-[var(--background)] border border-[var(--border)] rounded-2xl w-full max-w-2xl max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-3rem)] shadow-2xl shadow-black/50 flex flex-col"
+        className="bg-[var(--background)] border border-[var(--border)] rounded-2xl w-full max-w-2xl max-h-full shadow-2xl shadow-black/50 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 헤더 (고정) */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] flex-shrink-0 rounded-t-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] flex-shrink-0">
           <h3 className="font-semibold">{option ? "자재 편집" : "자재 추가"}</h3>
           <button onClick={onClose} className="p-1 rounded hover:bg-white/[0.04]" aria-label="닫기">
             <X size={16} />
           </button>
         </div>
 
-        {/* 본문 (스크롤) */}
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-3">
+        {/* 본문 (스크롤) — min-h-0 이 있어야 flex column 안에서 overflow가 동작 */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-3">
           <Field label="자재명 *" required>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="예: 강마루 SPC"
