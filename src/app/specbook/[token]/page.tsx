@@ -231,7 +231,7 @@ export default function PublicSpecbookPage({ params }: { params: Promise<{ token
 
       {/* 제출 모달 */}
       {submitOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60"
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-sm"
           onClick={() => !submitting && setSubmitOpen(false)}>
           <div className="bg-[var(--card)] border-t sm:border border-[var(--border)] rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}>
