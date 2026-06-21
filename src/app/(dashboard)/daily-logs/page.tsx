@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus, ClipboardList, Search, ChevronRight, Users } from "lucide-react";
+import { Plus, ClipboardList, Search, ChevronRight, Users, Image as ImageIcon, Share2 } from "lucide-react";
 import EmptyState from "@/components/ui/EmptyState";
 import { apiFetch } from "@/lib/api-client";
 import { fmtDate } from "@/lib/utils";
@@ -152,15 +152,34 @@ export default function DailyLogsPage() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold text-[var(--green)] truncate">{log.siteName || "-"}</span>
-                      {log.weather && (
-                        <span className="text-base" title={log.weather}>{WEATHER_EMOJI[log.weather]}</span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {log.sharedToCustomer && (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] bg-[var(--green)]/15 text-[var(--green)]"
+                            title="고객에게 공유 중"
+                          >
+                            <Share2 size={8} />
+                            공유
+                          </span>
+                        )}
+                        {log.weather && (
+                          <span className="text-base" title={log.weather}>{WEATHER_EMOJI[log.weather]}</span>
+                        )}
+                      </div>
                     </div>
                     <p className="text-sm font-medium line-clamp-2 mb-3 leading-snug">{log.summary}</p>
                     <div className="flex items-center justify-between text-[10px] text-[var(--muted)]">
-                      <span className="flex items-center gap-1">
-                        <Users size={10} />
-                        {log.workerCount ?? 0}명
+                      <span className="flex items-center gap-2">
+                        <span className="flex items-center gap-1">
+                          <Users size={10} />
+                          {log.workerCount ?? 0}명
+                        </span>
+                        {(log.photoUrls?.length ?? 0) > 0 && (
+                          <span className="flex items-center gap-1">
+                            <ImageIcon size={10} />
+                            {log.photoUrls!.length}
+                          </span>
+                        )}
                       </span>
                       <span>{log.authorName}</span>
                       <ChevronRight size={12} />
