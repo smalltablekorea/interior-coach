@@ -409,13 +409,13 @@ export default function QuickSiteDetailPage() {
                       type="date"
                       value={p.plannedStart || ""}
                       onChange={(e) => updatePhase(p.id, { plannedStart: e.target.value || null })}
-                      className="hidden sm:block px-2 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs focus:border-[var(--green)] outline-none"
+                      className="hidden sm:block px-2 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs focus:border-[var(--green)] outline-none [color-scheme:dark]"
                     />
                     <input
                       type="date"
                       value={p.plannedEnd || ""}
                       onChange={(e) => updatePhase(p.id, { plannedEnd: e.target.value || null })}
-                      className="hidden sm:block px-2 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs focus:border-[var(--green)] outline-none"
+                      className="hidden sm:block px-2 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs focus:border-[var(--green)] outline-none [color-scheme:dark]"
                     />
                     <div className="hidden sm:flex items-center justify-center gap-1.5">
                       <div className="w-12 h-1.5 rounded-full bg-[var(--background)] overflow-hidden">

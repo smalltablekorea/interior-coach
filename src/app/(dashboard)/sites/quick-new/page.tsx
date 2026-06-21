@@ -268,7 +268,7 @@ export default function QuickNewSitePage() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className={inputCls}
+                className={`${inputCls} [color-scheme:dark]`}
               />
             </Field>
             <Field label="준공일 *">
@@ -276,7 +276,7 @@ export default function QuickNewSitePage() {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className={inputCls}
+                className={`${inputCls} [color-scheme:dark]`}
               />
             </Field>
           </div>
