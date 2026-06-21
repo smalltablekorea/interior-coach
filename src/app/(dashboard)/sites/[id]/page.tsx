@@ -9,7 +9,7 @@ import {
   ArrowLeft, MapPin, User, Calendar, FileText, FileCheck, Hammer,
   Receipt, Camera, Plus, Send, X, ChevronLeft, ChevronRight, MessageCircle,
   Upload, Image as ImageIcon, Pencil, Trash2, Save,
-  Package, HardHat, ShieldAlert, CalendarDays, AlertTriangle,
+  Package, HardHat, ShieldAlert, CalendarDays, AlertTriangle, Printer,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -533,13 +533,13 @@ export default function SiteDetailPage() {
   void siteEstimates; void siteContracts;
 
   return (
-    <div className="space-y-6 animate-fade-up">
+    <div className="space-y-6 animate-fade-up print-area">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link
             href="/sites"
-            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors"
+            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] transition-colors no-print"
           >
             <ArrowLeft size={18} />
           </Link>
@@ -555,9 +555,18 @@ export default function SiteDetailPage() {
             </p>
           </div>
         </div>
-        {tab === "overview" && (
-          <div className="flex items-center gap-2">
-            {isEditing ? (
+        <div className="flex items-center gap-2 no-print">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold border border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)] hover:text-[var(--green)]"
+            title="이 화면을 인쇄"
+          >
+            <Printer size={12} />
+            인쇄
+          </button>
+          {tab === "overview" && (
+            isEditing ? (
               <>
                 <button
                   onClick={() => setIsEditing(false)}
@@ -591,9 +600,9 @@ export default function SiteDetailPage() {
                   <Trash2 size={18} />
                 </button>
               </>
-            )}
-          </div>
-        )}
+            )
+          )}
+        </div>
       </div>
 
       {/* Progress Bar */}
