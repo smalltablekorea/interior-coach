@@ -57,7 +57,7 @@ export async function POST(
       if (existing && (!existing.expiresAt || existing.expiresAt > new Date())) {
         return ok({
           token: existing.token,
-          url: `${BASE_URL}/daily-logs/${existing.token}`,
+          url: `${BASE_URL}/d/${existing.token}`,
           expiresAt: existing.expiresAt,
           reused: true,
         });
@@ -76,7 +76,7 @@ export async function POST(
 
     return ok({
       token,
-      url: `${BASE_URL}/daily-logs/${token}`,
+      url: `${BASE_URL}/d/${token}`,
       expiresAt,
       reused: false,
     });
