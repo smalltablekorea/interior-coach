@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ClipboardList, Trash2, Users, Share2 } from "lucide-react";
+import {
+  ArrowLeft, ClipboardList, Trash2, Users, Share2,
+  ImagePlus, X as XIcon, Loader2, Link as LinkIcon, Copy, Check,
+} from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { apiFetch } from "@/lib/api-client";
 import { fmtDate } from "@/lib/utils";
@@ -26,6 +29,14 @@ export default function DailyLogDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showDelete, setShowDelete] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // 현장 공유 링크 모달
+  const [showShare, setShowShare] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareError, setShareError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     apiFetch(`/api/daily-logs/${id}`)
@@ -50,11 +61,92 @@ export default function DailyLogDetailPage() {
       if (res.ok) {
         const data = await res.json();
         const updated = data?.data ?? data;
-        if (updated?.id) setLog(updated);
+        if (updated?.id) setLog((prev) => (prev ? { ...prev, ...updated } : updated));
       }
     } finally {
       setSaving(false);
     }
+  };
+
+  /** 사진 추가 — 다중 업로드 후 PATCH로 photoUrls 통째로 교체 */
+  const addPhotos = async (files: FileList | null) => {
+    if (!log || !files || files.length === 0) return;
+    setUploading(true);
+    try {
+      const uploaded: string[] = [];
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) continue;
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("folder", "daily-log");
+        const res = await apiFetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json().catch(() => null);
+        const url = data?.data?.url;
+        if (res.ok && url) uploaded.push(url);
+      }
+      const next = [...(log.photoUrls || []), ...uploaded];
+      const patchRes = await apiFetch(`/api/daily-logs/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ photoUrls: next }),
+      });
+      if (patchRes.ok) {
+        setLog((prev) => (prev ? { ...prev, photoUrls: next } : prev));
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = async (idx: number) => {
+    if (!log) return;
+    const next = (log.photoUrls || []).filter((_, i) => i !== idx);
+    setLog({ ...log, photoUrls: next });
+    await apiFetch(`/api/daily-logs/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photoUrls: next }),
+    });
+  };
+
+  /** 현장 단위 공유 링크 발급(있으면 재사용) */
+  const issueShareLink = async () => {
+    if (!log) return;
+    setShareLoading(true);
+    setShareError(null);
+    setShareUrl(null);
+    try {
+      const res = await apiFetch(`/api/daily-logs/sites/${log.siteId}/share`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        setShareError(data?.error?.message || data?.error || "링크 발급에 실패했습니다.");
+        return;
+      }
+      setShareUrl(data?.data?.url || null);
+    } catch (e) {
+      setShareError(e instanceof Error ? e.message : "링크 발급에 실패했습니다.");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const openShareModal = async () => {
+    setShowShare(true);
+    setCopied(false);
+    await issueShareLink();
+  };
+
+  const copyShareUrl = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
   };
 
   const handleDelete = async () => {
@@ -64,6 +156,8 @@ export default function DailyLogDetailPage() {
 
   if (loading) return <div className="h-32 rounded-2xl animate-shimmer" />;
   if (!log) return <p className="text-sm text-[var(--muted)]">업무일지를 찾을 수 없습니다.</p>;
+
+  const photos = log.photoUrls || [];
 
   return (
     <div className="space-y-6 animate-fade-up max-w-3xl">
@@ -84,14 +178,24 @@ export default function DailyLogDetailPage() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setShowDelete(true)}
-          className="p-2 rounded-lg text-[var(--muted)] hover:text-[var(--red)] hover:bg-[var(--red)]/10"
-          aria-label="업무일지 삭제"
-          title="삭제"
-        >
-          <Trash2 size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={openShareModal}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-[var(--border)] hover:border-[var(--green)] hover:text-[var(--green)]"
+            title="고객 공유 링크"
+          >
+            <LinkIcon size={14} />
+            <span className="hidden sm:inline">공유 링크</span>
+          </button>
+          <button
+            onClick={() => setShowDelete(true)}
+            className="p-2 rounded-lg text-[var(--muted)] hover:text-[var(--red)] hover:bg-[var(--red)]/10"
+            aria-label="업무일지 삭제"
+            title="삭제"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
       </div>
 
       {/* 메타 */}
@@ -140,6 +244,56 @@ export default function DailyLogDetailPage() {
         </button>
       </div>
 
+      {/* 사진 */}
+      <section className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold text-[var(--muted)]">현장 사진 ({photos.length}장)</p>
+          <label
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-[var(--border)] cursor-pointer hover:border-[var(--green)] hover:text-[var(--green)] ${
+              uploading ? "opacity-60 pointer-events-none" : ""
+            }`}
+          >
+            {uploading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
+            {uploading ? "업로드 중..." : "사진 추가"}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                addPhotos(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+        {photos.length === 0 ? (
+          <p className="text-sm text-[var(--muted)] text-center py-6">아직 등록된 사진이 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {photos.map((url, idx) => (
+              <div
+                key={url + idx}
+                className="relative aspect-square rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--background)] group"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  <img src={url} alt={`사진 ${idx + 1}`} className="w-full h-full object-cover" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => removePhoto(idx)}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-black transition-opacity"
+                  aria-label="사진 삭제"
+                >
+                  <XIcon size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {log.detail && (
         <section className="p-5 rounded-2xl border border-[var(--border)] bg-[var(--card)]">
           <p className="text-xs font-semibold text-[var(--muted)] mb-2">작업 상세</p>
@@ -172,6 +326,49 @@ export default function DailyLogDetailPage() {
           <button onClick={handleDelete} className="px-4 py-2 rounded-xl bg-[var(--red)] text-white text-sm font-bold">
             삭제
           </button>
+        </div>
+      </Modal>
+
+      <Modal open={showShare} onClose={() => setShowShare(false)} title="고객 공유 링크">
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--muted)]">
+            {log.siteName || "이 현장"}의 <strong className="text-[var(--foreground)]">고객 공유 상태</strong>인 일지만 이 링크로 공개됩니다.
+            현재 일지가 비공개라면, 위쪽 “고객 공유” 토글로 켜주세요.
+          </p>
+
+          {shareLoading ? (
+            <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
+              <Loader2 size={14} className="animate-spin" />
+              링크 생성 중...
+            </div>
+          ) : shareError ? (
+            <p className="text-sm text-[var(--red)]">{shareError}</p>
+          ) : shareUrl ? (
+            <div className="flex items-stretch gap-2">
+              <input
+                readOnly
+                value={shareUrl}
+                onClick={(e) => e.currentTarget.select()}
+                className="flex-1 px-3 py-2 rounded-xl bg-[var(--background)] border border-[var(--border)] text-xs font-mono"
+              />
+              <button
+                onClick={copyShareUrl}
+                className="inline-flex items-center gap-1 px-3 rounded-xl bg-[var(--green)] text-black text-xs font-bold"
+              >
+                {copied ? <Check size={14} /> : <Copy size={14} />}
+                {copied ? "복사됨" : "복사"}
+              </button>
+            </div>
+          ) : null}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => setShowShare(false)}
+              className="px-4 py-2 rounded-xl border border-[var(--border)] text-sm"
+            >
+              닫기
+            </button>
+          </div>
         </div>
       </Modal>
     </div>

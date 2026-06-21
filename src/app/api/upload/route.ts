@@ -12,12 +12,20 @@ const ALLOWED_TYPES = new Set([
 ]);
 
 export async function POST(request: NextRequest) {
-  // folder=specbook 일 땐 specbook:write, 그 외엔 sites:write 권한 검사
+  // folder별 권한 카테고리 매핑. daily-log 는 construction(현장 운영)에 속함.
   const formData = await request.formData();
   const file = formData.get("file") as File | null;
   const folder = (formData.get("folder") as string) || "general";
-  const category = folder === "specbook" ? "specbook" : "sites";
-  const auth = await requireWorkspaceAuth(category as "specbook" | "sites", "write");
+  const category =
+    folder === "specbook"
+      ? "specbook"
+      : folder === "daily-log" || folder === "daily-logs"
+        ? "construction"
+        : "sites";
+  const auth = await requireWorkspaceAuth(
+    category as "specbook" | "sites" | "construction",
+    "write",
+  );
   if (!auth.ok) return auth.response;
 
   try {

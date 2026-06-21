@@ -3,7 +3,10 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ClipboardList, Save, Loader2, Minus, Plus } from "lucide-react";
+import {
+  ArrowLeft, ClipboardList, Save, Loader2, Minus, Plus,
+  ImagePlus, X as XIcon, Share2,
+} from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import { KoreanInput, KoreanTextarea } from "@/components/ui/KoreanInput";
 import { TRADES } from "@/lib/constants";
@@ -44,6 +47,9 @@ function NewDailyLogInner() {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [shareToCustomer, setShareToCustomer] = useState(false);
 
   useEffect(() => {
     apiFetch("/api/sites")
@@ -67,6 +73,38 @@ function NewDailyLogInner() {
     setForm((f) => ({ ...f, workerCount: Math.max(0, (f.workerCount ?? 0) + delta) }));
   };
 
+  /** 다중 파일 업로드 — 한 장씩 /api/upload(folder=daily-log)로 보내고 URL 누적 */
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setError(null);
+    setUploading(true);
+    const uploaded: string[] = [];
+    try {
+      for (const file of Array.from(files)) {
+        if (!file.type.startsWith("image/")) continue;
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("folder", "daily-log");
+        const res = await apiFetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || `업로드 실패: ${file.name}`);
+        }
+        const url = data?.data?.url || data?.data?.pathname;
+        if (url) uploaded.push(url);
+      }
+      setPhotoUrls((prev) => [...prev, ...uploaded]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "사진 업로드 실패");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const removePhoto = (idx: number) => {
+    setPhotoUrls((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (saving) return;
@@ -77,10 +115,15 @@ function NewDailyLogInner() {
 
     setSaving(true);
     try {
+      const payload = {
+        ...form,
+        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+        sharedToCustomer: shareToCustomer,
+      };
       const res = await apiFetch("/api/daily-logs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data?.success) {
@@ -247,6 +290,89 @@ function NewDailyLogInner() {
             className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none resize-none"
           />
         </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
+            현장 사진 ({photoUrls.length}장)
+          </label>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+            {photoUrls.map((url, idx) => (
+              <div
+                key={url + idx}
+                className="relative aspect-square rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--background)]"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt={`사진 ${idx + 1}`} className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removePhoto(idx)}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black"
+                  aria-label="사진 삭제"
+                >
+                  <XIcon size={14} />
+                </button>
+              </div>
+            ))}
+            <label
+              className={`aspect-square rounded-xl border-2 border-dashed border-[var(--border)] flex flex-col items-center justify-center cursor-pointer hover:border-[var(--green)] hover:bg-white/[0.02] transition-colors ${
+                uploading ? "opacity-60 pointer-events-none" : ""
+              }`}
+            >
+              {uploading ? (
+                <Loader2 size={20} className="animate-spin text-[var(--muted)]" />
+              ) : (
+                <>
+                  <ImagePlus size={20} className="text-[var(--muted)]" />
+                  <span className="text-[10px] text-[var(--muted)] mt-1">사진 추가</span>
+                </>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  handleFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+          <p className="mt-2 text-[10px] text-[var(--muted)]">
+            여러 장 한 번에 선택 가능. 10MB 이하 jpg·png·webp·heic.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShareToCustomer((v) => !v)}
+          className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl border transition-colors ${
+            shareToCustomer
+              ? "border-[var(--green)]/50 bg-[var(--green)]/10"
+              : "border-[var(--border)] bg-[var(--background)] hover:bg-white/[0.04]"
+          }`}
+        >
+          <div className="flex items-center gap-2 text-left">
+            <Share2 size={16} className={shareToCustomer ? "text-[var(--green)]" : "text-[var(--muted)]"} />
+            <div>
+              <p className="text-sm font-medium">고객에게 공유</p>
+              <p className="text-[10px] text-[var(--muted)] mt-0.5">
+                현장 공유 링크에 이 일지가 노출됩니다. 나중에 상세에서 변경 가능.
+              </p>
+            </div>
+          </div>
+          <span
+            className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${
+              shareToCustomer ? "bg-[var(--green)]" : "bg-[var(--border)]"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
+                shareToCustomer ? "translate-x-[18px]" : "translate-x-0.5"
+              }`}
+            />
+          </span>
+        </button>
 
         {error && <p className="text-sm text-[var(--red)]">{error}</p>}
 

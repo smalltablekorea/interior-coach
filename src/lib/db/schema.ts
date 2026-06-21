@@ -1718,6 +1718,19 @@ export const agencyMonthlyReports = pgTable(
 // 카탈로그 data: { categories: [{ id, name, options: [SpecOption] }] }
 // SpecOption: { id, name, brand, model, spec, price, memo, imageUrl, color }
 
+// ─── 업무일지 고객 공유 토큰 ───
+// 현장(site)당 1개 활성 토큰. 한 토큰으로 그 현장의 모든 shared_to_customer=true 일지를 공개.
+export const dailyLogShareTokens = pgTable("daily_log_share_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  siteId: uuid("site_id").notNull().references(() => sites.id, { onDelete: "cascade" }),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at"),
+  revokedAt: timestamp("revoked_at"),
+  createdBy: text("created_by").notNull().references(() => user.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const specbookCatalogs = pgTable("specbook_catalogs", {
   id: uuid("id").defaultRandom().primaryKey(),
   siteId: uuid("site_id")
