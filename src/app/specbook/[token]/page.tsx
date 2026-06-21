@@ -301,12 +301,10 @@ export default function PublicSpecbookPage({ params }: { params: Promise<{ token
               <div className="space-y-3">
                 <Field label="성함 *">
                   <input value={customerName} onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="홍길동"
                     className="w-full px-3 py-2.5 rounded-lg bg-transparent border border-[var(--border)] text-sm focus:outline-none focus:border-[var(--green)]/60" />
                 </Field>
                 <Field label="현장/주소">
                   <input value={customerSite} onChange={(e) => setCustomerSite(e.target.value)}
-                    placeholder="예: 잠실 르엘 149동"
                     className="w-full px-3 py-2.5 rounded-lg bg-transparent border border-[var(--border)] text-sm" />
                 </Field>
                 <Field label="연락처">
