@@ -110,12 +110,39 @@ export async function createSiteWithChildren(
         })
         .returning({ id: sites.id });
 
-      // 5) 공정 — 선택된 공종별로 기본 작업 목록을 펼쳐 행 단위로 삽입
-      const phaseRows: { category: string; taskName: string; sortOrder: number }[] = [];
+      // 5) 공종별 윈도우 계산 — 착수일부터 표준 소요일을 순차 누적.
+      //    공정(plannedStart/End)과 일정(siteSchedules) 모두 같은 윈도우를 공유해
+      //    /api/schedule 에서 월 필터로 즉시 잡힌다.
+      const tradeWindows = new Map<string, { startISO: string; endISO: string }>();
+      let cursor = parseDate(input.startDate);
+      for (const trade of input.trades) {
+        const days = Math.max(1, daysForTrade(trade));
+        const start = cursor;
+        const end = addDays(cursor, days - 1);
+        tradeWindows.set(trade, { startISO: toISODate(start), endISO: toISODate(end) });
+        cursor = addDays(end, 1);
+      }
+
+      // 6) 공정 — 선택된 공종별로 기본 작업 목록을 펼쳐 행 단위로 삽입.
+      //    같은 공종의 모든 task 는 그 공종의 윈도우 전체를 plannedStart/End 로 공유.
+      const phaseRows: {
+        category: string;
+        taskName: string;
+        sortOrder: number;
+        plannedStart: string;
+        plannedEnd: string;
+      }[] = [];
       let phaseSort = 0;
       for (const trade of input.trades) {
+        const win = tradeWindows.get(trade)!;
         for (const task of tasksForTrade(trade)) {
-          phaseRows.push({ category: trade, taskName: task, sortOrder: phaseSort++ });
+          phaseRows.push({
+            category: trade,
+            taskName: task,
+            sortOrder: phaseSort++,
+            plannedStart: win.startISO,
+            plannedEnd: win.endISO,
+          });
         }
       }
       const insertedPhases = phaseRows.length
@@ -129,6 +156,8 @@ export async function createSiteWithChildren(
                 category: r.category,
                 taskName: r.taskName,
                 sortOrder: r.sortOrder,
+                plannedStart: r.plannedStart,
+                plannedEnd: r.plannedEnd,
                 status: "예정" as const,
                 progress: 0,
               })),
@@ -136,7 +165,7 @@ export async function createSiteWithChildren(
             .returning({ id: constructionPhases.id })
         : [];
 
-      // 6) 계약
+      // 7) 계약
       const [contract] = await tx
         .insert(contracts)
         .values({
@@ -148,7 +177,7 @@ export async function createSiteWithChildren(
         })
         .returning({ id: contracts.id });
 
-      // 7) 대금분할
+      // 8) 대금분할
       const insertedSplits = await tx
         .insert(paymentSplits)
         .values(
@@ -163,25 +192,21 @@ export async function createSiteWithChildren(
         )
         .returning({ id: paymentSplits.id });
 
-      // 8) 일정 초안 — 착수일부터 공종별 표준 소요일을 순차로 쌓아 자동 생성
+      // 9) 일정 — 공종 단위 캘린더 항목 (5)에서 만든 윈도우 그대로 사용
       const scheduleValues: (typeof siteSchedules.$inferInsert)[] = [];
-      let cursor = parseDate(input.startDate);
       let scheduleSort = 0;
       for (const trade of input.trades) {
-        const days = Math.max(1, daysForTrade(trade));
-        const start = cursor;
-        const end = addDays(cursor, days - 1);
+        const win = tradeWindows.get(trade)!;
         scheduleValues.push({
           userId: auth.userId,
           workspaceId: auth.workspaceId,
           siteId: site.id,
           trade,
           taskName: null,
-          startDate: toISODate(start),
-          endDate: toISODate(end),
+          startDate: win.startISO,
+          endDate: win.endISO,
           sortOrder: scheduleSort++,
         });
-        cursor = addDays(end, 1);
       }
       const insertedSchedules = scheduleValues.length
         ? await tx

@@ -510,6 +510,48 @@ export default function SchedulePage() {
         </button>
       </div>
 
+      {/* 일정 미설정 현장 — 현장 관리에서 추가됐지만 캘린더에 안 잡힌 현장
+        (착수일·준공일 미입력 또는 조회 13개월 밖). 빠르게 일정 입력하도록 안내. */}
+      {(() => {
+        const datedIds = new Set(sites.map((s) => s.id));
+        const noDate = allSites.filter((s) => !datedIds.has(s.id));
+        if (noDate.length === 0) return null;
+        return (
+          <div className="rounded-2xl border border-[var(--orange)]/30 bg-[var(--orange)]/5 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <CalendarDays size={14} className="text-[var(--orange)]" />
+                <h3 className="text-xs font-semibold text-[var(--orange)]">
+                  일정 미설정 현장 ({noDate.length})
+                </h3>
+              </div>
+              <p className="text-[10px] text-[var(--muted)]">
+                착수일·준공일이 비어 있어 캘린더에 표시되지 않습니다
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {noDate.slice(0, 12).map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/sites/${s.id}/quick`}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[var(--card)] border border-[var(--border)] text-[11px] hover:border-[var(--green)] hover:text-[var(--green)] transition-colors"
+                  title="이 현장의 일정을 입력하기"
+                >
+                  <Building2 size={11} />
+                  {s.name}
+                  <span className="text-[var(--muted)]">· {s.status}</span>
+                </Link>
+              ))}
+              {noDate.length > 12 && (
+                <span className="text-[11px] text-[var(--muted)] self-center">
+                  +{noDate.length - 12}개 더
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {loading ? (
         <div className="h-96 rounded-2xl animate-shimmer" />
       ) : view === "calendar" ? (
