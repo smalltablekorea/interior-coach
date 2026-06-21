@@ -12,9 +12,10 @@ import PaymentSplitEditor, {
   type PaymentSplit,
 } from "@/components/sites/PaymentSplitEditor";
 import { apiFetch } from "@/lib/api-client";
+import { TRADES } from "@/lib/constants";
 
-/** 사용자가 요청한 8개 칩 — TRADES 상수 전체가 아닌 자주 쓰는 핵심 공종만 */
-const TRADE_CHIPS = ["철거", "전기", "목공", "도어", "필름", "도배", "가구", "기타"] as const;
+/** 공종 칩 — TRADES 상수 전체 (36개). 한 화면에서 다 클릭 가능하도록 flex-wrap. */
+const TRADE_CHIPS = TRADES;
 
 const SCOPE_OPTIONS = ["부분", "전체"] as const;
 type Scope = (typeof SCOPE_OPTIONS)[number];
