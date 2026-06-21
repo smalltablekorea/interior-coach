@@ -7,7 +7,7 @@ import {
   ArrowLeft, Building2, MapPin, User, Phone, Wallet,
   Calendar, Hammer, Receipt, ListChecks, ExternalLink,
   ChevronUp, ChevronDown, GripVertical, Sparkles, Loader2,
-  Plus, Pencil, Trash2, Save,
+  Plus, Pencil, Trash2, Save, Printer,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import Modal from "@/components/ui/Modal";
@@ -377,13 +377,13 @@ export default function QuickSiteDetailPage() {
   const totalDays = daysBetween(site.startDate, site.endDate);
 
   return (
-    <div className="space-y-6 animate-fade-up max-w-4xl">
+    <div className="space-y-6 animate-fade-up max-w-4xl print-area">
       {/* 헤더 */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/sites"
-            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] shrink-0"
+            className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)] shrink-0 no-print"
             aria-label="현장 목록"
           >
             <ArrowLeft size={18} />
@@ -397,14 +397,25 @@ export default function QuickSiteDetailPage() {
             </p>
           </div>
         </div>
-        <Link
-          href={`/sites/${id}`}
-          className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold border border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)] hover:text-[var(--green)]"
-          title="모든 탭(9개) 상세 보기"
-        >
-          <ExternalLink size={12} />
-          상세 보기
-        </Link>
+        <div className="flex items-center gap-1 no-print">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold border border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)] hover:text-[var(--green)]"
+            title="이 화면을 인쇄"
+          >
+            <Printer size={12} />
+            인쇄
+          </button>
+          <Link
+            href={`/sites/${id}`}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold border border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)] hover:text-[var(--green)]"
+            title="모든 탭(9개) 상세 보기"
+          >
+            <ExternalLink size={12} />
+            상세 보기
+          </Link>
+        </div>
       </div>
 
       {/* 기본 정보 카드 — 한 번만 입력한 값을 여기서 읽어서 보여줌 */}
@@ -442,8 +453,8 @@ export default function QuickSiteDetailPage() {
       {/* 탭 본문 */}
       {tab === "phases" && (
         <section className="space-y-3">
-          {/* 컨트롤 바 — 주말 토글 + 자동 배분 버튼 */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 flex flex-wrap items-center gap-3 justify-between">
+          {/* 컨트롤 바 — 주말 토글 + 자동 배분 버튼. 인쇄 시 숨김. */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 flex flex-wrap items-center gap-3 justify-between no-print">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -515,8 +526,8 @@ export default function QuickSiteDetailPage() {
                 <span className="font-semibold uppercase">종료일</span>
                 <span className="font-semibold uppercase text-center">진행률</span>
                 <span className="font-semibold uppercase text-center">상태</span>
-                <span className="font-semibold uppercase text-center">순서</span>
-                <span className="font-semibold uppercase text-center">작업</span>
+                <span className="font-semibold uppercase text-center no-print">순서</span>
+                <span className="font-semibold uppercase text-center no-print">작업</span>
               </div>
               <ul>
                 {phases.map((p, idx) => (
@@ -532,7 +543,7 @@ export default function QuickSiteDetailPage() {
                     } hover:bg-white/[0.02]`}
                   >
                     <span
-                      className="cursor-grab active:cursor-grabbing text-[var(--muted)] flex items-center justify-center"
+                      className="cursor-grab active:cursor-grabbing text-[var(--muted)] flex items-center justify-center no-print"
                       title="드래그해서 순서 변경"
                     >
                       <GripVertical size={14} />
@@ -578,7 +589,7 @@ export default function QuickSiteDetailPage() {
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
-                    <div className="hidden sm:flex items-center justify-center gap-0.5">
+                    <div className="hidden sm:flex items-center justify-center gap-0.5 no-print">
                       <button
                         type="button"
                         onClick={() => movePhase(idx, -1)}
@@ -599,7 +610,7 @@ export default function QuickSiteDetailPage() {
                       </button>
                     </div>
                     {/* 작업 — 추가 / 수정 / 삭제 */}
-                    <div className="flex items-center justify-end sm:justify-center gap-0.5">
+                    <div className="flex items-center justify-end sm:justify-center gap-0.5 no-print">
                       <button
                         type="button"
                         onClick={() => openCreate(idx)}

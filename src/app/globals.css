@@ -266,3 +266,83 @@ input[type="range"]:disabled::-moz-range-thumb {
     min-height: 100dvh;
   }
 }
+
+/* ─── 인쇄 ─────────────────────────────────────────────────────────────
+ * 페이지에서 .print-root 와 .print-area 를 사용해 인쇄 범위를 좁힌다.
+ * .no-print 가 붙은 요소는 인쇄에서 제외.
+ * 인쇄 시 다크 → 라이트 강제 (잉크/토너 절약).
+ */
+@media print {
+  /* 대시보드 사이드바·헤더 등 chrome 전부 숨김.
+   * <header> 는 대시보드 상단 검색바 — 인쇄 시 항상 숨김. */
+  aside,
+  header,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  /* 메인 컨테이너의 왼쪽 마진(md:ml-60) 제거해서 인쇄 가로폭 확보 */
+  .md\:ml-60 {
+    margin-left: 0 !important;
+  }
+
+  body,
+  html {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  /* 카드/배경을 흰색·검정 텍스트로 강제 (var(--background) 등은 다크값) */
+  .print-area,
+  .print-area * {
+    background: transparent !important;
+    color: #111111 !important;
+    border-color: #d5d5d5 !important;
+    box-shadow: none !important;
+  }
+
+  /* 다이얼/그라데이션 배경 단색 변환 */
+  .print-area [class*="bg-["],
+  .print-area [class*="bg-white"] {
+    background: transparent !important;
+  }
+
+  /* 폼 인풋: 경계만 남기고 단색 */
+  .print-area input,
+  .print-area select,
+  .print-area textarea {
+    background: transparent !important;
+    color: #111111 !important;
+    border: 1px solid #d5d5d5 !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* date input 의 picker 아이콘 제거 */
+  .print-area input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none !important;
+  }
+
+  /* 진행률 바 등 색상 유지가 필요한 곳은 print-keep 클래스로 보호 */
+  .print-keep {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 인쇄 시 main 영역에 패딩 줄이고 폰트 살짝 줄여 한 장에 더 많이 들어가게 */
+  main {
+    padding: 0 !important;
+  }
+  .print-area {
+    font-size: 11pt;
+  }
+  .print-area h1 {
+    font-size: 16pt;
+  }
+  /* 페이지 나눔에 친화적인 행 */
+  .print-area li,
+  .print-area tr {
+    page-break-inside: avoid;
+  }
+}
