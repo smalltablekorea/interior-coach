@@ -148,19 +148,36 @@ export default function SitesPage() {
   return (
     <div className="space-y-6 animate-fade-up">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">현장 관리</h1>
-        <button
-          onClick={() => {
-            const check = checkFeature("sites");
-            if (!check.allowed) { setShowUpgrade(true); return; }
-            setShowModal(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black font-medium text-sm hover:bg-[var(--green-hover)] transition-colors"
-        >
-          <Plus size={18} />
-          현장 등록
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/sites/quick-new"
+            onClick={(e) => {
+              const check = checkFeature("sites");
+              if (!check.allowed) {
+                e.preventDefault();
+                setShowUpgrade(true);
+              }
+            }}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black font-medium text-sm hover:bg-[var(--green-hover)] transition-colors"
+            title="고객·공정·계약·일정 한 번에"
+          >
+            <Plus size={18} />
+            새 현장 등록
+          </Link>
+          <button
+            onClick={() => {
+              const check = checkFeature("sites");
+              if (!check.allowed) { setShowUpgrade(true); return; }
+              setShowModal(true);
+            }}
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[var(--border)] text-[var(--muted)] text-xs hover:border-[var(--green)]/40 hover:text-[var(--foreground)] transition-colors"
+            title="기본 정보만 빠르게 추가"
+          >
+            간이 등록
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

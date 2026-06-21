@@ -189,6 +189,7 @@ export const sites = pgTable("sites", {
   budget: bigint("budget", { mode: "number" }).default(0), // 예산 총액 (원)
   spent: bigint("spent", { mode: "number" }).default(0), // 지출 누적 (원)
   trades: jsonb("trades"), // string[] 투입 공종 ID 목록
+  scope: text("scope"), // 공사범위 — 예: 전체 / 부분 / 부분-주방 등
   memo: text("memo"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -302,6 +303,45 @@ export const contractPayments = pgTable("contract_payments", {
   memo: text("memo"),
 });
 
+// 폼에서 받은 2~6개 분할 항목을 그대로 저장. (계약금/중도금/잔금 고정 형식이 아닌 자유 분할표)
+// 비율은 amount/contract.contractAmount 로 화면에서 계산해 보여줌.
+export const paymentSplits = pgTable("payment_splits", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  contractId: uuid("contract_id")
+    .notNull()
+    .references(() => contracts.id, { onDelete: "cascade" }),
+  sortOrder: integer("sort_order").notNull(),
+  itemName: text("item_name").notNull(),
+  amount: integer("amount").notNull(),
+  status: text("status").notNull().default("예정"), // 예정, 청구, 완납
+  scheduledDate: date("scheduled_date"),
+  paidDate: date("paid_date"),
+  memo: text("memo"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// 현장 단위 캘린더 일정. constructionPhases 는 진행률/상태 트래킹용이고,
+// site_schedules 는 캘린더 표시·알림용 시간 항목으로 별도로 둠.
+export const siteSchedules = pgTable("site_schedules", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  siteId: uuid("site_id")
+    .notNull()
+    .references(() => sites.id, { onDelete: "cascade" }),
+  trade: text("trade").notNull(),
+  taskName: text("task_name"),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  memo: text("memo"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  deletedAt: timestamp("deleted_at"),
+});
+
 // ─── 시공 공정 관리 ───
 
 export const constructionPhases = pgTable("construction_phases", {
@@ -314,6 +354,7 @@ export const constructionPhases = pgTable("construction_phases", {
     .notNull()
     .references(() => sites.id),
   category: text("category").notNull(), // 공종명
+  taskName: text("task_name"), // 작업명 — 공종 1개당 작업 N개를 행 단위로 분해
   plannedStart: date("planned_start"),
   plannedEnd: date("planned_end"),
   actualStart: date("actual_start"),
