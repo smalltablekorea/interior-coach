@@ -100,6 +100,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // jsonb 컬럼은 반드시 배열 또는 null만 — 빈 문자열·객체가 들어가면 PG 'invalid input syntax for type json'
+    const safeArr = (v: unknown): unknown[] | null =>
+      Array.isArray(v) && v.length > 0 ? v : null;
+
     const [row] = await db
       .insert(dailyLogs)
       .values({
@@ -108,15 +112,15 @@ export async function POST(request: NextRequest) {
         workspaceId: auth.workspaceId,
         authorName: auth.session.user.name,
         logDate: body.logDate,
-        tradesWorked: body.tradesWorked || null,
-        tradesWorkedNames: body.tradesWorkedNames || null,
+        tradesWorked: safeArr(body.tradesWorked),
+        tradesWorkedNames: safeArr(body.tradesWorkedNames),
         summary: body.summary.trim(),
         detail: body.detail?.trim() || null,
-        photoUrls: body.photoUrls || null,
+        photoUrls: safeArr(body.photoUrls),
         issues: body.issues?.trim() || null,
         nextDayPlan: body.nextDayPlan?.trim() || null,
         weather: body.weather || null,
-        workerCount: body.workerCount ?? 1,
+        workerCount: typeof body.workerCount === "number" ? body.workerCount : 1,
       })
       .returning();
 
