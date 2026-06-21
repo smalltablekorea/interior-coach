@@ -137,6 +137,12 @@ export default function SiteDetailPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const photosLoadedRef = useRef(false);
 
+  const reloadSite = async () => {
+    const r = await apiFetch(`/api/sites/${id}`);
+    const data = await r.json().catch(() => null);
+    if (data && !data.error) setSite(data as SiteDetail);
+  };
+
   useEffect(() => {
     apiFetch(`/api/sites/${id}`)
       .then((r) => r.json())
@@ -152,6 +158,130 @@ export default function SiteDetailPage() {
       .then((data) => setHealthScore(data))
       .catch(() => {});
   }, [id]);
+
+  // ─── 공정 추가/수정/삭제 ───────────────────────────────────────────────
+  type PhaseFormMode = "create" | "edit";
+  interface PhaseFormState {
+    mode: PhaseFormMode;
+    phaseId?: string;
+    insertAt?: number;
+    category: string;
+    taskName: string;
+    plannedStart: string;
+    plannedEnd: string;
+    progress: number;
+    status: string;
+    memo: string;
+  }
+  const [phaseForm, setPhaseForm] = useState<PhaseFormState | null>(null);
+  const [phaseFormBusy, setPhaseFormBusy] = useState(false);
+  const [phaseFormError, setPhaseFormError] = useState<string | null>(null);
+
+  const openPhaseCreate = (afterIdx?: number) => {
+    setPhaseFormError(null);
+    const phasesArr = site?.phases ?? [];
+    const insertAt = typeof afterIdx === "number" ? afterIdx + 1 : phasesArr.length;
+    setPhaseForm({
+      mode: "create",
+      insertAt,
+      category: "",
+      taskName: "",
+      plannedStart: site?.startDate || "",
+      plannedEnd: site?.endDate || "",
+      progress: 0,
+      status: "예정",
+      memo: "",
+    });
+  };
+
+  const openPhaseEdit = (p: PhaseRef) => {
+    setPhaseFormError(null);
+    setPhaseForm({
+      mode: "edit",
+      phaseId: p.id,
+      category: p.category,
+      taskName: "",
+      plannedStart: p.plannedStart || "",
+      plannedEnd: p.plannedEnd || "",
+      progress: p.progress,
+      status: p.status,
+      memo: "",
+    });
+  };
+
+  const submitPhaseForm = async () => {
+    if (!phaseForm) return;
+    if (!phaseForm.category.trim()) {
+      setPhaseFormError("공종을 선택하거나 입력해주세요");
+      return;
+    }
+    setPhaseFormBusy(true);
+    setPhaseFormError(null);
+    try {
+      if (phaseForm.mode === "create") {
+        const res = await apiFetch("/api/construction", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            siteId: id,
+            category: phaseForm.category.trim(),
+            taskName: phaseForm.taskName.trim() || null,
+            plannedStart: phaseForm.plannedStart || null,
+            plannedEnd: phaseForm.plannedEnd || null,
+            status: phaseForm.status,
+            memo: phaseForm.memo || null,
+            sortOrder: phaseForm.insertAt,
+          }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => null);
+          setPhaseFormError(
+            (typeof j?.error === "string" && j.error) ||
+              j?.error?.message ||
+              "추가에 실패했습니다",
+          );
+          return;
+        }
+      } else if (phaseForm.phaseId) {
+        const res = await apiFetch(`/api/construction/${phaseForm.phaseId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            category: phaseForm.category.trim(),
+            taskName: phaseForm.taskName.trim() || null,
+            plannedStart: phaseForm.plannedStart || null,
+            plannedEnd: phaseForm.plannedEnd || null,
+            progress: phaseForm.progress,
+            status: phaseForm.status,
+            memo: phaseForm.memo || null,
+          }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => null);
+          setPhaseFormError(
+            (typeof j?.error === "string" && j.error) ||
+              j?.error?.message ||
+              "저장에 실패했습니다",
+          );
+          return;
+        }
+      }
+      await reloadSite();
+      setPhaseForm(null);
+    } finally {
+      setPhaseFormBusy(false);
+    }
+  };
+
+  const deletePhase = async (p: PhaseRef) => {
+    if (!confirm(`"${p.category}" 공정을 삭제할까요?`)) return;
+    // optimistic
+    setSite((prev) =>
+      prev ? { ...prev, phases: prev.phases.filter((x) => x.id !== p.id) } : prev,
+    );
+    const res = await apiFetch(`/api/construction/${p.id}`, { method: "DELETE" });
+    if (!res.ok) await reloadSite();
+  };
 
   const fetchPhotos = (phase?: string) => {
     setPhotosLoading(true);
@@ -1176,14 +1306,36 @@ export default function SiteDetailPage() {
 
       {tab === "construction" && (
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold">공정 목록 ({sitePhases.length})</h2>
+            <button
+              type="button"
+              onClick={() => openPhaseCreate()}
+              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--green)] text-black text-xs font-bold hover:bg-[var(--green-hover)]"
+            >
+              <Plus size={14} />
+              공정 추가
+            </button>
+          </div>
           {sitePhases.length === 0 ? (
-            <p className="text-sm text-[var(--muted)] text-center py-8">등록된 공정이 없습니다.</p>
+            <div className="text-center py-10 space-y-3">
+              <Hammer size={28} className="mx-auto text-[var(--muted)] opacity-40" />
+              <p className="text-sm text-[var(--muted)]">등록된 공정이 없습니다.</p>
+              <button
+                type="button"
+                onClick={() => openPhaseCreate()}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--green)] text-black text-xs font-bold"
+              >
+                <Plus size={14} />
+                첫 공정 추가
+              </button>
+            </div>
           ) : (
             <div className="space-y-3">
-              {sitePhases.map((p) => (
-                <div key={p.id} className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02]">
-                  <div className="w-16 text-sm font-medium">{p.category}</div>
-                  <div className="flex-1">
+              {sitePhases.map((p, idx) => (
+                <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+                  <div className="w-16 text-sm font-medium shrink-0">{p.category}</div>
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
                         <div
@@ -1202,6 +1354,35 @@ export default function SiteDetailPage() {
                     </div>
                   </div>
                   <StatusBadge status={p.status} />
+                  <div className="flex items-center gap-0.5 shrink-0 border-l border-[var(--border)] pl-2 ml-1">
+                    <button
+                      type="button"
+                      onClick={() => openPhaseCreate(idx)}
+                      className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-[var(--green)]/15 text-[var(--green)]"
+                      title="이 줄 아래에 추가"
+                      aria-label="추가"
+                    >
+                      <Plus size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openPhaseEdit(p)}
+                      className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-white/[0.08] text-[var(--muted)] hover:text-[var(--foreground)]"
+                      title="공정 수정"
+                      aria-label="수정"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deletePhase(p)}
+                      className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-[var(--red)]/15 text-[var(--muted)] hover:text-[var(--red)]"
+                      title="공정 삭제"
+                      aria-label="삭제"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1298,6 +1479,123 @@ export default function SiteDetailPage() {
           extraLabel="+ 하자 등록"
         />
       )}
+
+      {/* 공정 추가/수정 모달 — 모든 탭에 마운트 (구조상 단순) */}
+      <Modal
+        open={phaseForm !== null}
+        onClose={() => setPhaseForm(null)}
+        title={phaseForm?.mode === "edit" ? "공정 수정" : "공정 추가"}
+        maxWidth="max-w-md"
+      >
+        {phaseForm && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--muted)] mb-2">공종 *</label>
+              <select
+                value={phaseForm.category}
+                onChange={(e) => setPhaseForm({ ...phaseForm, category: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none"
+              >
+                <option value="">선택...</option>
+                {TRADES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--muted)] mb-2">세부 작업명</label>
+              <input
+                type="text"
+                value={phaseForm.taskName}
+                onChange={(e) => setPhaseForm({ ...phaseForm, taskName: e.target.value })}
+                placeholder=""
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--muted)] mb-2">시작일</label>
+                <input
+                  type="date"
+                  value={phaseForm.plannedStart}
+                  onChange={(e) => setPhaseForm({ ...phaseForm, plannedStart: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none [color-scheme:dark]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[var(--muted)] mb-2">종료일</label>
+                <input
+                  type="date"
+                  value={phaseForm.plannedEnd}
+                  onChange={(e) => setPhaseForm({ ...phaseForm, plannedEnd: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none [color-scheme:dark]"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--muted)] mb-2">진행률 (%)</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={phaseForm.progress}
+                  onChange={(e) => setPhaseForm({
+                    ...phaseForm,
+                    progress: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                  })}
+                  disabled={phaseForm.mode === "create"}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[var(--muted)] mb-2">상태</label>
+                <select
+                  value={phaseForm.status}
+                  onChange={(e) => setPhaseForm({ ...phaseForm, status: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none"
+                >
+                  {["예정", "진행중", "완료", "보류"].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--muted)] mb-2">메모</label>
+              <textarea
+                value={phaseForm.memo}
+                onChange={(e) => setPhaseForm({ ...phaseForm, memo: e.target.value })}
+                rows={2}
+                placeholder=""
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none resize-none"
+              />
+            </div>
+
+            {phaseFormError && <p className="text-sm text-[var(--red)]">{phaseFormError}</p>}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setPhaseForm(null)}
+                className="px-4 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04]"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={submitPhaseForm}
+                disabled={phaseFormBusy}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-bold disabled:opacity-60"
+              >
+                <Save size={14} />
+                {phaseFormBusy ? "저장 중..." : phaseForm.mode === "edit" ? "저장" : "추가"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
