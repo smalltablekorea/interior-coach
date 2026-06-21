@@ -297,8 +297,8 @@ input[type="range"]:disabled::-moz-range-thumb {
   .print-area,
   .print-area * {
     background: transparent !important;
-    color: #111111 !important;
-    border-color: #d5d5d5 !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
     box-shadow: none !important;
   }
 
@@ -313,10 +313,47 @@ input[type="range"]:disabled::-moz-range-thumb {
   .print-area select,
   .print-area textarea {
     background: transparent !important;
-    color: #111111 !important;
-    border: 1px solid #d5d5d5 !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
     -webkit-appearance: none;
     appearance: none;
+  }
+
+  /* 표 — Tailwind 기본은 테두리 없음. 인쇄에선 명시적으로 검은 실선 부여. */
+  .print-area table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+  .print-area table,
+  .print-area thead,
+  .print-area tbody,
+  .print-area tr,
+  .print-area th,
+  .print-area td {
+    border: 1px solid #000000 !important;
+  }
+  .print-area th,
+  .print-area td {
+    padding: 4px 6px !important;
+  }
+
+  /* ul/li 기반 행 (현장 quick 페이지의 공정 목록) — 셀처럼 보이도록 하단 실선 */
+  .print-area ul {
+    border: 1px solid #000000 !important;
+  }
+  .print-area ul > li {
+    border-bottom: 1px solid #000000 !important;
+  }
+  .print-area ul > li:last-child {
+    border-bottom: none !important;
+  }
+
+  /* 카드(rounded box) 외곽선도 검은 실선으로 명확히 */
+  .print-area section,
+  .print-area .rounded-2xl,
+  .print-area .rounded-xl {
+    border: 1px solid #000000 !important;
+    border-radius: 4px !important;
   }
 
   /* date input 의 picker 아이콘 제거 */
