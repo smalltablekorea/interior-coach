@@ -331,10 +331,14 @@ export default function DailyLogDetailPage() {
 
       <Modal open={showShare} onClose={() => setShowShare(false)} title="고객 공유 링크">
         <div className="space-y-4">
-          <p className="text-sm text-[var(--muted)]">
-            {log.siteName || "이 현장"}의 <strong className="text-[var(--foreground)]">고객 공유 상태</strong>인 일지만 이 링크로 공개됩니다.
-            현재 일지가 비공개라면, 위쪽 “고객 공유” 토글로 켜주세요.
-          </p>
+          <div className="p-3 rounded-xl bg-[var(--green)]/10 border border-[var(--green)]/30">
+            <p className="text-xs font-semibold text-[var(--green)] mb-1">📌 영구 링크입니다</p>
+            <p className="text-[11px] text-[var(--muted)] leading-relaxed">
+              {log.siteName || "이 현장"}의 공유 링크는 <strong className="text-[var(--foreground)]">한 번만 발급되며 영구적으로 유지</strong>됩니다.
+              새 일지를 작성하면서 <strong className="text-[var(--foreground)]">"고객에게 공유"</strong> 토글을 켜면 자동으로 같은 링크에 누적됩니다.
+              고객에게 카톡으로 한 번만 보내면 됩니다.
+            </p>
+          </div>
 
           {shareLoading ? (
             <div className="flex items-center gap-2 text-sm text-[var(--muted)]">

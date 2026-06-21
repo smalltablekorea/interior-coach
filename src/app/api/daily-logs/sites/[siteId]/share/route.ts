@@ -11,6 +11,108 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.interiorcoach.co.kr";
 
 /**
+ * GET /api/daily-logs/sites/[siteId]/share
+ *   현장의 활성 공유 토큰 조회. 없으면 token: null.
+ */
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ siteId: string }> },
+) {
+  const auth = await requireWorkspaceAuth("construction", "read");
+  if (!auth.ok) return auth.response;
+  const { siteId } = await params;
+
+  try {
+    const [site] = await db
+      .select({ id: sites.id })
+      .from(sites)
+      .where(
+        and(
+          eq(sites.id, siteId),
+          workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId),
+          isNull(sites.deletedAt),
+        ),
+      );
+    if (!site) return err("현장을 찾을 수 없습니다", 404);
+
+    const [existing] = await db
+      .select({
+        id: dailyLogShareTokens.id,
+        token: dailyLogShareTokens.token,
+        expiresAt: dailyLogShareTokens.expiresAt,
+        revokedAt: dailyLogShareTokens.revokedAt,
+        createdAt: dailyLogShareTokens.createdAt,
+      })
+      .from(dailyLogShareTokens)
+      .where(
+        and(
+          eq(dailyLogShareTokens.siteId, siteId),
+          isNull(dailyLogShareTokens.revokedAt),
+        ),
+      )
+      .orderBy(desc(dailyLogShareTokens.createdAt))
+      .limit(1);
+
+    return ok({
+      token: existing
+        ? {
+            id: existing.id,
+            token: existing.token,
+            expiresAt: existing.expiresAt,
+            revokedAt: existing.revokedAt,
+            createdAt: existing.createdAt,
+            url: `${BASE_URL}/d/${existing.token}`,
+          }
+        : null,
+    });
+  } catch (e) {
+    return serverError(e);
+  }
+}
+
+/**
+ * DELETE /api/daily-logs/sites/[siteId]/share
+ *   현장의 활성 공유 토큰 revoke. (고객에게 다시 노출 차단)
+ */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ siteId: string }> },
+) {
+  const auth = await requireWorkspaceAuth("construction", "write");
+  if (!auth.ok) return auth.response;
+  const { siteId } = await params;
+
+  try {
+    const [site] = await db
+      .select({ id: sites.id })
+      .from(sites)
+      .where(
+        and(
+          eq(sites.id, siteId),
+          workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId),
+          isNull(sites.deletedAt),
+        ),
+      );
+    if (!site) return err("현장을 찾을 수 없습니다", 404);
+
+    const updated = await db
+      .update(dailyLogShareTokens)
+      .set({ revokedAt: new Date() })
+      .where(
+        and(
+          eq(dailyLogShareTokens.siteId, siteId),
+          isNull(dailyLogShareTokens.revokedAt),
+        ),
+      )
+      .returning({ id: dailyLogShareTokens.id });
+
+    return ok({ revoked: updated.length });
+  } catch (e) {
+    return serverError(e);
+  }
+}
+
+/**
  * POST /api/daily-logs/sites/[siteId]/share
  *   현장 단위 공유 토큰 발급. 영구 링크 정책:
  *     - 현장당 활성 토큰 1개를 영구 유지 (expiresAt=null)
