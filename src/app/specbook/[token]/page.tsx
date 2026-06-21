@@ -36,7 +36,8 @@ export default function PublicSpecbookPage({ params }: { params: Promise<{ token
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // 선택 상태: categoryId → optionId
-  const [picks, setPicks] = useState<Record<string, string>>({});
+  // 각 공종별 선택 자재 ID 배열 (다중선택 지원)
+  const [picks, setPicks] = useState<Record<string, string[]>>({});
   const [trayOpen, setTrayOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -65,33 +66,48 @@ export default function PublicSpecbookPage({ params }: { params: Promise<{ token
 
   const pickedItems = useMemo(() => {
     if (!data) return [] as { cat: SpecCategory; opt: SpecOption }[];
-    return Object.entries(picks).flatMap(([catId, optId]) => {
+    return Object.entries(picks).flatMap(([catId, optIds]) => {
       const cat = data.catalog.categories.find((c) => c.id === catId);
       if (!cat) return [];
-      const opt = cat.options.find((o) => o.id === optId);
-      if (!opt) return [];
-      return [{ cat, opt }];
+      return optIds
+        .map((optId) => cat.options.find((o) => o.id === optId))
+        .filter((o): o is SpecOption => !!o)
+        .map((opt) => ({ cat, opt }));
     });
   }, [picks, data]);
 
   const totalPrice = pickedItems.reduce((s, x) => s + (x.opt.price ?? 0), 0);
 
+  /** 옵션 토글: 이미 선택돼 있으면 제거, 아니면 추가 (같은 공종에서 여러 개 가능). */
   function pick(catId: string, optId: string) {
     setPicks((p) => {
-      // 같은 옵션을 다시 클릭하면 해제 (토글)
-      if (p[catId] === optId) {
-        const next = { ...p };
-        delete next[catId];
-        return next;
+      const cur = p[catId] ?? [];
+      if (cur.includes(optId)) {
+        const next = cur.filter((id) => id !== optId);
+        const result = { ...p, [catId]: next };
+        if (next.length === 0) delete result[catId];
+        return result;
       }
-      return { ...p, [catId]: optId };
+      return { ...p, [catId]: [...cur, optId] };
     });
   }
+  /** 카테고리 전체 선택 해제. */
   function unpick(catId: string) {
     setPicks((p) => {
       const next = { ...p };
       delete next[catId];
       return next;
+    });
+  }
+  /** 특정 옵션 한 개만 해제 (트레이의 X 버튼에서 사용). */
+  function unpickOne(catId: string, optId: string) {
+    setPicks((p) => {
+      const cur = p[catId] ?? [];
+      const next = cur.filter((id) => id !== optId);
+      const result = { ...p };
+      if (next.length === 0) delete result[catId];
+      else result[catId] = next;
+      return result;
     });
   }
 
@@ -185,9 +201,9 @@ export default function PublicSpecbookPage({ params }: { params: Promise<{ token
               <CategorySection
                 key={cat.id}
                 cat={cat}
-                pickedId={picks[cat.id] ?? null}
+                pickedIds={picks[cat.id] ?? []}
                 onPick={(optId) => pick(cat.id, optId)}
-                onUnpick={() => unpick(cat.id)}
+                onClear={() => unpick(cat.id)}
               />
             ))}
 
@@ -241,7 +257,7 @@ export default function PublicSpecbookPage({ params }: { params: Promise<{ token
                     {typeof opt.price === "number" && (
                       <span className="text-xs text-[var(--green)] flex-shrink-0">{fmtKrw(opt.price)}</span>
                     )}
-                    <button onClick={() => unpick(cat.id)} className="p-1 rounded hover:bg-white/[0.04]">
+                    <button onClick={() => unpickOne(cat.id, opt.id)} className="p-1 rounded hover:bg-white/[0.04]">
                       <X size={14} className="text-[var(--muted)]" />
                     </button>
                   </div>
@@ -316,66 +332,89 @@ export default function PublicSpecbookPage({ params }: { params: Promise<{ token
   );
 }
 
-function CategorySection({ cat, pickedId, onPick, onUnpick }: {
+function CategorySection({ cat, pickedIds, onPick, onClear }: {
   cat: SpecCategory;
-  pickedId: string | null;
+  pickedIds: string[];
   onPick: (optId: string) => void;
-  onUnpick: () => void;
+  onClear: () => void;
 }) {
+  const count = pickedIds.length;
   return (
-    <section>
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="font-semibold flex items-center gap-2">
+    <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-3">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="font-semibold flex items-center gap-2 text-sm">
           <span>{cat.icon ?? "•"}</span>
           {cat.name}
-          {pickedId && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--green)]/10 text-[var(--green)]">
-              선택됨
+          {count > 0 && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--green)]/10 text-[var(--green)] font-medium">
+              {count}개 선택
             </span>
           )}
         </h2>
-        {pickedId && (
-          <button onClick={onUnpick} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]">
-            선택 해제
+        {count > 0 && (
+          <button
+            onClick={onClear}
+            className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+          >
+            전체 해제
           </button>
         )}
       </div>
       {cat.options.length === 0 ? (
         <p className="text-xs text-[var(--muted)] py-3">아직 옵션이 없습니다.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-2.5">
-          {cat.options.map((opt) => (
-            <button
-              key={opt.id}
-              onClick={() => onPick(opt.id)}
-              className={`text-left rounded-xl border p-2.5 transition-colors ${
-                pickedId === opt.id
-                  ? "border-[var(--green)] bg-[var(--green)]/5"
-                  : "border-[var(--border)] bg-white/[0.02] hover:bg-white/[0.04]"
-              }`}
-            >
-              <div className="aspect-square rounded-lg mb-2 overflow-hidden flex items-center justify-center"
-                style={opt.color && !opt.imageUrl ? { backgroundColor: opt.color } : { backgroundColor: "rgba(255,255,255,0.04)" }}>
-                {opt.imageUrl
-                  ? <img src={opt.imageUrl} alt={opt.name} className="w-full h-full object-cover" />
-                  : !opt.color && <ImageIcon size={20} className="text-[var(--muted)]" />}
-                {pickedId === opt.id && (
-                  <div className="absolute inset-0 bg-[var(--green)]/10 flex items-center justify-center">
-                    <Check size={28} className="text-[var(--green)] drop-shadow" />
-                  </div>
-                )}
-              </div>
-              <div className="text-sm font-medium truncate">{opt.name}</div>
-              {(opt.brand || opt.model) && (
-                <div className="text-xs text-[var(--muted)] truncate">
-                  {[opt.brand, opt.model].filter(Boolean).join(" · ")}
+        <div className="space-y-1.5">
+          {cat.options.map((opt) => {
+            const selected = pickedIds.includes(opt.id);
+            return (
+              <button
+                key={opt.id}
+                onClick={() => onPick(opt.id)}
+                className={`w-full text-left rounded-lg border p-2 flex gap-3 transition-colors items-center ${
+                  selected
+                    ? "border-[var(--green)] bg-[var(--green)]/10"
+                    : "border-[var(--border)] bg-white/[0.02] hover:bg-white/[0.04]"
+                }`}
+              >
+                {/* 작은 썸네일 (관리자 페이지와 동일 크기) */}
+                <div
+                  className="w-14 h-14 rounded flex-shrink-0 overflow-hidden flex items-center justify-center bg-white/[0.04] relative"
+                  style={opt.color && !opt.imageUrl ? { backgroundColor: opt.color } : undefined}
+                >
+                  {opt.imageUrl ? (
+                    <img src={opt.imageUrl} alt={opt.name} className="w-full h-full object-cover" />
+                  ) : !opt.color ? (
+                    <ImageIcon size={18} className="text-[var(--muted)]" />
+                  ) : null}
                 </div>
-              )}
-              {typeof opt.price === "number" && (
-                <div className="text-xs font-medium text-[var(--green)] mt-0.5">{fmtKrw(opt.price)}</div>
-              )}
-            </button>
-          ))}
+
+                {/* 본문 */}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">{opt.name}</div>
+                  {(opt.brand || opt.model) && (
+                    <div className="text-xs text-[var(--muted)] truncate">
+                      {[opt.brand, opt.model].filter(Boolean).join(" · ")}
+                    </div>
+                  )}
+                  {opt.spec && (
+                    <div className="text-xs text-[var(--muted)] truncate">{opt.spec}</div>
+                  )}
+                  {typeof opt.price === "number" && (
+                    <div className="text-xs font-medium text-[var(--green)] mt-0.5">{fmtKrw(opt.price)}</div>
+                  )}
+                </div>
+
+                {/* 체크박스 */}
+                <div
+                  className={`flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+                    selected ? "border-[var(--green)] bg-[var(--green)]" : "border-[var(--border)] bg-transparent"
+                  }`}
+                >
+                  {selected && <Check size={14} className="text-black" strokeWidth={3} />}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </section>
