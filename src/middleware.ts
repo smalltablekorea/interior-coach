@@ -59,6 +59,6 @@ export const config = {
     //   - Vercel CRON 호출 경로: 자체 CRON_SECRET Bearer 검증을 별도로 수행하므로
     //     미들웨어의 세션 쿠키 체크에서 401로 막히면 안 됨. 누락 시 매일 알림/결제/넛지 cron이 무동작.
     // daily-logs: /daily-logs/{token} 만 공개. /(dashboard)/daily-logs는 별도 라우트 그룹이라 충돌 없음.
-    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|auth|portal|pricing|qna|terms|refund-policy|demo-request|specbook|daily-logs|d/|payment/fail|api/auth|api/portal|api/qna|api/v1|api/cron|api/track-event|api/demo-request|api/public|api/notifications/process|api/notifications/check-payments|api/notifications/schedule-reminder|api/billing/cron|api/trial/nudge|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf)).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|auth|portal|pricing|qna|terms|refund-policy|demo-request|specbook|d/|payment/fail|api/auth|api/portal|api/qna|api/v1|api/cron|api/track-event|api/demo-request|api/public|api/notifications/process|api/notifications/check-payments|api/notifications/schedule-reminder|api/billing/cron|api/trial/nudge|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|otf)).*)",
   ],
 };
