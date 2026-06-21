@@ -78,6 +78,28 @@ export async function POST(request: NextRequest) {
       return err("유효하지 않은 날씨입니다.");
     }
 
+    // PRE-CHECK: UNIQUE(site_id, user_id, log_date) 위반 사전 차단.
+    // drizzle/neon-http가 PG 에러 메시지에 'duplicate key'·'23505'를 그대로 노출하지만
+    // wrapping이 끼면서 'unique' 키워드가 빠질 수 있음 → 사용자에게 raw SQL이 보이던
+    // 버그를 막기 위해 INSERT 전에 명시적으로 확인.
+    const [duplicate] = await db
+      .select({ id: dailyLogs.id })
+      .from(dailyLogs)
+      .where(
+        and(
+          eq(dailyLogs.siteId, body.siteId),
+          eq(dailyLogs.userId, auth.userId),
+          eq(dailyLogs.logDate, body.logDate),
+        ),
+      )
+      .limit(1);
+    if (duplicate) {
+      return err(
+        `해당 날짜에 이미 작성한 업무일지가 있습니다. 기존 일지를 수정해주세요. (existingId=${duplicate.id})`,
+        409,
+      );
+    }
+
     const [row] = await db
       .insert(dailyLogs)
       .values({
@@ -111,9 +133,16 @@ export async function POST(request: NextRequest) {
 
     return ok(row);
   } catch (error) {
-    // UNIQUE 제약 위반 (같은 날 같은 현장에 이미 작성)
-    if (error instanceof Error && error.message.includes("unique")) {
-      return err("해당 날짜에 이미 업무일지가 작성되어 있습니다.", 409);
+    // UNIQUE 제약 위반(같은 날 같은 현장 본인 작성) — race condition 등 PRE-CHECK 우회 케이스 대비.
+    // drizzle/neon-http는 raw query를 message 로 throw하기 때문에 'unique' 단어가 없을 수 있어
+    // PG 에러 코드(23505)·'duplicate key' 키워드까지 같이 검사.
+    const msg = error instanceof Error ? error.message : String(error);
+    if (
+      msg.includes("unique") ||
+      msg.includes("23505") ||
+      msg.includes("duplicate key")
+    ) {
+      return err("해당 날짜에 이미 작성한 업무일지가 있습니다. 기존 일지를 수정해주세요.", 409);
     }
     return serverError(error);
   }
