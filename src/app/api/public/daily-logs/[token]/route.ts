@@ -34,8 +34,7 @@ export async function GET(
 
     if (!share) return err("유효하지 않은 링크입니다", 404);
     if (share.revokedAt) return err("취소된 링크입니다", 410);
-    if (share.expiresAt && share.expiresAt < new Date())
-      return err("만료된 링크입니다", 410);
+    // 영구 링크 정책: expiresAt 무시 — revoke 만 차단
 
     const [site] = await db
       .select({

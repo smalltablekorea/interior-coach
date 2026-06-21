@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Plus, ClipboardList, Search, ChevronRight, Users, Image as ImageIcon, Share2 } from "lucide-react";
 import EmptyState from "@/components/ui/EmptyState";
+import SiteShareCard from "@/components/daily-logs/SiteShareCard";
 import { apiFetch } from "@/lib/api-client";
 import { fmtDate } from "@/lib/utils";
 import type { DailyLog, Weather } from "@/types/daily-log";
@@ -116,6 +117,13 @@ export default function DailyLogsPage() {
           ))}
         </select>
       </div>
+
+      {/* 현장 선택 시 영구 공유 링크 카드 */}
+      {filterSite && (() => {
+        const site = sites.find((s) => s.id === filterSite);
+        if (!site) return null;
+        return <SiteShareCard siteId={site.id} siteName={site.name} />;
+      })()}
 
       {filtered.length === 0 ? (
         <EmptyState
