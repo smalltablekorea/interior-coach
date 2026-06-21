@@ -66,6 +66,14 @@ export default function DailyLogsPage() {
     return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
   }, [filtered]);
 
+  // 공유 카드 노출 대상 현장 — 일지가 1건이라도 있는 현장.
+  // filterSite 가 있으면 그 현장만, 없으면 전체.
+  const shareSites = useMemo(() => {
+    const siteIdsWithLogs = new Set(logs.map((l) => l.siteId));
+    const candidates = sites.filter((s) => siteIdsWithLogs.has(s.id));
+    return filterSite ? candidates.filter((s) => s.id === filterSite) : candidates;
+  }, [logs, sites, filterSite]);
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -94,6 +102,22 @@ export default function DailyLogsPage() {
         </Link>
       </div>
 
+      {/* 현장별 영구 공유 링크 — 최상단에 노출 (한 번 발급 → 영구 유지 → 새 일지 자동 누적) */}
+      {shareSites.length > 0 && (
+        <div className="space-y-2">
+          {shareSites.length > 1 && (
+            <p className="text-[11px] font-semibold text-[var(--muted)] px-1">
+              현장별 고객 공유 링크 ({shareSites.length}개 현장)
+            </p>
+          )}
+          <div className={shareSites.length > 1 ? "grid sm:grid-cols-2 gap-2" : ""}>
+            {shareSites.map((s) => (
+              <SiteShareCard key={s.id} siteId={s.id} siteName={s.name} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
@@ -117,13 +141,6 @@ export default function DailyLogsPage() {
           ))}
         </select>
       </div>
-
-      {/* 현장 선택 시 영구 공유 링크 카드 */}
-      {filterSite && (() => {
-        const site = sites.find((s) => s.id === filterSite);
-        if (!site) return null;
-        return <SiteShareCard siteId={site.id} siteName={site.name} />;
-      })()}
 
       {filtered.length === 0 ? (
         <EmptyState

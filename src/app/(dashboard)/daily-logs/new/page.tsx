@@ -345,6 +345,8 @@ function NewDailyLogInner() {
 
         <button
           type="button"
+          role="switch"
+          aria-checked={shareToCustomer}
           onClick={() => setShareToCustomer((v) => !v)}
           className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl border transition-colors ${
             shareToCustomer
@@ -361,14 +363,17 @@ function NewDailyLogInner() {
               </p>
             </div>
           </div>
+          {/* Switch — h-6 w-11 컨테이너 + h-5 w-5 thumb 가 inset 2px (border-2 transparent) 로
+              상하·좌우 균일 여백. ON: thumb 우측(translate-x-5=20px), OFF: 좌측(0). */}
           <span
-            className={`w-10 h-6 rounded-full relative transition-colors flex-shrink-0 ${
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
               shareToCustomer ? "bg-[var(--green)]" : "bg-[var(--border)]"
             }`}
           >
             <span
-              className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${
-                shareToCustomer ? "translate-x-[18px]" : "translate-x-0.5"
+              aria-hidden="true"
+              className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+                shareToCustomer ? "translate-x-5" : "translate-x-0"
               }`}
             />
           </span>
