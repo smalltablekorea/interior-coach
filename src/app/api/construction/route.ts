@@ -58,17 +58,33 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { siteId, category, plannedStart, plannedEnd, status, memo } = body;
+    const { siteId, category, taskName, plannedStart, plannedEnd, status, memo, sortOrder } = body;
 
     if (!siteId || !category) {
       return err("현장과 공종명은 필수입니다");
     }
 
-    // Get the next sort order for this site
-    const [maxOrder] = await db
-      .select({ max: sql<number>`coalesce(max(${constructionPhases.sortOrder}), 0)` })
-      .from(constructionPhases)
-      .where(eq(constructionPhases.siteId, siteId));
+    // 사용자가 sortOrder 를 명시하면 그 자리에 삽입하고 이후 행을 뒤로 밀어준다.
+    let finalSortOrder: number;
+    if (typeof sortOrder === "number" && Number.isFinite(sortOrder)) {
+      finalSortOrder = sortOrder;
+      // 같은 사이트에서 sortOrder >= finalSortOrder 인 기존 행을 +1
+      await db
+        .update(constructionPhases)
+        .set({ sortOrder: sql`${constructionPhases.sortOrder} + 1` })
+        .where(
+          and(
+            eq(constructionPhases.siteId, siteId),
+            sql`${constructionPhases.sortOrder} >= ${finalSortOrder}`,
+          ),
+        );
+    } else {
+      const [maxOrder] = await db
+        .select({ max: sql<number>`coalesce(max(${constructionPhases.sortOrder}), 0)` })
+        .from(constructionPhases)
+        .where(eq(constructionPhases.siteId, siteId));
+      finalSortOrder = (maxOrder?.max ?? 0) + 1;
+    }
 
     const [row] = await db
       .insert(constructionPhases)
@@ -77,11 +93,12 @@ export async function POST(request: NextRequest) {
         workspaceId: auth.workspaceId,
         siteId,
         category,
+        taskName: taskName || null,
         plannedStart: plannedStart || null,
         plannedEnd: plannedEnd || null,
         status: status || "예정",
         memo: memo || null,
-        sortOrder: (maxOrder?.max ?? 0) + 1,
+        sortOrder: finalSortOrder,
       })
       .returning();
 

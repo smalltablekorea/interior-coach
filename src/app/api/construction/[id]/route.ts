@@ -19,6 +19,7 @@ export async function PATCH(
 
     const update: Record<string, unknown> = {};
     if (body.category !== undefined) update.category = body.category;
+    if (body.taskName !== undefined) update.taskName = body.taskName || null;
     if (body.plannedStart !== undefined) update.plannedStart = body.plannedStart || null;
     if (body.plannedEnd !== undefined) update.plannedEnd = body.plannedEnd || null;
     if (body.actualStart !== undefined) update.actualStart = body.actualStart || null;

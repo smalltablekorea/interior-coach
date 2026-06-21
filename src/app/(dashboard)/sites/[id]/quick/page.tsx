@@ -7,8 +7,12 @@ import {
   ArrowLeft, Building2, MapPin, User, Phone, Wallet,
   Calendar, Hammer, Receipt, ListChecks, ExternalLink,
   ChevronUp, ChevronDown, GripVertical, Sparkles, Loader2,
+  Plus, Pencil, Trash2, Save,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
+import Modal from "@/components/ui/Modal";
+import { KoreanInput, KoreanTextarea } from "@/components/ui/KoreanInput";
+import { TRADES } from "@/lib/constants";
 
 interface QuickDetail {
   site: {
@@ -98,6 +102,24 @@ export default function QuickSiteDetailPage() {
   const [autoBusy, setAutoBusy] = useState(false);
   const [autoError, setAutoError] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  // 추가 / 수정 모달 — null 이면 닫힘. 객체면 모드+초기값.
+  type PhaseFormMode = "create" | "edit";
+  interface PhaseFormState {
+    mode: PhaseFormMode;
+    phaseId?: string;
+    insertAt?: number; // create 시 새 행을 넣을 sortOrder 자리
+    category: string;
+    taskName: string;
+    plannedStart: string;
+    plannedEnd: string;
+    progress: number;
+    status: string;
+    memo: string;
+  }
+  const [phaseForm, setPhaseForm] = useState<PhaseFormState | null>(null);
+  const [phaseFormBusy, setPhaseFormBusy] = useState(false);
+  const [phaseFormError, setPhaseFormError] = useState<string | null>(null);
 
   const loadData = async () => {
     const res = await apiFetch(`/api/sites/${id}/quick-detail`);
@@ -217,6 +239,118 @@ export default function QuickSiteDetailPage() {
     next.splice(targetIdx, 0, moved);
     persistOrder(next.map((p) => p.id));
     setDragIdx(null);
+  };
+
+  /** 추가 모달 열기 — afterIdx 뒤에 새 행을 넣는다. -1 이면 맨 위에. undefined 면 맨 아래. */
+  const openCreate = (afterIdx?: number) => {
+    setPhaseFormError(null);
+    const phasesArr = data?.phases || [];
+    const insertAt =
+      typeof afterIdx === "number" ? afterIdx + 1 : phasesArr.length;
+    setPhaseForm({
+      mode: "create",
+      insertAt,
+      category: "",
+      taskName: "",
+      plannedStart: data?.site.startDate || "",
+      plannedEnd: data?.site.endDate || "",
+      progress: 0,
+      status: "예정",
+      memo: "",
+    });
+  };
+
+  /** 수정 모달 열기 */
+  const openEdit = (p: QuickDetail["phases"][number]) => {
+    setPhaseFormError(null);
+    setPhaseForm({
+      mode: "edit",
+      phaseId: p.id,
+      category: p.category,
+      taskName: p.taskName || "",
+      plannedStart: p.plannedStart || "",
+      plannedEnd: p.plannedEnd || "",
+      progress: p.progress,
+      status: p.status,
+      memo: "",
+    });
+  };
+
+  /** 모달 저장 — 추가 또는 수정 */
+  const submitPhaseForm = async () => {
+    if (!phaseForm) return;
+    if (!phaseForm.category.trim()) {
+      setPhaseFormError("공종을 선택하거나 입력해주세요");
+      return;
+    }
+    setPhaseFormBusy(true);
+    setPhaseFormError(null);
+    try {
+      if (phaseForm.mode === "create") {
+        const res = await apiFetch("/api/construction", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            siteId: id,
+            category: phaseForm.category.trim(),
+            taskName: phaseForm.taskName.trim() || null,
+            plannedStart: phaseForm.plannedStart || null,
+            plannedEnd: phaseForm.plannedEnd || null,
+            status: phaseForm.status,
+            memo: phaseForm.memo || null,
+            sortOrder: phaseForm.insertAt,
+          }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => null);
+          setPhaseFormError(
+            (typeof j?.error === "string" && j.error) ||
+              j?.error?.message ||
+              "추가에 실패했습니다",
+          );
+          return;
+        }
+      } else if (phaseForm.phaseId) {
+        const res = await apiFetch(`/api/construction/${phaseForm.phaseId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            category: phaseForm.category.trim(),
+            taskName: phaseForm.taskName.trim() || null,
+            plannedStart: phaseForm.plannedStart || null,
+            plannedEnd: phaseForm.plannedEnd || null,
+            progress: phaseForm.progress,
+            status: phaseForm.status,
+            memo: phaseForm.memo || null,
+          }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => null);
+          setPhaseFormError(
+            (typeof j?.error === "string" && j.error) ||
+              j?.error?.message ||
+              "저장에 실패했습니다",
+          );
+          return;
+        }
+      }
+      await loadData();
+      setPhaseForm(null);
+    } finally {
+      setPhaseFormBusy(false);
+    }
+  };
+
+  /** 삭제 */
+  const deletePhase = async (p: QuickDetail["phases"][number]) => {
+    const label = p.taskName ? `${p.category} · ${p.taskName}` : p.category;
+    if (!confirm(`"${label}" 공정을 삭제할까요?`)) return;
+    // optimistic UI
+    setData((prev) =>
+      prev ? { ...prev, phases: prev.phases.filter((x) => x.id !== p.id) } : prev,
+    );
+    const res = await apiFetch(`/api/construction/${p.id}`, { method: "DELETE" });
+    if (!res.ok) await loadData();
   };
 
   const splitTotal = useMemo(
@@ -360,10 +494,21 @@ export default function QuickSiteDetailPage() {
           </div>
 
           {phases.length === 0 ? (
-            <EmptyTab icon={Hammer} text="등록된 공정이 없습니다" />
+            <div className="rounded-2xl border border-dashed border-[var(--border)] p-8 text-center space-y-3">
+              <Hammer size={28} className="mx-auto text-[var(--muted)]" />
+              <p className="text-sm text-[var(--muted)]">등록된 공정이 없습니다</p>
+              <button
+                type="button"
+                onClick={() => openCreate()}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--green)] text-black text-xs font-bold"
+              >
+                <Plus size={14} />
+                첫 공정 추가
+              </button>
+            </div>
           ) : (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
-              <div className="px-3 py-2 border-b border-[var(--border)] text-[10px] text-[var(--muted)] hidden sm:grid grid-cols-[28px_minmax(120px,1fr)_130px_130px_70px_80px_72px] gap-2 items-center">
+              <div className="px-3 py-2 border-b border-[var(--border)] text-[10px] text-[var(--muted)] hidden sm:grid grid-cols-[28px_minmax(120px,1fr)_130px_130px_60px_72px_60px_94px] gap-2 items-center">
                 <span></span>
                 <span className="font-semibold uppercase">공종</span>
                 <span className="font-semibold uppercase">시작일</span>
@@ -371,6 +516,7 @@ export default function QuickSiteDetailPage() {
                 <span className="font-semibold uppercase text-center">진행률</span>
                 <span className="font-semibold uppercase text-center">상태</span>
                 <span className="font-semibold uppercase text-center">순서</span>
+                <span className="font-semibold uppercase text-center">작업</span>
               </div>
               <ul>
                 {phases.map((p, idx) => (
@@ -381,7 +527,7 @@ export default function QuickSiteDetailPage() {
                     onDragOver={onDragOver}
                     onDrop={onDrop(idx)}
                     onDragEnd={() => setDragIdx(null)}
-                    className={`grid grid-cols-[28px_1fr] sm:grid-cols-[28px_minmax(120px,1fr)_130px_130px_70px_80px_72px] gap-2 items-center px-3 py-2.5 border-b border-[var(--border)]/60 last:border-0 ${
+                    className={`grid grid-cols-[28px_1fr_auto] sm:grid-cols-[28px_minmax(120px,1fr)_130px_130px_60px_72px_60px_94px] gap-2 items-center px-3 py-2.5 border-b border-[var(--border)]/60 last:border-0 ${
                       dragIdx === idx ? "opacity-40 bg-[var(--green)]/5" : ""
                     } hover:bg-white/[0.02]`}
                   >
@@ -450,6 +596,36 @@ export default function QuickSiteDetailPage() {
                         aria-label="아래로"
                       >
                         <ChevronDown size={14} />
+                      </button>
+                    </div>
+                    {/* 작업 — 추가 / 수정 / 삭제 */}
+                    <div className="flex items-center justify-end sm:justify-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => openCreate(idx)}
+                        className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[var(--green)]/15 text-[var(--green)]"
+                        title="이 줄 아래에 추가"
+                        aria-label="추가"
+                      >
+                        <Plus size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(p)}
+                        className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-white/[0.08] text-[var(--muted)] hover:text-[var(--foreground)]"
+                        title="공종·메모 수정"
+                        aria-label="수정"
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deletePhase(p)}
+                        className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-[var(--red)]/15 text-[var(--muted)] hover:text-[var(--red)]"
+                        title="공정 삭제"
+                        aria-label="삭제"
+                      >
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </li>
@@ -580,6 +756,142 @@ export default function QuickSiteDetailPage() {
           )}
         </section>
       )}
+
+      {/* 공정 추가/수정 모달 */}
+      <Modal
+        open={phaseForm !== null}
+        onClose={() => setPhaseForm(null)}
+        title={phaseForm?.mode === "edit" ? "공정 수정" : "공정 추가"}
+        maxWidth="max-w-md"
+      >
+        {phaseForm && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
+                공종 *
+              </label>
+              <select
+                value={phaseForm.category}
+                onChange={(e) => setPhaseForm({ ...phaseForm, category: e.target.value })}
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none"
+              >
+                <option value="">선택...</option>
+                {TRADES.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
+                세부 작업명
+              </label>
+              <KoreanInput
+                value={phaseForm.taskName}
+                onChange={(v) => setPhaseForm({ ...phaseForm, taskName: v })}
+                placeholder=""
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
+                  시작일
+                </label>
+                <input
+                  type="date"
+                  value={phaseForm.plannedStart}
+                  onChange={(e) => setPhaseForm({ ...phaseForm, plannedStart: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none [color-scheme:dark]"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
+                  종료일
+                </label>
+                <input
+                  type="date"
+                  value={phaseForm.plannedEnd}
+                  onChange={(e) => setPhaseForm({ ...phaseForm, plannedEnd: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none [color-scheme:dark]"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
+                  진행률 (%)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={phaseForm.progress}
+                  onChange={(e) => setPhaseForm({
+                    ...phaseForm,
+                    progress: Math.max(0, Math.min(100, Number(e.target.value) || 0)),
+                  })}
+                  disabled={phaseForm.mode === "create"}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none disabled:opacity-50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
+                  상태
+                </label>
+                <select
+                  value={phaseForm.status}
+                  onChange={(e) => setPhaseForm({ ...phaseForm, status: e.target.value })}
+                  className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none"
+                >
+                  {["예정", "진행중", "완료", "보류"].map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
+                메모
+              </label>
+              <KoreanTextarea
+                value={phaseForm.memo}
+                onChange={(v) => setPhaseForm({ ...phaseForm, memo: v })}
+                rows={2}
+                placeholder=""
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none resize-none"
+              />
+            </div>
+
+            {phaseFormError && (
+              <p className="text-sm text-[var(--red)]">{phaseFormError}</p>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setPhaseForm(null)}
+                className="px-4 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04]"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={submitPhaseForm}
+                disabled={phaseFormBusy}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-bold disabled:opacity-60"
+              >
+                {phaseFormBusy ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Save size={14} />
+                )}
+                {phaseForm.mode === "edit" ? "저장" : "추가"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
