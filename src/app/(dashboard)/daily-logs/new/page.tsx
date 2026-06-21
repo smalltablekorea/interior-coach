@@ -28,6 +28,9 @@ function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+/** 한 번의 파일 선택으로 업로드할 수 있는 사진 최대 개수 (모바일 갤러리 다중선택 + Blob 순차 업로드 부담 고려) */
+const MAX_PHOTOS_PER_BATCH = 20;
+
 function NewDailyLogInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -73,15 +76,26 @@ function NewDailyLogInner() {
     setForm((f) => ({ ...f, workerCount: Math.max(0, (f.workerCount ?? 0) + delta) }));
   };
 
-  /** 다중 파일 업로드 — 한 장씩 /api/upload(folder=daily-log)로 보내고 URL 누적 */
+  /** 다중 파일 업로드 — 한 번에 최대 20장. 한 장씩 순차 업로드 후 URL 누적. */
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setError(null);
+
+    // 이미지가 아닌 파일 필터 + 한 번에 20장 제한
+    const all = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const skippedNonImage = files.length - all.length;
+    const overLimit = all.length > MAX_PHOTOS_PER_BATCH;
+    const batch = all.slice(0, MAX_PHOTOS_PER_BATCH);
+
+    if (batch.length === 0) {
+      setError("업로드할 이미지가 없습니다.");
+      return;
+    }
+
     setUploading(true);
     const uploaded: string[] = [];
     try {
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) continue;
+      for (const file of batch) {
         const fd = new FormData();
         fd.append("file", file);
         fd.append("folder", "daily-log");
@@ -94,6 +108,15 @@ function NewDailyLogInner() {
         if (url) uploaded.push(url);
       }
       setPhotoUrls((prev) => [...prev, ...uploaded]);
+
+      if (overLimit || skippedNonImage > 0) {
+        const msgs: string[] = [];
+        if (overLimit)
+          msgs.push(`한 번에 최대 ${MAX_PHOTOS_PER_BATCH}장만 업로드됩니다 (선택 ${all.length}장 중 ${batch.length}장 처리).`);
+        if (skippedNonImage > 0)
+          msgs.push(`이미지 아닌 파일 ${skippedNonImage}개는 건너뛰었습니다.`);
+        setError(msgs.join(" "));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "사진 업로드 실패");
     } finally {
@@ -339,7 +362,7 @@ function NewDailyLogInner() {
             </label>
           </div>
           <p className="mt-2 text-[10px] text-[var(--muted)]">
-            여러 장 한 번에 선택 가능. 10MB 이하 jpg·png·webp·heic.
+            한 번에 최대 {MAX_PHOTOS_PER_BATCH}장 선택 가능. 장당 10MB 이하 jpg·png·webp·heic.
           </p>
         </div>
 

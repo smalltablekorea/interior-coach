@@ -21,6 +21,9 @@ const WEATHER_LABEL: Record<Weather, string> = {
   cold: "🥶 추움",
 };
 
+/** 한 번에 업로드 가능한 사진 최대 개수. new 페이지와 일치. */
+const MAX_PHOTOS_PER_BATCH = 20;
+
 export default function DailyLogDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -68,14 +71,17 @@ export default function DailyLogDetailPage() {
     }
   };
 
-  /** 사진 추가 — 다중 업로드 후 PATCH로 photoUrls 통째로 교체 */
+  /** 사진 추가 — 한 번에 최대 MAX_PHOTOS_PER_BATCH장. 순차 업로드 후 PATCH 1회. */
   const addPhotos = async (files: FileList | null) => {
     if (!log || !files || files.length === 0) return;
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const batch = images.slice(0, MAX_PHOTOS_PER_BATCH);
+    if (batch.length === 0) return;
+
     setUploading(true);
     try {
       const uploaded: string[] = [];
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) continue;
+      for (const file of batch) {
         const fd = new FormData();
         fd.append("file", file);
         fd.append("folder", "daily-log");
@@ -92,6 +98,11 @@ export default function DailyLogDetailPage() {
       });
       if (patchRes.ok) {
         setLog((prev) => (prev ? { ...prev, photoUrls: next } : prev));
+      }
+      if (images.length > MAX_PHOTOS_PER_BATCH) {
+        alert(
+          `한 번에 최대 ${MAX_PHOTOS_PER_BATCH}장까지만 업로드됩니다. ${batch.length}장 처리 완료, 나머지 ${images.length - MAX_PHOTOS_PER_BATCH}장은 다시 선택해주세요.`,
+        );
       }
     } finally {
       setUploading(false);
