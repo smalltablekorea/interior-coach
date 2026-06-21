@@ -81,14 +81,20 @@ function NewDailyLogInner() {
     if (!files || files.length === 0) return;
     setError(null);
 
-    // 이미지가 아닌 파일 필터 + 한 번에 20장 제한
-    const all = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    // 이미지가 아닌 파일 필터 + 한 번에 20장 제한.
+    // 모바일에서 HEIC/HEIF 등은 file.type 이 비어있을 수 있어 확장자 fallback.
+    const imageExtRe = /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i;
+    const isImage = (f: File) =>
+      (f.type && f.type.startsWith("image/")) || imageExtRe.test(f.name);
+    const all = Array.from(files).filter(isImage);
     const skippedNonImage = files.length - all.length;
     const overLimit = all.length > MAX_PHOTOS_PER_BATCH;
     const batch = all.slice(0, MAX_PHOTOS_PER_BATCH);
 
     if (batch.length === 0) {
-      setError("업로드할 이미지가 없습니다.");
+      setError(
+        "업로드할 수 있는 이미지가 없습니다. JPG·PNG·WEBP·HEIC 형식만 가능합니다.",
+      );
       return;
     }
 
@@ -101,10 +107,15 @@ function NewDailyLogInner() {
         fd.append("folder", "daily-log");
         const res = await apiFetch("/api/upload", { method: "POST", body: fd });
         const data = await res.json().catch(() => null);
-        if (!res.ok || !data?.success) {
-          throw new Error(data?.error || `업로드 실패: ${file.name}`);
+        // /api/upload 는 ok({ url, pathname, ... }) 직접 반환 (success 래퍼 없음).
+        if (!res.ok) {
+          const msg =
+            (typeof data?.error === "string" && data.error) ||
+            data?.error?.message ||
+            `업로드 실패: ${file.name}`;
+          throw new Error(msg);
         }
-        const url = data?.data?.url || data?.data?.pathname;
+        const url = data?.url || data?.pathname || data?.data?.url;
         if (url) uploaded.push(url);
       }
       setPhotoUrls((prev) => [...prev, ...uploaded]);

@@ -71,35 +71,60 @@ export default function DailyLogDetailPage() {
     }
   };
 
-  /** 사진 추가 — 한 번에 최대 MAX_PHOTOS_PER_BATCH장. 순차 업로드 후 PATCH 1회. */
+  /** 사진 추가 — 한 번에 최대 MAX_PHOTOS_PER_BATCH장. 순차 업로드 후 PATCH 1회.
+   *  /api/upload 는 ok({ url, pathname, ... }) 직접 반환 (success 래퍼 없음).
+   *  HEIC/HEIF 는 모바일에서 file.type 이 비어있을 수 있어 확장자 fallback.
+   */
   const addPhotos = async (files: FileList | null) => {
     if (!log || !files || files.length === 0) return;
-    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const imageExtRe = /\.(jpe?g|png|webp|heic|heif|gif|bmp)$/i;
+    const isImage = (f: File) =>
+      (f.type && f.type.startsWith("image/")) || imageExtRe.test(f.name);
+    const images = Array.from(files).filter(isImage);
     const batch = images.slice(0, MAX_PHOTOS_PER_BATCH);
-    if (batch.length === 0) return;
+    if (batch.length === 0) {
+      alert("업로드할 수 있는 이미지가 없습니다. JPG·PNG·WEBP·HEIC 형식만 가능합니다.");
+      return;
+    }
 
     setUploading(true);
     try {
       const uploaded: string[] = [];
+      const failures: string[] = [];
       for (const file of batch) {
         const fd = new FormData();
         fd.append("file", file);
         fd.append("folder", "daily-log");
         const res = await apiFetch("/api/upload", { method: "POST", body: fd });
         const data = await res.json().catch(() => null);
-        const url = data?.data?.url;
-        if (res.ok && url) uploaded.push(url);
+        if (!res.ok) {
+          const reason =
+            (typeof data?.error === "string" && data.error) ||
+            data?.error?.message ||
+            "업로드 실패";
+          failures.push(`${file.name}: ${reason}`);
+          continue;
+        }
+        const url = data?.url || data?.pathname || data?.data?.url;
+        if (url) uploaded.push(url);
+        else failures.push(`${file.name}: 서버 응답에 URL 없음`);
       }
-      const next = [...(log.photoUrls || []), ...uploaded];
-      const patchRes = await apiFetch(`/api/daily-logs/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ photoUrls: next }),
-      });
-      if (patchRes.ok) {
-        setLog((prev) => (prev ? { ...prev, photoUrls: next } : prev));
+      if (uploaded.length > 0) {
+        const next = [...(log.photoUrls || []), ...uploaded];
+        const patchRes = await apiFetch(`/api/daily-logs/${id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ photoUrls: next }),
+        });
+        if (patchRes.ok) {
+          setLog((prev) => (prev ? { ...prev, photoUrls: next } : prev));
+        } else {
+          failures.push("일지 저장에 실패했습니다.");
+        }
       }
-      if (images.length > MAX_PHOTOS_PER_BATCH) {
+      if (failures.length > 0) {
+        alert(`일부 사진 업로드에 실패했습니다.\n\n${failures.join("\n")}`);
+      } else if (images.length > MAX_PHOTOS_PER_BATCH) {
         alert(
           `한 번에 최대 ${MAX_PHOTOS_PER_BATCH}장까지만 업로드됩니다. ${batch.length}장 처리 완료, 나머지 ${images.length - MAX_PHOTOS_PER_BATCH}장은 다시 선택해주세요.`,
         );
