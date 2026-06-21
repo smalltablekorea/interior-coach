@@ -660,8 +660,8 @@ export default function SiteDetailPage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] w-fit overflow-x-auto">
+      {/* Tabs — 인쇄에선 숨김 */}
+      <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] w-fit overflow-x-auto no-print">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -1320,7 +1320,7 @@ export default function SiteDetailPage() {
             <button
               type="button"
               onClick={() => openPhaseCreate()}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--green)] text-black text-xs font-bold hover:bg-[var(--green-hover)]"
+              className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--green)] text-black text-xs font-bold hover:bg-[var(--green-hover)] no-print"
             >
               <Plus size={14} />
               공정 추가
@@ -1345,7 +1345,7 @@ export default function SiteDetailPage() {
                 <div key={p.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
                   <div className="w-16 text-sm font-medium shrink-0">{p.category}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 no-print">
                       <div className="flex-1 h-2 rounded-full bg-white/[0.06] overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all"
@@ -1362,8 +1362,10 @@ export default function SiteDetailPage() {
                       {fmtDate(p.plannedStart)} ~ {fmtDate(p.plannedEnd)}
                     </div>
                   </div>
-                  <StatusBadge status={p.status} />
-                  <div className="flex items-center gap-0.5 shrink-0 border-l border-[var(--border)] pl-2 ml-1">
+                  <span className="no-print">
+                    <StatusBadge status={p.status} />
+                  </span>
+                  <div className="flex items-center gap-0.5 shrink-0 border-l border-[var(--border)] pl-2 ml-1 no-print">
                     <button
                       type="button"
                       onClick={() => openPhaseCreate(idx)}

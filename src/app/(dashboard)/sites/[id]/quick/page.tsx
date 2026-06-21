@@ -103,6 +103,7 @@ export default function QuickSiteDetailPage() {
   const [autoError, setAutoError] = useState<string | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
+
   // 추가 / 수정 모달 — null 이면 닫힘. 객체면 모드+초기값.
   type PhaseFormMode = "create" | "edit";
   interface PhaseFormState {

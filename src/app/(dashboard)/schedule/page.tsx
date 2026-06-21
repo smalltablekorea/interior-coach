@@ -162,6 +162,52 @@ export default function SchedulePage() {
   const [draggingPhase, setDraggingPhase] = useState<{ phaseId: string; siteId: string; origDate: string } | null>(null);
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
 
+  // ─── 인쇄 모달 ───
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printMode, setPrintMode] = useState<"calendar" | "table">("calendar");
+  const [printSiteSelection, setPrintSiteSelection] = useState<Set<string>>(new Set());
+
+  const openPrintModal = () => {
+    // 기본 선택 = 모든 현장
+    setPrintSiteSelection(new Set(allSites.map((s) => s.id)));
+    setPrintMode(view);
+    setShowPrintModal(true);
+  };
+
+  const togglePrintSite = (siteId: string) => {
+    setPrintSiteSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(siteId)) next.delete(siteId);
+      else next.add(siteId);
+      return next;
+    });
+  };
+
+  /**
+   * 인쇄 실행 — 선택된 모드/현장만 표시되도록 sites/phases/orders 상태를 임시 필터링,
+   * window.print() 호출 후 원본 복원. 단순하지만 모든 useMemo 가 자동으로 재계산돼서
+   * 캘린더·현장별 표 양쪽 다 정확히 필터된 결과 출력됨.
+   */
+  const startPrint = () => {
+    const includeIds = printSiteSelection;
+    const _sites = sites;
+    const _phases = phases;
+    const _orders = orders;
+    setSites(sites.filter((s) => includeIds.has(s.id)));
+    setPhases(phases.filter((p) => includeIds.has(p.siteId)));
+    setOrders(orders.filter((o) => !o.siteId || includeIds.has(o.siteId)));
+    setView(printMode);
+    setShowPrintModal(false);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        setSites(_sites);
+        setPhases(_phases);
+        setOrders(_orders);
+      }, 500);
+    }, 250);
+  };
+
   const handleInlineEdit = async (phaseId: string) => {
     if (!inlineEditVal.trim()) { setInlineEditId(null); return; }
     setInlineEditId(null);
@@ -460,7 +506,7 @@ export default function SchedulePage() {
           <CalendarDays size={24} className="text-[var(--green)]" />
           <h1 className="text-xl font-bold">일정 관리</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 no-print">
           <Link
             href="/schedule/generator"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--green)]/30 bg-[var(--green)]/10 text-[var(--green)] text-xs font-medium hover:bg-[var(--green)]/20 transition-colors"
@@ -468,6 +514,15 @@ export default function SchedulePage() {
             <Sparkles size={14} />
             <span>AI 공정매니저</span>
           </Link>
+          <button
+            onClick={openPrintModal}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border)] text-[var(--muted)] text-xs font-medium hover:border-[var(--green)] hover:text-[var(--green)] transition-colors"
+            title="인쇄 — 모드·현장 선택"
+          >
+            {/* Printer icon — Sparkles 가 이미 import 돼 있어 lucide 의 Printer 도 같은 패턴으로 추가됨 */}
+            <span className="inline-flex items-center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg></span>
+            <span>인쇄</span>
+          </button>
           <button
             onClick={() => openAddPhase()}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--green)] text-black text-xs font-medium hover:bg-[var(--green-hover)] transition-colors"
@@ -663,11 +718,14 @@ export default function SchedulePage() {
             <p className="text-sm">이번 달 진행 중인 현장이 없습니다</p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
-            <div className="overflow-x-auto">
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-x-clip">
+            {/* overflowY: clip 으로 thead 의 sticky 가 페이지 viewport 기준이 되도록 함.
+                기본 overflow-x-auto 는 양쪽에 scroll context 를 만들어 thead 가 컨테이너
+                안에서만 sticky 되어 페이지 세로 스크롤 시 위로 사라지던 버그 회피. */}
+            <div className="overflow-x-auto" style={{ overflowY: "clip" }}>
               <table className="w-full border-collapse" style={{ minWidth: `${120 + sites.length * 220}px` }}>
-                <thead className="sticky top-0 z-20">
-                  {/* Site name row */}
+                <thead className="sticky top-16 z-20">
+                  {/* Site name row — 페이지 헤더(64px) 아래에서 항상 보임. 카드 배경 유지. */}
                   <tr className="border-b border-[var(--border)] bg-[var(--card)]">
                     <th className="sticky left-0 z-30 bg-[var(--card)] border-r border-[var(--border)] px-3 py-3 text-left min-w-[120px] w-[120px]">
                       <span className="text-xs font-semibold text-[var(--muted)]">날짜</span>
@@ -708,9 +766,9 @@ export default function SchedulePage() {
 
                     return (
                       <React.Fragment key={dateStr}>
-                        {/* 월 구분 헤더 — 스크롤 시 상단 고정 */}
+                        {/* 월 구분 헤더 — 스크롤 시 페이지 헤더(64) + thead(~76) 아래에 고정 */}
                         {monthLabel && (
-                          <tr className="sticky top-[48px] z-20">
+                          <tr className="sticky top-[140px] z-10">
                             <td
                               colSpan={1 + sites.length}
                               className="bg-[var(--green)]/[0.08] px-3 py-2 text-sm font-bold text-[var(--green)] border-b border-[var(--green)]/20 backdrop-blur-sm"
@@ -903,6 +961,115 @@ export default function SchedulePage() {
               <button type="button" onClick={() => { setShowPhaseModal(false); handleDeletePhase(editingPhaseId); }} className="px-4 py-2.5 rounded-xl border border-[var(--red)]/30 text-sm text-[var(--red)] hover:bg-[var(--red)]/10 transition-colors">삭제</button>
             )}
             <button type="button" onClick={handleSavePhase} disabled={saving || !phaseForm.siteId || !phaseForm.category} className="px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)] transition-colors disabled:opacity-50">{saving ? "저장 중..." : editingPhaseId ? "수정" : "추가"}</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ─── 인쇄 모달 ─── */}
+      <Modal open={showPrintModal} onClose={() => setShowPrintModal(false)} title="인쇄 옵션" maxWidth="max-w-md">
+        <div className="space-y-5">
+          {/* 모드 선택 */}
+          <div>
+            <p className="text-xs font-semibold text-[var(--muted)] mb-2">인쇄 형식</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={printMode === "calendar"}
+                onClick={() => setPrintMode("calendar")}
+                className={`px-3 py-3 rounded-xl border text-sm font-semibold transition-colors ${
+                  printMode === "calendar"
+                    ? "bg-[var(--green)]/15 border-[var(--green)] text-[var(--green)]"
+                    : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/40"
+                }`}
+              >
+                월단위 일정
+                <span className="block text-[10px] font-normal text-[var(--muted)] mt-0.5">달력 그리드</span>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={printMode === "table"}
+                onClick={() => setPrintMode("table")}
+                className={`px-3 py-3 rounded-xl border text-sm font-semibold transition-colors ${
+                  printMode === "table"
+                    ? "bg-[var(--green)]/15 border-[var(--green)] text-[var(--green)]"
+                    : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/40"
+                }`}
+              >
+                현장별 일정
+                <span className="block text-[10px] font-normal text-[var(--muted)] mt-0.5">현장 × 일자 표</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 현장 다중 선택 */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-[var(--muted)]">인쇄할 현장 ({printSiteSelection.size}/{allSites.length})</p>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPrintSiteSelection(new Set(allSites.map((s) => s.id)))}
+                  className="px-2 py-1 rounded text-[10px] border border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)] hover:text-[var(--green)]"
+                >
+                  전체 선택
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPrintSiteSelection(new Set())}
+                  className="px-2 py-1 rounded text-[10px] border border-[var(--border)] text-[var(--muted)] hover:border-[var(--red)] hover:text-[var(--red)]"
+                >
+                  전체 해제
+                </button>
+              </div>
+            </div>
+            {allSites.length === 0 ? (
+              <p className="text-sm text-[var(--muted)] text-center py-4">현장이 없습니다</p>
+            ) : (
+              <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
+                {allSites.map((s) => {
+                  const checked = printSiteSelection.has(s.id);
+                  return (
+                    <label
+                      key={s.id}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-colors ${
+                        checked
+                          ? "border-[var(--green)]/40 bg-[var(--green)]/5"
+                          : "border-[var(--border)] hover:bg-white/[0.03]"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => togglePrintSite(s.id)}
+                        className="accent-[var(--green)]"
+                      />
+                      <span className="text-sm flex-1 truncate">{s.name}</span>
+                      <span className="text-[10px] text-[var(--muted)]">{s.status}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border)]">
+            <button
+              type="button"
+              onClick={() => setShowPrintModal(false)}
+              className="px-4 py-2 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04]"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={startPrint}
+              disabled={printSiteSelection.size === 0}
+              className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-bold disabled:opacity-60"
+            >
+              인쇄
+            </button>
           </div>
         </div>
       </Modal>

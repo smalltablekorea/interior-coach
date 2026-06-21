@@ -10,7 +10,7 @@ import {
   siteSchedules,
   sites,
 } from "@/lib/db/schema";
-import { daysForTrade, tasksForTrade } from "@/lib/site/trade-mapping";
+import { daysForTrade, scaleDaysByArea, tasksForTrade } from "@/lib/site/trade-mapping";
 import {
   validatePaymentSplits,
   paymentSplitInputSchema,
@@ -116,7 +116,8 @@ export async function createSiteWithChildren(
       const tradeWindows = new Map<string, { startISO: string; endISO: string }>();
       let cursor = parseDate(input.startDate);
       for (const trade of input.trades) {
-        const days = Math.max(1, daysForTrade(trade));
+        // trade-mapping 의 30평 기준값을 실제 평수에 비례 보정.
+        const days = scaleDaysByArea(daysForTrade(trade), input.areaPyeong ?? null);
         const start = cursor;
         const end = addDays(cursor, days - 1);
         tradeWindows.set(trade, { startISO: toISODate(start), endISO: toISODate(end) });
