@@ -160,10 +160,18 @@ export async function POST(
       .limit(1);
 
     if (!body.renew && existing) {
+      // GET 과 형태 통일 — { token: { id, token, expiresAt, revokedAt, createdAt, url }, reused }
+      // 이전엔 POST 응답이 평탄화돼서 SiteShareCard 가 share.token/createdAt 등을 못 읽고
+      // "발급 실패" 처럼 보였음.
       return ok({
-        token: existing.token,
-        url: `${BASE_URL}/d/${existing.token}`,
-        expiresAt: existing.expiresAt,
+        token: {
+          id: existing.id,
+          token: existing.token,
+          expiresAt: existing.expiresAt,
+          revokedAt: existing.revokedAt,
+          createdAt: existing.createdAt,
+          url: `${BASE_URL}/d/${existing.token}`,
+        },
         reused: true,
       });
     }
@@ -177,19 +185,33 @@ export async function POST(
     }
 
     // 새 토큰 발급 — 영구 (expiresAt=null)
-    const token = generateToken();
-    await db.insert(dailyLogShareTokens).values({
-      siteId,
-      workspaceId: auth.workspaceId,
-      token,
-      expiresAt: null,
-      createdBy: auth.userId,
-    });
+    const newTokenStr = generateToken();
+    const [created] = await db
+      .insert(dailyLogShareTokens)
+      .values({
+        siteId,
+        workspaceId: auth.workspaceId,
+        token: newTokenStr,
+        expiresAt: null,
+        createdBy: auth.userId,
+      })
+      .returning({
+        id: dailyLogShareTokens.id,
+        token: dailyLogShareTokens.token,
+        expiresAt: dailyLogShareTokens.expiresAt,
+        revokedAt: dailyLogShareTokens.revokedAt,
+        createdAt: dailyLogShareTokens.createdAt,
+      });
 
     return ok({
-      token,
-      url: `${BASE_URL}/d/${token}`,
-      expiresAt: null,
+      token: {
+        id: created.id,
+        token: created.token,
+        expiresAt: created.expiresAt,
+        revokedAt: created.revokedAt,
+        createdAt: created.createdAt,
+        url: `${BASE_URL}/d/${created.token}`,
+      },
       reused: false,
     });
   } catch (e) {

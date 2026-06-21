@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, ClipboardList, Save, Loader2, Minus, Plus,
-  ImagePlus, X as XIcon, Share2,
+  ImagePlus, X as XIcon, Share2, Eye, EyeOff,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import { KoreanInput, KoreanTextarea } from "@/components/ui/KoreanInput";
 import { TRADES } from "@/lib/constants";
-import type { Weather, CreateDailyLogRequest } from "@/types/daily-log";
-
-interface Site { id: string; name: string; }
+import type { DailyLog, Weather, CreateDailyLogRequest } from "@/types/daily-log";
 
 const WEATHER_OPTIONS: { key: Weather; emoji: string; label: string }[] = [
   { key: "sunny", emoji: "☀️", label: "맑음" },
@@ -23,23 +21,22 @@ const WEATHER_OPTIONS: { key: Weather; emoji: string; label: string }[] = [
   { key: "cold", emoji: "🥶", label: "추움" },
 ];
 
-function todayISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-/** 한 번의 파일 선택으로 업로드할 수 있는 사진 최대 개수 (모바일 갤러리 다중선택 + Blob 순차 업로드 부담 고려) */
+/** 한 번에 업로드 가능한 사진 최대 개수 (new 페이지와 일치) */
 const MAX_PHOTOS_PER_BATCH = 20;
 
-function NewDailyLogInner() {
+export default function EditDailyLogPage() {
+  const params = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const presetSiteId = searchParams.get("siteId") || "";
+  const id = params.id as string;
 
-  const [sites, setSites] = useState<Site[]>([]);
-  const [form, setForm] = useState<CreateDailyLogRequest>({
-    siteId: presetSiteId,
-    logDate: todayISO(),
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [siteName, setSiteName] = useState<string>("");
+
+  // 본문 form. siteId/logDate 는 unique 제약 + 식별자라 변경 불가.
+  const [form, setForm] = useState<Omit<CreateDailyLogRequest, "siteId" | "logDate">>({
     summary: "",
     detail: "",
     issues: "",
@@ -48,20 +45,42 @@ function NewDailyLogInner() {
     tradesWorked: [],
     tradesWorkedNames: [],
   });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
   const [shareToCustomer, setShareToCustomer] = useState(false);
+  const [logDate, setLogDate] = useState<string>("");
 
+  // 초기값 로딩
   useEffect(() => {
-    apiFetch("/api/sites")
-      .then((r) => (r.ok ? r.json() : []))
+    apiFetch(`/api/daily-logs/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        setSites(Array.isArray(data) ? data : data?.items ?? []);
+        const log = (data?.data ?? data) as DailyLog | null;
+        if (!log?.id) {
+          setError("업무일지를 찾을 수 없습니다.");
+          setLoading(false);
+          return;
+        }
+        setSiteName(log.siteName || "");
+        setLogDate(log.logDate);
+        setForm({
+          summary: log.summary ?? "",
+          detail: log.detail ?? "",
+          issues: log.issues ?? "",
+          nextDayPlan: log.nextDayPlan ?? "",
+          workerCount: log.workerCount ?? 1,
+          tradesWorked: (log.tradesWorked as string[]) ?? [],
+          tradesWorkedNames: (log.tradesWorkedNames as string[]) ?? [],
+          weather: log.weather ?? undefined,
+        });
+        setPhotoUrls((log.photoUrls as string[]) ?? []);
+        setShareToCustomer(!!log.sharedToCustomer);
+        setLoading(false);
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        setError("불러오기 실패");
+        setLoading(false);
+      });
+  }, [id]);
 
   const toggleTrade = (t: string) => {
     setForm((f) => {
@@ -76,21 +95,12 @@ function NewDailyLogInner() {
     setForm((f) => ({ ...f, workerCount: Math.max(0, (f.workerCount ?? 0) + delta) }));
   };
 
-  /** 다중 파일 업로드 — 한 번에 최대 20장. 한 장씩 순차 업로드 후 URL 누적. */
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setError(null);
-
-    // 이미지가 아닌 파일 필터 + 한 번에 20장 제한
-    const all = Array.from(files).filter((f) => f.type.startsWith("image/"));
-    const skippedNonImage = files.length - all.length;
-    const overLimit = all.length > MAX_PHOTOS_PER_BATCH;
-    const batch = all.slice(0, MAX_PHOTOS_PER_BATCH);
-
-    if (batch.length === 0) {
-      setError("업로드할 이미지가 없습니다.");
-      return;
-    }
+    const images = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    const batch = images.slice(0, MAX_PHOTOS_PER_BATCH);
+    if (batch.length === 0) return;
 
     setUploading(true);
     const uploaded: string[] = [];
@@ -104,18 +114,12 @@ function NewDailyLogInner() {
         if (!res.ok || !data?.success) {
           throw new Error(data?.error || `업로드 실패: ${file.name}`);
         }
-        const url = data?.data?.url || data?.data?.pathname;
+        const url = data?.data?.url;
         if (url) uploaded.push(url);
       }
       setPhotoUrls((prev) => [...prev, ...uploaded]);
-
-      if (overLimit || skippedNonImage > 0) {
-        const msgs: string[] = [];
-        if (overLimit)
-          msgs.push(`한 번에 최대 ${MAX_PHOTOS_PER_BATCH}장만 업로드됩니다 (선택 ${all.length}장 중 ${batch.length}장 처리).`);
-        if (skippedNonImage > 0)
-          msgs.push(`이미지 아닌 파일 ${skippedNonImage}개는 건너뛰었습니다.`);
-        setError(msgs.join(" "));
+      if (images.length > MAX_PHOTOS_PER_BATCH) {
+        setError(`한 번에 최대 ${MAX_PHOTOS_PER_BATCH}장만 업로드됩니다.`);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "사진 업로드 실패");
@@ -132,19 +136,17 @@ function NewDailyLogInner() {
     e.preventDefault();
     if (saving) return;
     setError(null);
-    if (!form.siteId) return setError("현장을 선택해주세요.");
-    if (!form.logDate) return setError("날짜를 선택해주세요.");
     if (!form.summary.trim()) return setError("작업 요약을 입력해주세요.");
 
     setSaving(true);
     try {
       const payload = {
         ...form,
-        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+        photoUrls,
         sharedToCustomer: shareToCustomer,
       };
-      const res = await apiFetch("/api/daily-logs", {
-        method: "POST",
+      const res = await apiFetch(`/api/daily-logs/${id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -153,62 +155,48 @@ function NewDailyLogInner() {
         const msg =
           (typeof data?.error === "string" && data.error) ||
           data?.error?.message ||
-          "등록에 실패했습니다.";
+          "저장에 실패했습니다.";
         setError(msg);
         setSaving(false);
         return;
       }
-      // ok() 는 data 를 그대로 반환 — 새 row 가 { id, siteId, ... } 그 자체
-      const newId = data?.id || data?.data?.id;
-      router.push(newId ? `/daily-logs/${newId}` : "/daily-logs");
+      router.push(`/daily-logs/${id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "등록에 실패했습니다.");
+      setError(err instanceof Error ? err.message : "저장에 실패했습니다.");
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 w-48 rounded-xl animate-shimmer" />
+        <div className="h-96 rounded-2xl animate-shimmer" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-up max-w-2xl">
       <div className="flex items-center gap-3">
         <Link
-          href="/daily-logs"
+          href={`/daily-logs/${id}`}
           className="w-9 h-9 rounded-xl border border-[var(--border)] flex items-center justify-center hover:bg-[var(--border)]"
-          aria-label="업무일지 목록"
+          aria-label="상세로 돌아가기"
         >
           <ArrowLeft size={18} />
         </Link>
         <ClipboardList size={22} className="text-[var(--blue)]" />
-        <h1 className="text-xl font-bold">업무일지 작성</h1>
+        <div>
+          <h1 className="text-xl font-bold">업무일지 수정</h1>
+          <p className="text-xs text-[var(--muted)] mt-0.5">
+            {siteName && <span>{siteName} · </span>}
+            {logDate} (현장·날짜는 변경할 수 없습니다)
+          </p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-[var(--muted)] mb-2">현장 *</label>
-            <select
-              value={form.siteId}
-              onChange={(e) => setForm({ ...form, siteId: e.target.value })}
-              className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none"
-              required
-            >
-              <option value="">현장 선택</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-[var(--muted)] mb-2">날짜 *</label>
-            <input
-              type="date"
-              value={form.logDate}
-              onChange={(e) => setForm({ ...form, logDate: e.target.value })}
-              className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none"
-              required
-            />
-          </div>
-        </div>
-
         <div>
           <label className="block text-xs font-semibold text-[var(--muted)] mb-2">날씨</label>
           <div className="flex flex-wrap gap-1.5">
@@ -233,21 +221,11 @@ function NewDailyLogInner() {
         <div>
           <label className="block text-xs font-semibold text-[var(--muted)] mb-2">참여 인원</label>
           <div className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--background)] p-1">
-            <button
-              type="button"
-              onClick={() => bumpWorkers(-1)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.05]"
-              aria-label="인원 감소"
-            >
+            <button type="button" onClick={() => bumpWorkers(-1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.05]">
               <Minus size={14} />
             </button>
             <span className="min-w-[40px] text-center text-sm font-bold">{form.workerCount ?? 0}명</span>
-            <button
-              type="button"
-              onClick={() => bumpWorkers(1)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.05]"
-              aria-label="인원 증가"
-            >
+            <button type="button" onClick={() => bumpWorkers(1)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/[0.05]">
               <Plus size={14} />
             </button>
           </div>
@@ -303,7 +281,7 @@ function NewDailyLogInner() {
             value={form.issues || ""}
             onChange={(v) => setForm({ ...form, issues: v })}
             rows={3}
-            placeholder="지연·하자·민원 등"
+            placeholder="지연·하자·민원 등 (고객 공유 X)"
             className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none resize-none"
           />
         </div>
@@ -319,106 +297,87 @@ function NewDailyLogInner() {
           />
         </div>
 
+        {/* 사진 */}
         <div>
           <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
-            현장 사진 ({photoUrls.length}장)
+            현장 사진 {photoUrls.length > 0 && <span className="text-[var(--green)]">({photoUrls.length}장)</span>}
           </label>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {photoUrls.map((url, idx) => (
-              <div
-                key={url + idx}
-                className="relative aspect-square rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--background)]"
-              >
+            {photoUrls.map((url, i) => (
+              <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--background)] group">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt={`사진 ${idx + 1}`} className="w-full h-full object-cover" />
+                <img src={url} alt={`사진 ${i + 1}`} className="w-full h-full object-cover" />
                 <button
                   type="button"
-                  onClick={() => removePhoto(idx)}
-                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black"
-                  aria-label="사진 삭제"
+                  onClick={() => removePhoto(i)}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label="삭제"
                 >
-                  <XIcon size={14} />
+                  <XIcon size={12} />
                 </button>
               </div>
             ))}
-            <label
-              className={`aspect-square rounded-xl border-2 border-dashed border-[var(--border)] flex flex-col items-center justify-center cursor-pointer hover:border-[var(--green)] hover:bg-white/[0.02] transition-colors ${
-                uploading ? "opacity-60 pointer-events-none" : ""
-              }`}
-            >
+            <label className={`aspect-square rounded-lg border border-dashed border-[var(--border)] flex flex-col items-center justify-center text-xs text-[var(--muted)] cursor-pointer hover:border-[var(--green)] hover:text-[var(--green)] transition-colors ${uploading ? "opacity-50 pointer-events-none" : ""}`}>
               {uploading ? (
-                <Loader2 size={20} className="animate-spin text-[var(--muted)]" />
+                <>
+                  <Loader2 size={20} className="animate-spin mb-1" />
+                  업로드 중
+                </>
               ) : (
                 <>
-                  <ImagePlus size={20} className="text-[var(--muted)]" />
-                  <span className="text-[10px] text-[var(--muted)] mt-1">사진 추가</span>
+                  <ImagePlus size={20} className="mb-1" />
+                  사진 추가
                 </>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={(e) => {
-                  handleFiles(e.target.files);
-                  e.target.value = "";
-                }}
-              />
+              <input type="file" accept="image/*" multiple onChange={(e) => handleFiles(e.target.files)} className="hidden" disabled={uploading} />
             </label>
           </div>
-          <p className="mt-2 text-[10px] text-[var(--muted)]">
-            한 번에 최대 {MAX_PHOTOS_PER_BATCH}장 선택 가능. 장당 10MB 이하 jpg·png·webp·heic.
+          <p className="mt-1.5 text-[10px] text-[var(--muted)]">
+            한 번에 최대 {MAX_PHOTOS_PER_BATCH}장 선택 가능 · 장당 10MB 이하 · 저장 버튼을 눌러야 적용됩니다.
           </p>
         </div>
 
-        <button
-          type="button"
-          role="switch"
-          aria-checked={shareToCustomer}
-          onClick={() => setShareToCustomer((v) => !v)}
-          className={`w-full flex items-center justify-between gap-3 p-4 rounded-2xl border transition-colors ${
-            shareToCustomer
-              ? "border-[var(--green)]/50 bg-[var(--green)]/10"
-              : "border-[var(--border)] bg-[var(--background)] hover:bg-white/[0.04]"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-left">
-            <Share2 size={16} className={shareToCustomer ? "text-[var(--green)]" : "text-[var(--muted)]"} />
-            <div>
-              <p className="text-sm font-medium">고객에게 공유</p>
-              <p className="text-[10px] text-[var(--muted)] mt-0.5">
-                현장 공유 링크에 이 일지가 노출됩니다. 나중에 상세에서 변경 가능.
-              </p>
-            </div>
-          </div>
-          {/* Switch — h-6 w-11 컨테이너 + h-5 w-5 thumb 가 inset 2px (border-2 transparent) 로
-              상하·좌우 균일 여백. ON: thumb 우측(translate-x-5=20px), OFF: 좌측(0). */}
-          <span
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-              shareToCustomer ? "bg-[var(--green)]" : "bg-[var(--border)]"
+        {/* 공유 토글 */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setShareToCustomer((v) => !v)}
+            className={`w-full flex items-center justify-between gap-3 p-3 rounded-xl border transition-colors ${
+              shareToCustomer ? "bg-[var(--green)]/10 border-[var(--green)]/40" : "border-[var(--border)] hover:bg-white/[0.02]"
             }`}
+            role="switch"
+            aria-checked={shareToCustomer}
           >
-            <span
-              aria-hidden="true"
-              className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
-                shareToCustomer ? "translate-x-5" : "translate-x-0"
-              }`}
-            />
-          </span>
-        </button>
+            <div className="flex items-center gap-2 text-sm">
+              {shareToCustomer ? <Eye size={16} className="text-[var(--green)]" /> : <EyeOff size={16} className="text-[var(--muted)]" />}
+              <div className="text-left">
+                <div className={`font-medium flex items-center gap-1 ${shareToCustomer ? "text-[var(--green)]" : ""}`}>
+                  <Share2 size={12} />
+                  고객에게 공유
+                </div>
+                <div className="text-[10px] text-[var(--muted)] mt-0.5">
+                  공유 링크에서 이 일지 노출 여부 (특이사항은 공유 안 됨)
+                </div>
+              </div>
+            </div>
+            <span className={`w-10 h-6 rounded-full relative transition-colors ${shareToCustomer ? "bg-[var(--green)]" : "bg-[var(--border)]"}`}>
+              <span className={`absolute top-0.5 ${shareToCustomer ? "right-0.5" : "left-0.5"} w-5 h-5 rounded-full bg-white transition-all`} />
+            </span>
+          </button>
+        </div>
 
         {error && <p className="text-sm text-[var(--red)]">{error}</p>}
 
         <div className="flex items-center justify-end gap-2 pt-2">
           <Link
-            href="/daily-logs"
+            href={`/daily-logs/${id}`}
             className="px-4 py-2.5 rounded-xl border border-[var(--border)] text-sm hover:bg-white/[0.04]"
           >
             취소
           </Link>
           <button
             type="submit"
-            disabled={saving}
+            disabled={saving || uploading}
             className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-bold disabled:opacity-60"
           >
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
@@ -427,13 +386,5 @@ function NewDailyLogInner() {
         </div>
       </form>
     </div>
-  );
-}
-
-export default function NewDailyLogPage() {
-  return (
-    <Suspense fallback={<div className="text-sm text-[var(--muted)]">로딩 중...</div>}>
-      <NewDailyLogInner />
-    </Suspense>
   );
 }

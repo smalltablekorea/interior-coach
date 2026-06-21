@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, ClipboardList, Trash2, Users, Share2,
+  ArrowLeft, ClipboardList, Trash2, Users, Share2, Pencil,
   ImagePlus, X as XIcon, Loader2, Link as LinkIcon, Copy, Check,
 } from "lucide-react";
 import Modal from "@/components/ui/Modal";
@@ -120,7 +120,10 @@ export default function DailyLogDetailPage() {
     });
   };
 
-  /** 현장 단위 공유 링크 발급(있으면 재사용) */
+  /** 현장 단위 공유 링크 발급(있으면 재사용).
+   *  서버 응답 규약: 성공 시 ok(data) 가 data 를 그대로 반환 (success 래퍼 없음).
+   *  실패 시 err()/serverError() 가 { success:false, error } 또는 인증 미들웨어가 { error } 반환.
+   */
   const issueShareLink = async () => {
     if (!log) return;
     setShareLoading(true);
@@ -132,12 +135,26 @@ export default function DailyLogDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
-      const data = await res.json();
-      if (!res.ok || !data?.success) {
-        setShareError(data?.error?.message || data?.error || "링크 발급에 실패했습니다.");
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg =
+          (typeof data?.error === "string" && data.error) ||
+          data?.error?.message ||
+          "링크 발급에 실패했습니다.";
+        setShareError(msg);
         return;
       }
-      setShareUrl(data?.data?.url || null);
+      // 응답은 { token: { id, token, url, ... }, reused } 형태 (ok() 가 data 직접 반환)
+      const url =
+        data?.token?.url ||
+        data?.url ||
+        data?.data?.token?.url ||
+        (typeof data?.token === "string" ? `${window.location.origin}/d/${data.token}` : null);
+      if (!url) {
+        setShareError("응답에서 링크를 찾지 못했습니다.");
+        return;
+      }
+      setShareUrl(url);
     } catch (e) {
       setShareError(e instanceof Error ? e.message : "링크 발급에 실패했습니다.");
     } finally {
@@ -198,6 +215,14 @@ export default function DailyLogDetailPage() {
             <LinkIcon size={14} />
             <span className="hidden sm:inline">공유 링크</span>
           </button>
+          <Link
+            href={`/daily-logs/${id}/edit`}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-[var(--border)] text-xs hover:bg-white/[0.04]"
+            title="작업 내용 수정"
+          >
+            <Pencil size={14} />
+            <span className="hidden sm:inline">수정</span>
+          </Link>
           <button
             onClick={() => setShowDelete(true)}
             className="p-2 rounded-lg text-[var(--muted)] hover:text-[var(--red)] hover:bg-[var(--red)]/10"
