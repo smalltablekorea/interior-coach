@@ -14,7 +14,7 @@ import PaymentSplitEditor, {
 import { apiFetch } from "@/lib/api-client";
 import { TRADES } from "@/lib/constants";
 
-/** 공종 칩 — TRADES 상수 전체 (36개). 한 화면에서 다 클릭 가능하도록 flex-wrap. */
+/** 공종 칩 — TRADES 상수 전체 (35개). 한 화면에서 다 클릭 가능하도록 flex-wrap. */
 const TRADE_CHIPS = TRADES;
 
 const SCOPE_OPTIONS = ["부분", "전체"] as const;
@@ -177,7 +177,7 @@ export default function QuickNewSitePage() {
               <KoreanInput
                 value={name}
                 onChange={setName}
-                placeholder="예) 잠실 르엘 12동"
+                placeholder=""
                 className={inputCls}
               />
             </Field>
@@ -185,7 +185,7 @@ export default function QuickNewSitePage() {
               <KoreanInput
                 value={customerName}
                 onChange={setCustomerName}
-                placeholder="예) 김민수"
+                placeholder=""
                 className={inputCls}
               />
             </Field>
@@ -194,7 +194,7 @@ export default function QuickNewSitePage() {
                 type="tel"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="010-0000-0000"
+                placeholder=""
                 className={inputCls}
                 inputMode="tel"
               />
@@ -203,12 +203,13 @@ export default function QuickNewSitePage() {
               <div className="relative">
                 <input
                   type="number"
-                  step="0.1"
+                  step="1"
                   min="0"
                   value={areaPyeong}
-                  onChange={(e) => setAreaPyeong(e.target.value)}
-                  placeholder="예) 32.5"
+                  onChange={(e) => setAreaPyeong(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder=""
                   className={`${inputCls} pr-10`}
+                  inputMode="numeric"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[var(--muted)]">평</span>
               </div>
@@ -218,7 +219,7 @@ export default function QuickNewSitePage() {
             <KoreanInput
               value={address}
               onChange={setAddress}
-              placeholder="예) 서울시 송파구 잠실동 ..."
+              placeholder=""
               className={inputCls}
             />
           </Field>
