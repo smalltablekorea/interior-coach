@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import {
   ArrowLeft, Building2, MapPin, User, Phone, Wallet,
   Calendar, Hammer, Receipt, ListChecks, ExternalLink,
+  ChevronUp, ChevronDown, GripVertical, Sparkles, Loader2,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 
@@ -22,12 +23,14 @@ interface QuickDetail {
     budget: number | null;
     trades: string[] | null;
     progress: number | null;
+    weekendWork?: boolean;
     customerName: string | null;
     customerPhone: string | null;
   };
   phases: Array<{
     id: string;
     category: string;
+    taskName?: string | null;
     plannedStart: string | null;
     plannedEnd: string | null;
     actualStart: string | null;
@@ -90,16 +93,131 @@ export default function QuickSiteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("phases");
 
+  // 공정 편집 상태
+  const [weekendWork, setWeekendWork] = useState<boolean>(false);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoError, setAutoError] = useState<string | null>(null);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+
+  const loadData = async () => {
+    const res = await apiFetch(`/api/sites/${id}/quick-detail`);
+    const j = await res.json().catch(() => null);
+    const d = j?.data ?? j;
+    if (d?.site?.id) {
+      setData(d as QuickDetail);
+      setWeekendWork(!!d.site.weekendWork);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    apiFetch(`/api/sites/${id}/quick-detail`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        const d = j?.data ?? j;
-        if (d?.site?.id) setData(d as QuickDetail);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    loadData().catch(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  /** 단건 phase PATCH — date 인라인 편집·상태 변경 */
+  const updatePhase = async (phaseId: string, patch: Record<string, unknown>) => {
+    // optimistic UI
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        phases: prev.phases.map((p) => (p.id === phaseId ? { ...p, ...patch } : p)),
+      };
+    });
+    const res = await apiFetch(`/api/construction/${phaseId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      // 실패 시 새로 로드
+      await loadData();
+    }
+  };
+
+  /** 순서 변경 — order 배열을 서버에 PATCH 후 재로딩 */
+  const persistOrder = async (orderedIds: string[]) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const map = new Map(prev.phases.map((p) => [p.id, p]));
+      type Phase = QuickDetail["phases"][number];
+      const next: Phase[] = [];
+      orderedIds.forEach((pid, i) => {
+        const p = map.get(pid);
+        if (p) next.push({ ...p, sortOrder: i });
+      });
+      return { ...prev, phases: next };
+    });
+    const res = await apiFetch(`/api/sites/${id}/phases/reorder`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order: orderedIds }),
+    });
+    if (!res.ok) await loadData();
+  };
+
+  const movePhase = (idx: number, delta: number) => {
+    if (!data) return;
+    const next = data.phases.slice();
+    const target = idx + delta;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    persistOrder(next.map((p) => p.id));
+  };
+
+  /** 자동 배분 */
+  const autoSchedule = async (nextWeekend?: boolean) => {
+    setAutoBusy(true);
+    setAutoError(null);
+    try {
+      const res = await apiFetch(`/api/sites/${id}/auto-schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          weekendWork: typeof nextWeekend === "boolean" ? nextWeekend : weekendWork,
+        }),
+      });
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg =
+          (typeof j?.error === "string" && j.error) ||
+          j?.error?.message ||
+          "자동 배분에 실패했습니다";
+        setAutoError(msg);
+        return;
+      }
+      await loadData();
+    } finally {
+      setAutoBusy(false);
+    }
+  };
+
+  const toggleWeekend = async () => {
+    const next = !weekendWork;
+    setWeekendWork(next);
+    // 토글만 저장 — 사용자가 "공기 자동 배분" 누르면 그때 재배분
+    await apiFetch(`/api/sites/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weekendWork: next }),
+    });
+  };
+
+  // 드래그 앤 드롭 핸들러 (마우스 / 데스크탑)
+  const onDragStart = (idx: number) => () => setDragIdx(idx);
+  const onDragOver = (e: React.DragEvent) => e.preventDefault();
+  const onDrop = (targetIdx: number) => () => {
+    if (dragIdx === null || dragIdx === targetIdx || !data) {
+      setDragIdx(null);
+      return;
+    }
+    const next = data.phases.slice();
+    const [moved] = next.splice(dragIdx, 1);
+    next.splice(targetIdx, 0, moved);
+    persistOrder(next.map((p) => p.id));
+    setDragIdx(null);
+  };
 
   const splitTotal = useMemo(
     () => (data?.payments || []).reduce((s, p) => s + p.amount, 0),
@@ -190,41 +308,153 @@ export default function QuickSiteDetailPage() {
       {/* 탭 본문 */}
       {tab === "phases" && (
         <section className="space-y-3">
+          {/* 컨트롤 바 — 주말 토글 + 자동 배분 버튼 */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 flex flex-wrap items-center gap-3 justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={weekendWork}
+                onClick={toggleWeekend}
+                className="inline-flex items-center gap-2 text-sm"
+              >
+                <span
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors ${
+                    weekendWork ? "bg-[var(--green)]" : "bg-[var(--border)]"
+                  }`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white transform transition-transform ${
+                      weekendWork ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </span>
+                <span className={`font-medium ${weekendWork ? "text-[var(--green)]" : ""}`}>
+                  주말공사 {weekendWork ? "포함" : "미포함"}
+                </span>
+              </button>
+              <span className="text-[10px] text-[var(--muted)]">
+                토·일 {weekendWork ? "작업일에 포함" : "제외"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {autoError && (
+                <span className="text-[11px] text-[var(--orange)]">{autoError}</span>
+              )}
+              <button
+                type="button"
+                onClick={() => autoSchedule()}
+                disabled={autoBusy || phases.length === 0}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-[var(--green)] text-black text-xs font-bold disabled:opacity-50"
+                title="공정 표준 소요일에 따라 일정을 자동 배분"
+              >
+                {autoBusy ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : (
+                  <Sparkles size={13} />
+                )}
+                공기 자동 배분
+              </button>
+            </div>
+          </div>
+
           {phases.length === 0 ? (
             <EmptyTab icon={Hammer} text="등록된 공정이 없습니다" />
           ) : (
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="text-[10px] text-[var(--muted)] uppercase">
-                  <tr className="border-b border-[var(--border)]">
-                    <th className="text-left px-4 py-2.5 font-semibold">공종</th>
-                    <th className="text-left px-4 py-2.5 font-semibold">예정 기간</th>
-                    <th className="text-center px-4 py-2.5 font-semibold">진행률</th>
-                    <th className="text-center px-4 py-2.5 font-semibold">상태</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {phases.map((p) => (
-                    <tr key={p.id} className="border-b border-[var(--border)]/60 last:border-0">
-                      <td className="px-4 py-3 font-medium">{p.category}</td>
-                      <td className="px-4 py-3 text-[var(--muted)]">
-                        {fmtDate(p.plannedStart)} ~ {fmtDate(p.plannedEnd)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="inline-flex items-center gap-2">
-                          <div className="w-16 h-1.5 rounded-full bg-[var(--background)] overflow-hidden">
-                            <div className="h-full bg-[var(--green)]" style={{ width: `${p.progress}%` }} />
-                          </div>
-                          <span className="text-xs text-[var(--muted)] w-8 text-right">{p.progress}%</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <StatusPill status={p.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="px-3 py-2 border-b border-[var(--border)] text-[10px] text-[var(--muted)] hidden sm:grid grid-cols-[28px_minmax(120px,1fr)_130px_130px_70px_80px_72px] gap-2 items-center">
+                <span></span>
+                <span className="font-semibold uppercase">공종</span>
+                <span className="font-semibold uppercase">시작일</span>
+                <span className="font-semibold uppercase">종료일</span>
+                <span className="font-semibold uppercase text-center">진행률</span>
+                <span className="font-semibold uppercase text-center">상태</span>
+                <span className="font-semibold uppercase text-center">순서</span>
+              </div>
+              <ul>
+                {phases.map((p, idx) => (
+                  <li
+                    key={p.id}
+                    draggable
+                    onDragStart={onDragStart(idx)}
+                    onDragOver={onDragOver}
+                    onDrop={onDrop(idx)}
+                    onDragEnd={() => setDragIdx(null)}
+                    className={`grid grid-cols-[28px_1fr] sm:grid-cols-[28px_minmax(120px,1fr)_130px_130px_70px_80px_72px] gap-2 items-center px-3 py-2.5 border-b border-[var(--border)]/60 last:border-0 ${
+                      dragIdx === idx ? "opacity-40 bg-[var(--green)]/5" : ""
+                    } hover:bg-white/[0.02]`}
+                  >
+                    <span
+                      className="cursor-grab active:cursor-grabbing text-[var(--muted)] flex items-center justify-center"
+                      title="드래그해서 순서 변경"
+                    >
+                      <GripVertical size={14} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {p.category}
+                        {p.taskName && (
+                          <span className="text-[var(--muted)] font-normal ml-1">
+                            · {p.taskName}
+                          </span>
+                        )}
+                      </p>
+                      {/* 모바일에서는 날짜·진행률·상태를 두 번째 줄로 */}
+                      <p className="sm:hidden text-[10px] text-[var(--muted)] mt-1">
+                        {fmtDate(p.plannedStart)} ~ {fmtDate(p.plannedEnd)} · {p.progress}% · {p.status}
+                      </p>
+                    </div>
+                    <input
+                      type="date"
+                      value={p.plannedStart || ""}
+                      onChange={(e) => updatePhase(p.id, { plannedStart: e.target.value || null })}
+                      className="hidden sm:block px-2 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs focus:border-[var(--green)] outline-none"
+                    />
+                    <input
+                      type="date"
+                      value={p.plannedEnd || ""}
+                      onChange={(e) => updatePhase(p.id, { plannedEnd: e.target.value || null })}
+                      className="hidden sm:block px-2 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] text-xs focus:border-[var(--green)] outline-none"
+                    />
+                    <div className="hidden sm:flex items-center justify-center gap-1.5">
+                      <div className="w-12 h-1.5 rounded-full bg-[var(--background)] overflow-hidden">
+                        <div className="h-full bg-[var(--green)]" style={{ width: `${p.progress}%` }} />
+                      </div>
+                      <span className="text-[10px] text-[var(--muted)] w-7 text-right">{p.progress}%</span>
+                    </div>
+                    <select
+                      value={p.status}
+                      onChange={(e) => updatePhase(p.id, { status: e.target.value })}
+                      className="hidden sm:block px-1.5 py-1.5 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[10px] focus:border-[var(--green)] outline-none"
+                    >
+                      {["예정", "진행중", "완료", "보류"].map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                    <div className="hidden sm:flex items-center justify-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => movePhase(idx, -1)}
+                        disabled={idx === 0}
+                        className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-white/[0.06] text-[var(--muted)] disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label="위로"
+                      >
+                        <ChevronUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => movePhase(idx, 1)}
+                        disabled={idx === phases.length - 1}
+                        className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-white/[0.06] text-[var(--muted)] disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label="아래로"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </section>

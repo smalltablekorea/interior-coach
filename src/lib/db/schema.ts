@@ -190,6 +190,7 @@ export const sites = pgTable("sites", {
   spent: bigint("spent", { mode: "number" }).default(0), // 지출 누적 (원)
   trades: jsonb("trades"), // string[] 투입 공종 ID 목록
   scope: text("scope"), // 공사범위 — 예: 전체 / 부분 / 부분-주방 등
+  weekendWork: boolean("weekend_work").notNull().default(false), // 토·일 작업 포함 여부
   memo: text("memo"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

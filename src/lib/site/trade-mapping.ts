@@ -98,6 +98,40 @@ export function daysForTrade(trade: string): number {
   return TRADE_STANDARD_DAYS[trade as Trade] ?? 1;
 }
 
+/**
+ * 특정 task_name 에 대한 표준 소요일 오버라이드 (30평 기준).
+ * 사용자에게 직접 받은 값 — 추가될 때마다 누적.
+ * trade-level 기본보다 우선. 매핑 없으면 trade-level 로 fallback.
+ */
+export const TASK_STANDARD_DAYS: Record<string, number> = {
+  // 철거 계열
+  "철거": 2,
+  "마루철거": 1,
+  // 설비/전기 — 에어컨 관련
+  "에어컨 배관설치": 1,
+  "에어컨 마감시공": 1,
+  // 창호 (샷시 별칭 — TRADES 에는 "창호" 인데 현장에서 "샷시" 로도 부름)
+  "샷시": 1,
+  "창호": 1,
+};
+
+export function daysForTask(taskName: string | null | undefined): number | null {
+  if (!taskName) return null;
+  const key = taskName.trim();
+  if (key in TASK_STANDARD_DAYS) return TASK_STANDARD_DAYS[key];
+  return null;
+}
+
+/**
+ * 30평 기준 소요일을 실면적에 비례해 보정. 최소 1일.
+ * 예) 60평 + baseline 2일 → 4일, 15평 + 2일 → 1일 (반올림).
+ */
+export function scaleDaysByArea(baseDays: number, areaPyeong: number | null | undefined): number {
+  if (!areaPyeong || areaPyeong <= 0) return Math.max(1, Math.round(baseDays));
+  const scaled = baseDays * (areaPyeong / 30);
+  return Math.max(1, Math.round(scaled));
+}
+
 // 견적/총액 계산용 기본 요율 (화면에는 노출되지 않아도 시스템 내부에선 유지).
 export const DEFAULT_RATES = {
   designRate: 0.05, // 설계

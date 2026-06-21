@@ -41,6 +41,7 @@ export async function GET(
         trades: sites.trades,
         memo: sites.memo,
         progress: sites.progress,
+        weekendWork: sites.weekendWork,
         customerId: sites.customerId,
         customerName: customers.name,
         customerPhone: customers.phone,

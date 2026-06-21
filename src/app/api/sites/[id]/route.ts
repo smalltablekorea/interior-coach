@@ -137,6 +137,43 @@ export async function PUT(
   }
 }
 
+/**
+ * PATCH /api/sites/[id]
+ *   /sites/[id]/quick 화면 전용의 부분 업데이트.
+ *   PUT 는 siteSchema 검증을 거쳐 quick-view 의 weekendWork·scope 같은 새 필드를 못 받음.
+ *   여기는 화이트리스트 기반으로 가볍게 받는다.
+ */
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireWorkspaceAuth("sites", "write");
+  if (!auth.ok) return auth.response;
+  try {
+    const { id } = await params;
+    const body = await request.json().catch(() => ({}));
+    const updates: Record<string, unknown> = { updatedAt: new Date() };
+    if (typeof body.weekendWork === "boolean") updates.weekendWork = body.weekendWork;
+    if (typeof body.scope === "string") updates.scope = body.scope;
+    if (typeof body.status === "string") updates.status = body.status;
+    if (typeof body.startDate === "string") updates.startDate = body.startDate;
+    if (typeof body.endDate === "string") updates.endDate = body.endDate;
+    if (typeof body.memo === "string") updates.memo = body.memo;
+
+    if (Object.keys(updates).length === 1) return ok({ id });
+
+    const [row] = await db
+      .update(sites)
+      .set(updates)
+      .where(and(eq(sites.id, id), workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId), isNull(sites.deletedAt)))
+      .returning();
+    if (!row) return notFound("현장을 찾을 수 없습니다");
+    return ok(row);
+  } catch (error) {
+    return serverError(error);
+  }
+}
+
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
