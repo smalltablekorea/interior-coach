@@ -242,10 +242,6 @@ export default function SpecbookPage() {
     if (res.ok) loadSubmissions();
   }
 
-  const activeCat = useMemo(
-    () => catalog?.categories.find((c) => c.id === activeCatId) ?? null,
-    [catalog, activeCatId],
-  );
   const otherSites = useMemo(() => sites.filter((s) => s.id !== siteId), [sites, siteId]);
 
   return (
@@ -335,73 +331,58 @@ export default function SpecbookPage() {
             </div>
           )}
 
-          {/* 공종 탭 + 자재 그리드 */}
-          <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-4">
-            <aside className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-2">
-              <ul className="space-y-1">
-                {catalog.categories.map((c) => (
-                  <li key={c.id}>
-                    <button
-                      onClick={() => setActiveCatId(c.id)}
-                      className={cn("w-full text-left px-3 py-2 rounded-lg text-sm flex items-center justify-between gap-2 group",
-                        activeCatId === c.id
-                          ? "bg-[var(--green)]/10 text-[var(--green)]"
-                          : "hover:bg-white/[0.04]")}
-                    >
-                      <span className="truncate">{c.icon ?? "•"} {c.name}</span>
-                      <span className="text-xs text-[var(--muted)] flex-shrink-0">{c.options.length}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {catalog.categories.length === 0 && (
-                <p className="text-xs text-[var(--muted)] text-center py-4">공종이 없습니다</p>
-              )}
-            </aside>
-
-            <main>
-              {activeCat ? (
-                <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+          {/* 공종별 자재 — 모든 공종을 세로로 펼쳐서 한눈에 표시 */}
+          <div className="space-y-4">
+            {catalog.categories.length === 0 ? (
+              <EmptyHint title="공종이 없습니다" desc="상단 '공종 추가' 버튼으로 새 공종을 만드세요." />
+            ) : (
+              catalog.categories.map((cat) => (
+                <section
+                  key={cat.id}
+                  id={`cat-${cat.id}`}
+                  className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+                >
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="font-semibold flex items-center gap-2">
-                      {activeCat.icon ?? "•"} {activeCat.name}
-                      <span className="text-xs text-[var(--muted)] font-normal">({activeCat.options.length})</span>
+                      <span>{cat.icon ?? "•"}</span>
+                      {cat.name}
+                      <span className="text-xs text-[var(--muted)] font-normal">({cat.options.length})</span>
                     </h2>
                     <div className="flex items-center gap-1.5">
-                      <button onClick={() => renameCategory(activeCat.id)} className="p-1.5 rounded hover:bg-white/[0.04]" title="이름 변경">
+                      <button onClick={() => renameCategory(cat.id)} className="p-1.5 rounded hover:bg-white/[0.04]" title="이름 변경">
                         <Pencil size={13} />
                       </button>
-                      <button onClick={() => deleteCategory(activeCat.id)} className="p-1.5 rounded hover:bg-red-500/10 text-red-400" title="공종 삭제">
+                      <button onClick={() => deleteCategory(cat.id)} className="p-1.5 rounded hover:bg-red-500/10 text-red-400" title="공종 삭제">
                         <Trash2 size={13} />
                       </button>
-                      <button onClick={() => setEditingOption({ catId: activeCat.id, option: null })}
-                        className="px-3 py-1.5 rounded-lg bg-[var(--green)]/10 text-[var(--green)] text-xs font-medium hover:bg-[var(--green)]/15 flex items-center gap-1">
+                      <button
+                        onClick={() => setEditingOption({ catId: cat.id, option: null })}
+                        className="px-3 py-1.5 rounded-lg bg-[var(--green)]/10 text-[var(--green)] text-xs font-medium hover:bg-[var(--green)]/15 flex items-center gap-1"
+                      >
                         <Plus size={12} /> 자재 추가
                       </button>
                     </div>
                   </div>
 
-                  {activeCat.options.length === 0 ? (
-                    <p className="text-sm text-[var(--muted)] text-center py-10">
+                  {cat.options.length === 0 ? (
+                    <p className="text-sm text-[var(--muted)] text-center py-6">
                       자재 옵션을 추가하면 고객이 선택할 수 있습니다.
                     </p>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {activeCat.options.map((opt) => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                      {cat.options.map((opt) => (
                         <OptionCard
                           key={opt.id}
                           option={opt}
-                          onEdit={() => setEditingOption({ catId: activeCat.id, option: opt })}
-                          onDelete={() => deleteOption(activeCat.id, opt.id)}
+                          onEdit={() => setEditingOption({ catId: cat.id, option: opt })}
+                          onDelete={() => deleteOption(cat.id, opt.id)}
                         />
                       ))}
                     </div>
                   )}
-                </div>
-              ) : (
-                <EmptyHint title="공종을 선택하세요" desc="좌측에서 공종을 선택하거나 '공종 추가'로 새로 만드세요." />
-              )}
-            </main>
+                </section>
+              ))
+            )}
           </div>
         </>
       )}

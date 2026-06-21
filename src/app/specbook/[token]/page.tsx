@@ -77,10 +77,22 @@ export default function PublicSpecbookPage({ params }: { params: Promise<{ token
   const totalPrice = pickedItems.reduce((s, x) => s + (x.opt.price ?? 0), 0);
 
   function pick(catId: string, optId: string) {
-    setPicks((p) => ({ ...p, [catId]: optId }));
+    setPicks((p) => {
+      // 같은 옵션을 다시 클릭하면 해제 (토글)
+      if (p[catId] === optId) {
+        const next = { ...p };
+        delete next[catId];
+        return next;
+      }
+      return { ...p, [catId]: optId };
+    });
   }
   function unpick(catId: string) {
-    setPicks((p) => { const { [catId]: _, ...rest } = p; return rest; });
+    setPicks((p) => {
+      const next = { ...p };
+      delete next[catId];
+      return next;
+    });
   }
 
   async function submit() {
@@ -168,15 +180,43 @@ export default function PublicSpecbookPage({ params }: { params: Promise<{ token
             아직 등록된 자재가 없습니다.
           </p>
         ) : (
-          data.catalog.categories.map((cat) => (
-            <CategorySection
-              key={cat.id}
-              cat={cat}
-              pickedId={picks[cat.id] ?? null}
-              onPick={(optId) => pick(cat.id, optId)}
-              onUnpick={() => unpick(cat.id)}
-            />
-          ))
+          <>
+            {data.catalog.categories.map((cat) => (
+              <CategorySection
+                key={cat.id}
+                cat={cat}
+                pickedId={picks[cat.id] ?? null}
+                onPick={(optId) => pick(cat.id, optId)}
+                onUnpick={() => unpick(cat.id)}
+              />
+            ))}
+
+            {/* 최하단 큰 확정 버튼 */}
+            <div className="pt-6 pb-4">
+              <div className="rounded-2xl border border-[var(--green)]/30 bg-[var(--green)]/5 p-5 text-center">
+                <p className="text-sm text-[var(--muted)] mb-1">선택 완료 후 아래 버튼을 눌러주세요</p>
+                <p className="text-lg font-semibold mb-4">
+                  <span className="text-[var(--green)]">{pickedItems.length}개</span> 자재 선택됨
+                  {totalPrice > 0 && (
+                    <span className="text-sm text-[var(--muted)] font-normal ml-2">
+                      (참고 합계 {fmtKrw(totalPrice)})
+                    </span>
+                  )}
+                </p>
+                <button
+                  onClick={() => setSubmitOpen(true)}
+                  disabled={pickedItems.length === 0}
+                  className="w-full py-4 rounded-xl bg-[var(--green)] text-black font-bold text-base hover:bg-[var(--green-hover)] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Check size={18} />
+                  선택 확정하기
+                </button>
+                {pickedItems.length === 0 && (
+                  <p className="text-xs text-[var(--muted)] mt-2">자재를 1개 이상 선택해주세요</p>
+                )}
+              </div>
+            </div>
+          </>
         )}
       </main>
 
