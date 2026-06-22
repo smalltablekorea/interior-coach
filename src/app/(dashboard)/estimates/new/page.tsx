@@ -5,14 +5,16 @@ import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Plus, Trash2, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Eye, Building2 } from "lucide-react";
 import { TRADES } from "@/lib/constants";
 import { fmt } from "@/lib/utils";
+import CustomerPicker, { type CustomerDetail } from "@/components/customers/CustomerPicker";
 
 interface Site {
   id: string;
   name: string;
   customerName: string;
+  customerId?: string | null;
   areaPyeong: number;
   address: string;
 }
@@ -41,6 +43,29 @@ export default function NewEstimatePage() {
     vatEnabled: true,
   });
 
+  // 고객 직접 선택 — 현장 선택 없이도 견적서에 고객 정보를 넣을 수 있게.
+  const [pickedCustomer, setPickedCustomer] = useState<CustomerDetail | null>(null);
+
+  // 고객 선택 시 그 고객의 현장을 그대로 픽할 수 있게 사이트도 갱신.
+  const handleCustomerSelect = (c: CustomerDetail) => {
+    setPickedCustomer(c);
+    // 현장이 1개면 자동 연결, 여러 개면 사용자가 골라야 함.
+    if (c.sites && c.sites.length === 1 && !form.siteId) {
+      setForm((f) => ({ ...f, siteId: c.sites![0].id }));
+    }
+  };
+
+  const handleCustomerClear = () => {
+    setPickedCustomer(null);
+    // 현장 선택이 그 고객 소속이었으면 같이 비움
+    if (form.siteId) {
+      const site = sites.find((s) => s.id === form.siteId);
+      if (site && site.customerId && pickedCustomer && site.customerId === pickedCustomer.id) {
+        setForm((f) => ({ ...f, siteId: "" }));
+      }
+    }
+  };
+
   const [items, setItems] = useState<EstimateItem[]>([
     { category: "철거", itemName: "", unit: "식", quantity: 1, unitPrice: 0, amount: 0 },
   ]);
@@ -53,6 +78,15 @@ export default function NewEstimatePage() {
   }, []);
 
   const selectedSite = sites.find((s) => s.id === form.siteId);
+
+  // 미리보기·견적서에 표시할 발주자(고객) 정보 — 현장에서 추출되는 값이 비어 있으면
+  // pickedCustomer 의 값으로 fallback. 둘 다 있으면 site 값이 우선 (사용자가 명시적으로 골랐으므로).
+  const displayCustomer = {
+    name: selectedSite?.customerName || pickedCustomer?.name || "",
+    address: selectedSite?.address || pickedCustomer?.address || "",
+    phone: pickedCustomer?.phone || "",
+  };
+  const hasCustomerInfo = displayCustomer.name || displayCustomer.address || displayCustomer.phone;
 
   const updateItem = (idx: number, field: keyof EstimateItem, value: string | number) => {
     const newItems = [...items];
@@ -97,6 +131,7 @@ export default function NewEstimatePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         siteId: form.siteId || null,
+        customerId: pickedCustomer?.id || null,
         totalAmount: grandTotal,
         profitRate: parseFloat(form.profitRate),
         overheadRate: parseFloat(form.overheadRate),
@@ -170,7 +205,7 @@ export default function NewEstimatePage() {
               </div>
             </div>
 
-            {selectedSite && (
+            {hasCustomerInfo && (
               <div className="grid grid-cols-2 gap-4 mb-7">
                 <div>
                   <div className="text-[13px] font-bold border-b-2 border-gray-900 pb-1.5 mb-3">발주자 정보</div>
@@ -178,11 +213,17 @@ export default function NewEstimatePage() {
                     <tbody>
                       <tr>
                         <td className="bg-gray-50 border border-gray-200 px-2 py-1.5 font-semibold w-[30%]">성명</td>
-                        <td className="border border-gray-200 px-2 py-1.5">{selectedSite.customerName}</td>
+                        <td className="border border-gray-200 px-2 py-1.5">{displayCustomer.name || "—"}</td>
                       </tr>
+                      {displayCustomer.phone && (
+                        <tr>
+                          <td className="bg-gray-50 border border-gray-200 px-2 py-1.5 font-semibold">연락처</td>
+                          <td className="border border-gray-200 px-2 py-1.5">{displayCustomer.phone}</td>
+                        </tr>
+                      )}
                       <tr>
                         <td className="bg-gray-50 border border-gray-200 px-2 py-1.5 font-semibold">현장주소</td>
-                        <td className="border border-gray-200 px-2 py-1.5">{selectedSite.address}</td>
+                        <td className="border border-gray-200 px-2 py-1.5">{displayCustomer.address || "—"}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -274,8 +315,42 @@ export default function NewEstimatePage() {
         /* Edit Mode */
         <div className="space-y-4">
           {/* Site & Rate Settings */}
-          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
-            <h2 className="text-sm font-semibold text-[var(--muted)] mb-4">기본 정보</h2>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 space-y-4">
+            <h2 className="text-sm font-semibold text-[var(--muted)]">기본 정보</h2>
+
+            {/* 고객 불러오기 — 이름·연락처로 기존 고객 검색해 자동 채움 */}
+            <CustomerPicker
+              value={pickedCustomer}
+              onSelect={handleCustomerSelect}
+              onClear={handleCustomerClear}
+            />
+
+            {/* 선택한 고객의 현장 빠른 선택 — 여러 개일 때만 노출 */}
+            {pickedCustomer?.sites && pickedCustomer.sites.length > 1 && (
+              <div>
+                <p className="text-[10px] font-semibold text-[var(--muted)] mb-1.5">
+                  {pickedCustomer.name} 의 현장 ({pickedCustomer.sites.length})
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {pickedCustomer.sites.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, siteId: s.id }))}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] border transition-colors ${
+                        form.siteId === s.id
+                          ? "bg-[var(--green)]/15 border-[var(--green)] text-[var(--green)]"
+                          : "border-[var(--border)] text-[var(--muted)] hover:border-[var(--green)]/40"
+                      }`}
+                    >
+                      <Building2 size={10} />
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div className="sm:col-span-2">
                 <label className="block text-xs text-[var(--muted)] mb-1">현장</label>
@@ -284,7 +359,7 @@ export default function NewEstimatePage() {
                   onChange={(e) => setForm({ ...form, siteId: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none text-sm"
                 >
-                  <option value="">현장 선택</option>
+                  <option value="">현장 선택 (선택)</option>
                   {sites.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}

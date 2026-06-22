@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { err } from "./response";
+import { CUSTOMER_STATUSES } from "@/lib/constants";
 
 // ─── XSS 방지 sanitization ───
 /**
@@ -53,13 +54,18 @@ const optionalEmail = z.preprocess(
   z.string().email("이메일 형식이 올바르지 않습니다").nullable().optional(),
 );
 
+// status enum 은 CUSTOMER_STATUSES (constants.ts) 를 단일 출처로 사용해 상수↔검증 드리프트 방지.
+// "완료", "이탈" 등 과거 값은 의도적으로 제거 — DB 에 잔존 데이터가 있어도 text 컬럼이라
+// 읽기엔 영향 없고, 새로 저장하는 값만 새 enum 으로 제약됨.
 export const customerSchema = z.object({
   name: safeStringMin(1, "이름은 필수입니다"),
   phone: safeStringNullable(),
   email: optionalEmail,
   address: safeStringNullable(),
   source: safeStringNullable(),
-  status: z.enum(["상담중", "계약완료", "시공중", "완료", "이탈", "시공완료", "A/S", "VIP"]).optional().default("상담중"),
+  status: z.enum(CUSTOMER_STATUSES as unknown as [string, ...string[]])
+    .optional()
+    .default("상담중"),
   memo: safeStringNullable(),
 });
 
@@ -99,6 +105,8 @@ export const estimateItemSchema = z.object({
 
 export const estimateSchema = z.object({
   siteId: emptyToNull(z.string().uuid().nullable().optional()),
+  // 견적을 현장 없이 고객 단위로 작성하는 흐름 지원. 둘 다 nullable.
+  customerId: emptyToNull(z.string().uuid().nullable().optional()),
   version: z.number().int().positive().optional().default(1),
   totalAmount: z.number().min(0).optional().default(0),
   profitRate: z.number().min(0).max(100).optional().default(0),

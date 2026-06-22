@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import CustomerPicker, { type CustomerDetail } from "@/components/customers/CustomerPicker";
 
 export interface ClientInfoData {
   name: string;
@@ -8,6 +9,8 @@ export interface ClientInfoData {
   address: string;
   phone: string;
   date: string;
+  /** 연결된 기존 고객 id — 없으면 신규 작성 */
+  customerId?: string | null;
 }
 
 interface Props {
@@ -15,42 +18,72 @@ interface Props {
   onChange: (info: ClientInfoData) => void;
 }
 
+/** customerId 는 폼에서 직접 편집하는 필드가 아니라 picker 가 관리. FIELDS 에서 제외. */
+type EditableKey = Exclude<keyof ClientInfoData, "customerId">;
 const FIELDS: {
-  key: keyof ClientInfoData;
+  key: EditableKey;
   label: string;
   placeholder: string;
   type?: string;
   required?: boolean;
   full?: boolean;
 }[] = [
-  {
-    key: "projectName",
-    label: "현장명",
-    placeholder: "예) 강남 래미안 32평 리모델링",
-    required: true,
-  },
-  { key: "name", label: "고객명", placeholder: "예) 홍길동" },
-  {
-    key: "address",
-    label: "현장 주소",
-    placeholder: "예) 서울시 강남구 역삼동 123-45",
-    full: true,
-  },
-  { key: "phone", label: "연락처", placeholder: "예) 010-1234-5678" },
+  { key: "projectName", label: "현장명", placeholder: "", required: true },
+  { key: "name", label: "고객명", placeholder: "" },
+  { key: "address", label: "현장 주소", placeholder: "", full: true },
+  { key: "phone", label: "연락처", placeholder: "" },
   { key: "date", label: "견적 일자", placeholder: "", type: "date" },
 ];
 
 export function StepClientInfo({ info, onChange }: Props) {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
+  // CustomerPicker 가 onSelect 로 넘기는 detail 에는 sites 도 들어 있음.
+  // 자동 채움: 고객명·연락처·주소 + 사이트가 1개면 그 이름을 projectName 으로.
+  const handleCustomerSelect = (c: CustomerDetail) => {
+    const primarySite = c.sites && c.sites.length > 0 ? c.sites[0] : null;
+    onChange({
+      ...info,
+      customerId: c.id,
+      name: c.name,
+      phone: c.phone || info.phone,
+      address: primarySite?.address || c.address || info.address,
+      projectName: primarySite?.name || info.projectName,
+    });
+  };
+  const handleCustomerClear = () => {
+    onChange({ ...info, customerId: null });
+  };
+
+  // CustomerPicker 의 value 형태로 변환
+  const pickerValue = info.customerId
+    ? {
+        id: info.customerId,
+        name: info.name,
+        phone: info.phone || null,
+        email: null,
+        address: info.address || null,
+        memo: null,
+        status: "상담중",
+      }
+    : null;
+
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-xl font-bold mb-1">기본 정보</h2>
         <p className="text-sm text-[var(--muted)]">
-          고객 및 현장 정보를 입력하세요.
+          고객 및 현장 정보를 입력하세요. 기존 고객이면 위에서 검색해 자동으로 채울 수 있습니다.
         </p>
       </div>
+
+      {/* 고객 불러오기 — 신규 고객은 아래 폼에 직접 입력 가능 */}
+      <CustomerPicker
+        value={pickerValue}
+        onSelect={handleCustomerSelect}
+        onClear={handleCustomerClear}
+      />
+
       <div className="grid gap-4 sm:grid-cols-2">
         {FIELDS.map((f) => {
           const error = touched[f.key] && f.required && !info[f.key].trim();

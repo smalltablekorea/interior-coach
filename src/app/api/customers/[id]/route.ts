@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { customers, sites, estimates, contracts, contractPayments } from "@/lib/db/schema";
-import { eq, and, sql, isNull } from "drizzle-orm";
+import { eq, and, sql, isNull, desc } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
 import { ok, notFound, serverError } from "@/lib/api/response";
@@ -34,9 +34,13 @@ export async function GET(
           name: sites.name,
           status: sites.status,
           areaPyeong: sites.areaPyeong,
+          address: sites.address,
+          buildingType: sites.buildingType,
+          createdAt: sites.createdAt,
         })
         .from(sites)
-        .where(and(eq(sites.customerId, id), workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId), isNull(sites.deletedAt))),
+        .where(and(eq(sites.customerId, id), workspaceFilter(sites.workspaceId, sites.userId, auth.workspaceId, auth.userId), isNull(sites.deletedAt)))
+        .orderBy(desc(sites.createdAt)),
       db
         .select({
           id: estimates.id,
@@ -62,11 +66,26 @@ export async function GET(
         .groupBy(contracts.id, sites.name),
     ]);
 
+    // 견적 폼 자동채움 hint — 최신 현장 1건. 없으면 고객 자체 주소로 fallback.
+    const top = customerSites[0];
+    const latestSite = top
+      ? {
+          id: top.id,
+          name: top.name,
+          address: top.address ?? customer.address ?? null,
+          areaPyeong: top.areaPyeong ?? null,
+          buildingType: top.buildingType ?? null,
+        }
+      : customer.address
+        ? { id: null, name: null, address: customer.address, areaPyeong: null, buildingType: null }
+        : null;
+
     return ok({
       ...customer,
       sites: customerSites,
       estimates: customerEstimates,
       contracts: customerContracts,
+      latestSite,
     });
   } catch (error) {
     return serverError(error);

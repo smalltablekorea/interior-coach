@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       siteId,
+      customerId,
       totalAmount,
       profitRate,
       overheadRate,
@@ -68,13 +69,14 @@ export async function POST(request: NextRequest) {
       items,
     } = body;
 
-    // 트랜잭션: estimate + items 생성
+    // 트랜잭션: estimate + items 생성. site/customer 둘 다 선택적.
     const [estimate] = await db
       .insert(estimates)
       .values({
         userId: auth.userId,
         workspaceId: auth.workspaceId,
         siteId: siteId || null,
+        customerId: customerId || null,
         version: 1,
         totalAmount: totalAmount || 0,
         profitRate: profitRate ?? 10,

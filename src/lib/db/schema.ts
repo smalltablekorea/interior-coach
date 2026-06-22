@@ -206,6 +206,8 @@ export const estimates = pgTable("estimates", {
     .references(() => user.id),
   workspaceId: uuid("workspace_id").references(() => workspaces.id),
   siteId: uuid("site_id").references(() => sites.id),
+  // 견적을 현장 없이도 고객 단위로 작성할 수 있도록 직접 FK. nullable.
+  customerId: uuid("customer_id").references(() => customers.id),
   version: integer("version").notNull().default(1),
   totalAmount: integer("total_amount").default(0),
   profitRate: real("profit_rate").default(0),

@@ -70,14 +70,64 @@ export const PHASE_STATUSES = ["예정", "진행중", "완료", "보류"] as con
 
 export const ORDER_STATUSES = ["발주", "배송중", "입고", "취소"] as const;
 
+// 고객 진행 상태 — DB 컬럼은 text 이므로 enum/CHECK 변경 없이 값만 추가 가능.
+// "상담중단/취소" 는 현재 단일 값. 추후 "상담중단"·"취소" 로 분리하려면
+//   UPDATE customers SET status='상담중단' WHERE status='상담중단/취소' AND <조건>;
+// 한 줄이면 끝나므로 분리 부담 없음.
 export const CUSTOMER_STATUSES = [
   "상담중",
+  "현장실측",
+  "견적미팅",
   "계약완료",
   "시공중",
   "시공완료",
   "A/S",
   "VIP",
+  "상담중단/취소",
 ] as const;
+
+export type CustomerStatus = (typeof CUSTOMER_STATUSES)[number];
+
+/**
+ * 고객 단계 분류 — 화면에서 그룹/정렬용. CUSTOMER_STATUSES 의 값과 1:1 매칭.
+ *  - funnel: 진행 단계 (상담중 → 현장실측 → 견적미팅 → 계약완료 → 시공중 → 시공완료 → A/S)
+ *  - tag:    단계 아닌 태그 성격 (VIP)
+ *  - exit:   이탈 상태 (상담중단/취소). 목록 맨 끝 또는 별도 그룹에 배치.
+ *
+ * 추가/변경 시 이 객체 한 곳만 고치면 됨. 화면별 하드코딩 금지.
+ */
+export const CUSTOMER_STATUS_GROUPS = {
+  funnel: ["상담중", "현장실측", "견적미팅", "계약완료", "시공중", "시공완료", "A/S"] as const,
+  tag: ["VIP"] as const,
+  exit: ["상담중단/취소"] as const,
+} as const;
+
+/** 퍼널 정렬 순서 — 칸반·필터·드롭다운 정렬에 사용. tag/exit 는 뒤에 배치. */
+export const CUSTOMER_STATUS_ORDER: readonly CustomerStatus[] = [
+  ...CUSTOMER_STATUS_GROUPS.funnel,
+  ...CUSTOMER_STATUS_GROUPS.tag,
+  ...CUSTOMER_STATUS_GROUPS.exit,
+];
+
+/** 상태가 어떤 그룹에 속하는지 — 칸반 컬럼 분류용 */
+export function customerStatusGroup(s: CustomerStatus): "funnel" | "tag" | "exit" {
+  if ((CUSTOMER_STATUS_GROUPS.tag as readonly string[]).includes(s)) return "tag";
+  if ((CUSTOMER_STATUS_GROUPS.exit as readonly string[]).includes(s)) return "exit";
+  return "funnel";
+}
+
+/** 라벨 + 짧은 설명 — UI 의 select option, 툴팁, 도움말 등에서 사용 가능 */
+export const CUSTOMER_STATUS_DESCRIPTIONS: Record<CustomerStatus, string> = {
+  "상담중": "초기 문의·전화 상담",
+  "현장실측": "현장 방문 측정 단계",
+  "견적미팅": "견적서 발송 후 미팅",
+  "계약완료": "계약서 작성 완료",
+  "시공중": "공사 진행 중",
+  "시공완료": "공사 완료",
+  "A/S": "사후 관리",
+  "VIP": "우수 고객 태그 (단계 아님)",
+  "상담중단/취소": "이탈 — 상담 중단 또는 계약 취소",
+};
 
 export const COMMUNICATION_TYPES = [
   "전화",
@@ -217,6 +267,9 @@ export const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   취소: { bg: "bg-[var(--red)]/10", text: "text-[var(--red)]" },
   // 고객 상태
   VIP: { bg: "bg-yellow-500/10", text: "text-yellow-400" },
+  현장실측: { bg: "bg-cyan-500/10", text: "text-cyan-400" },
+  견적미팅: { bg: "bg-purple-500/10", text: "text-purple-400" },
+  "상담중단/취소": { bg: "bg-white/[0.06]", text: "text-[var(--muted)]" },
   // 마케팅 문의 상태
   신규: { bg: "bg-blue-500/10", text: "text-blue-400" },
   견적발송: { bg: "bg-purple-500/10", text: "text-purple-400" },
