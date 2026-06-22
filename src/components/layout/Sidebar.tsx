@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "use-intl";
 import {
   LayoutDashboard,
   Users,
@@ -44,14 +45,16 @@ import { apiFetch } from "@/lib/api-client";
 interface NavItem {
   href: string;
   icon: typeof LayoutDashboard;
-  label: string;
+  /** messages/{locale}.json 의 nav.* 키 — useTranslations("nav") 로 룩업 */
+  labelKey: string;
   requiredFeature?: FeatureKey;
   badgeKey?: "agencyAlerts";
 }
 
 interface NavGroup {
   key: string;
-  label: string;
+  /** messages/{locale}.json 의 nav.groups.* 키 */
+  labelKey: string;
   icon: typeof ClipboardList;
   defaultOpen: boolean;
   items: NavItem[];
@@ -61,70 +64,71 @@ interface NavGroup {
 const NAV_GROUPS: NavGroup[] = [
   {
     key: "operations",
-    label: "현장 운영",
+    labelKey: "groups.operations",
     icon: ClipboardList,
     defaultOpen: true,
     items: [
-      { href: "/dashboard", icon: LayoutDashboard, label: "대시보드" },
-      { href: "/sites", icon: Building2, label: "현장 관리" },
-      { href: "/schedule", icon: CalendarDays, label: "일정 관리" },
-      { href: "/construction", icon: Hammer, label: "시공 관리" },
-      { href: "/daily-logs", icon: ClipboardList, label: "업무일지" },
-      { href: "/defects", icon: ShieldAlert, label: "하자 관리" },
-      { href: "/materials", icon: Package, label: "자재 관리", requiredFeature: "materialsManagement" },
-      { href: "/workers", icon: HardHat, label: "작업자 관리", requiredFeature: "workersManagement" },
+      { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
+      { href: "/sites", icon: Building2, labelKey: "sites" },
+      { href: "/schedule", icon: CalendarDays, labelKey: "schedule" },
+      { href: "/construction", icon: Hammer, labelKey: "construction" },
+      { href: "/daily-logs", icon: ClipboardList, labelKey: "dailyLogs" },
+      { href: "/defects", icon: ShieldAlert, labelKey: "defects" },
+      { href: "/materials", icon: Package, labelKey: "materials", requiredFeature: "materialsManagement" },
+      { href: "/workers", icon: HardHat, labelKey: "workers", requiredFeature: "workersManagement" },
     ],
   },
   {
     key: "money",
-    label: "돈 관리",
+    labelKey: "groups.money",
     icon: Wallet,
     defaultOpen: true,
     items: [
-      { href: "/contracts", icon: FileCheck, label: "계약 관리" },
-      { href: "/expenses", icon: Receipt, label: "지출 관리" },
-      { href: "/settlement", icon: BarChart3, label: "정산 리포트" },
-      { href: "/tax", icon: Calculator, label: "세무/회계" },
+      { href: "/contracts", icon: FileCheck, labelKey: "contracts" },
+      { href: "/expenses", icon: Receipt, labelKey: "expenses" },
+      { href: "/settlement", icon: BarChart3, labelKey: "settlement" },
+      { href: "/tax", icon: Calculator, labelKey: "tax" },
     ],
   },
   {
     key: "tools",
-    label: "도구",
+    labelKey: "groups.tools",
     icon: Wrench,
     defaultOpen: false,
     items: [
-      { href: "/customers", icon: Users, label: "고객 관리" },
-      { href: "/estimates", icon: FileText, label: "견적 관리" },
-      { href: "/estimates/coach", icon: Sparkles, label: "견적코치 AI" },
-      { href: "/specbook", icon: ClipboardList, label: "스펙북" },
-      { href: "/marketing", icon: Megaphone, label: "마케팅", requiredFeature: "marketingAutomation" },
-      { href: "/settings", icon: Settings, label: "설정" },
+      { href: "/customers", icon: Users, labelKey: "customers" },
+      { href: "/estimates", icon: FileText, labelKey: "estimates" },
+      { href: "/estimates/coach", icon: Sparkles, labelKey: "estimatesCoach" },
+      { href: "/specbook", icon: ClipboardList, labelKey: "specbook" },
+      { href: "/marketing", icon: Megaphone, labelKey: "marketing", requiredFeature: "marketingAutomation" },
+      { href: "/settings", icon: Settings, labelKey: "settings" },
     ],
   },
   {
     key: "agency",
-    label: "마케팅 대행",
+    labelKey: "groups.agency",
     icon: Megaphone,
     defaultOpen: false,
     operatorOnly: true,
     items: [
-      { href: "/agency", icon: LayoutDashboard, label: "대행 대시보드" },
-      { href: "/agency/clients", icon: Users, label: "클라이언트" },
-      { href: "/agency/jobs", icon: FileText, label: "콘텐츠 잡" },
-      { href: "/agency/alerts", icon: BarChart3, label: "알림", badgeKey: "agencyAlerts" },
+      { href: "/agency", icon: LayoutDashboard, labelKey: "agencyDashboard" },
+      { href: "/agency/clients", icon: Users, labelKey: "agencyClients" },
+      { href: "/agency/jobs", icon: FileText, labelKey: "agencyJobs" },
+      { href: "/agency/alerts", icon: BarChart3, labelKey: "agencyAlerts", badgeKey: "agencyAlerts" },
     ],
   },
 ];
 
 const MOBILE_TABS = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "대시보드" },
-  { href: "/sites", icon: Building2, label: "현장" },
-  { href: "/schedule", icon: CalendarDays, label: "일정" },
-  { href: "/_more", icon: MoreHorizontal, label: "더보기" },
+  { href: "/dashboard", icon: LayoutDashboard, labelKey: "dashboard" },
+  { href: "/sites", icon: Building2, labelKey: "sitesShort" },
+  { href: "/schedule", icon: CalendarDays, labelKey: "scheduleShort" },
+  { href: "/_more", icon: MoreHorizontal, labelKey: "more" },
 ] as const;
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const [collapsed, setCollapsed] = useState(false);
   const { plan, checkFeature } = useSubscription();
   const { workspace } = useWorkspace();
@@ -188,7 +192,7 @@ export default function Sidebar() {
         {!collapsed && (
           <span className="flex-1 flex items-center justify-between">
             <span className="flex items-center gap-1.5">
-              {item.label}
+              {t(item.labelKey)}
               {badge > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-semibold leading-none">
                   {badge}
@@ -251,10 +255,10 @@ export default function Sidebar() {
                       "hover:text-[var(--foreground)]",
                     )}
                     aria-expanded={isOpen}
-                    aria-label={`${group.label} 그룹 ${isOpen ? "접기" : "펼치기"}`}
+                    aria-label={t(group.labelKey)}
                   >
                     <group.icon size={14} />
-                    <span className="flex-1 text-left">{group.label}</span>
+                    <span className="flex-1 text-left">{t(group.labelKey)}</span>
                     <ChevronDown
                       size={12}
                       className={cn("transition-transform", isOpen ? "" : "-rotate-90")}
@@ -311,7 +315,7 @@ export default function Sidebar() {
                   )}
                 >
                   <tab.icon size={20} />
-                  <span>{tab.label}</span>
+                  <span>{t(tab.labelKey)}</span>
                 </button>
               );
             }
@@ -327,7 +331,7 @@ export default function Sidebar() {
                 )}
               >
                 <tab.icon size={20} />
-                <span>{tab.label}</span>
+                <span>{t(tab.labelKey)}</span>
               </Link>
             );
           })}
@@ -345,7 +349,7 @@ export default function Sidebar() {
               {visibleGroups.map((group) => (
                 <div key={group.key} className="mb-4">
                   <p className="text-[10px] text-[var(--muted)] font-medium uppercase tracking-wider px-2 mb-2 flex items-center gap-1.5">
-                    <group.icon size={12} /> {group.label}
+                    <group.icon size={12} /> {t(group.labelKey)}
                   </p>
                   <div className="grid grid-cols-4 gap-2">
                     {group.items.map((item) => {
@@ -364,7 +368,7 @@ export default function Sidebar() {
                           )}
                         >
                           <item.icon size={18} />
-                          <span className="truncate">{item.label.replace(" 관리", "").replace("코치 ", "")}</span>
+                          <span className="truncate">{t(item.labelKey)}</span>
                         </Link>
                       );
                     })}

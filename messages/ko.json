@@ -1,0 +1,66 @@
+{
+  "common": {
+    "appName": "인테리어코치",
+    "loading": "불러오는 중…",
+    "save": "저장",
+    "cancel": "취소",
+    "delete": "삭제",
+    "edit": "수정",
+    "close": "닫기",
+    "confirm": "확인",
+    "back": "뒤로",
+    "next": "다음",
+    "search": "검색",
+    "add": "추가",
+    "remove": "제거",
+    "more": "더보기",
+    "all": "전체",
+    "empty": "데이터가 없습니다",
+    "yes": "예",
+    "no": "아니오"
+  },
+  "auth": {
+    "login": "로그인",
+    "logout": "로그아웃",
+    "signup": "회원가입",
+    "loginRequired": "로그인이 필요합니다"
+  },
+  "nav": {
+    "dashboard": "대시보드",
+    "sites": "현장 관리",
+    "sitesShort": "현장",
+    "schedule": "일정 관리",
+    "scheduleShort": "일정",
+    "construction": "시공 관리",
+    "dailyLogs": "업무일지",
+    "defects": "하자 관리",
+    "materials": "자재 관리",
+    "workers": "작업자 관리",
+    "contracts": "계약 관리",
+    "expenses": "지출 관리",
+    "settlement": "정산 리포트",
+    "tax": "세무/회계",
+    "customers": "고객 관리",
+    "estimates": "견적 관리",
+    "estimatesCoach": "견적코치 AI",
+    "specbook": "스펙북",
+    "marketing": "마케팅",
+    "settings": "설정",
+    "more": "더보기",
+    "agencyDashboard": "대행 대시보드",
+    "agencyClients": "클라이언트",
+    "agencyJobs": "콘텐츠 잡",
+    "agencyAlerts": "알림",
+    "groups": {
+      "operations": "현장 운영",
+      "money": "돈 관리",
+      "tools": "도구",
+      "agency": "마케팅 대행"
+    }
+  },
+  "locale": {
+    "ko": "한국어",
+    "en": "English",
+    "switchTo": "{name}(으)로 전환"
+  }
+}

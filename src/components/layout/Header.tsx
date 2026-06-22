@@ -4,6 +4,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useWorkspace } from "@/components/workspace/WorkspaceProvider";
 import PlanBadge from "@/components/subscription/PlanBadge";
+import LanguageToggle from "@/components/layout/LanguageToggle";
 import {
   Bell,
   LogOut,
@@ -167,6 +168,7 @@ export default function Header() {
 
       {/* Right */}
       <div className="flex items-center gap-3">
+        <LanguageToggle />
         <button
           onClick={toggleTheme}
           className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[var(--border)] text-[var(--muted)] transition-colors"
