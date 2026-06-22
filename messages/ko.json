@@ -108,6 +108,51 @@
       }
     }
   },
+  "header": {
+    "workspaceLabel": "워크스페이스",
+    "workspaceFallback": "워크스페이스",
+    "newWorkspace": "새 워크스페이스",
+    "searchPlaceholder": "검색...",
+    "themeToLight": "라이트 모드",
+    "themeToDark": "다크 모드",
+    "notifications": "알림",
+    "markAllRead": "모두 읽음",
+    "emptyNotifications": "알림이 없습니다",
+    "userFallback": "사용자",
+    "settingsAndPlan": "설정 / 요금제"
+  },
+  "dashboard": {
+    "page": {
+      "title": "대시보드",
+      "subtitle": "현장 운영 현황을 한눈에 확인하세요",
+      "loading": "불러오는 중..."
+    },
+    "kpi": {
+      "activeSites": "진행 중 현장",
+      "thisMonthRevenue": "이번달 매출",
+      "thisMonthExpense": "이번달 지출",
+      "thisMonthProfit": "이번달 손익",
+      "vsLastMonth": "지난달 대비",
+      "currencyUnit": "원"
+    },
+    "sections": {
+      "todoToday": "오늘 할 일",
+      "todoEmpty": "오늘 할 일이 없습니다",
+      "siteProgress": "현장 진행률",
+      "siteProgressEmpty": "진행 중인 현장이 없습니다",
+      "recentActivity": "최근 활동",
+      "recentActivityEmpty": "최근 활동이 없습니다",
+      "upcomingPayments": "다가오는 입금",
+      "upcomingPaymentsEmpty": "다가오는 입금이 없습니다",
+      "viewAll": "전체 보기"
+    },
+    "cards": {
+      "addEstimate": "견적 추가",
+      "addSite": "현장 등록",
+      "addExpense": "지출 등록",
+      "addContract": "계약 등록"
+    }
+  },
   "nav": {
     "dashboard": "대시보드",
     "sites": "현장 관리",

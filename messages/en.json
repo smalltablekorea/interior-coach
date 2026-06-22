@@ -108,6 +108,51 @@
       }
     }
   },
+  "header": {
+    "workspaceLabel": "Workspace",
+    "workspaceFallback": "Workspace",
+    "newWorkspace": "New workspace",
+    "searchPlaceholder": "Search...",
+    "themeToLight": "Light mode",
+    "themeToDark": "Dark mode",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all read",
+    "emptyNotifications": "No notifications",
+    "userFallback": "User",
+    "settingsAndPlan": "Settings / Plan"
+  },
+  "dashboard": {
+    "page": {
+      "title": "Dashboard",
+      "subtitle": "Get a one-glance view of your site operations",
+      "loading": "Loading..."
+    },
+    "kpi": {
+      "activeSites": "Active sites",
+      "thisMonthRevenue": "Revenue this month",
+      "thisMonthExpense": "Expenses this month",
+      "thisMonthProfit": "Profit this month",
+      "vsLastMonth": "vs last month",
+      "currencyUnit": "KRW"
+    },
+    "sections": {
+      "todoToday": "Today's tasks",
+      "todoEmpty": "No tasks for today",
+      "siteProgress": "Site progress",
+      "siteProgressEmpty": "No active sites",
+      "recentActivity": "Recent activity",
+      "recentActivityEmpty": "No recent activity",
+      "upcomingPayments": "Upcoming receivables",
+      "upcomingPaymentsEmpty": "No upcoming receivables",
+      "viewAll": "View all"
+    },
+    "cards": {
+      "addEstimate": "New estimate",
+      "addSite": "New site",
+      "addExpense": "Log expense",
+      "addContract": "New contract"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "sites": "Sites",

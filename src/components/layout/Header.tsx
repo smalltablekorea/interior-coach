@@ -26,6 +26,7 @@ import { useState, useRef, useEffect } from "react";
 import { useTheme } from "@/components/theme/ThemeProvider";
 import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "use-intl";
 
 interface Notification {
   id: string;
@@ -54,6 +55,8 @@ const NOTIF_COLORS = {
 // 목업 데이터 제거 — 실제 알림만 표시
 
 export default function Header() {
+  const t = useTranslations("header");
+  const tAuth = useTranslations("auth");
   const { user, signOut } = useAuth();
   const { plan } = useSubscription();
   const { workspace, workspaces, switchWorkspace } = useWorkspace();
@@ -109,7 +112,7 @@ export default function Header() {
               <Building2 size={14} className="text-[var(--green)]" />
             </div>
             <span className="text-sm font-medium hidden sm:block max-w-[140px] truncate">
-              {workspace?.name || "워크스페이스"}
+              {workspace?.name || t("workspaceFallback")}
             </span>
             <ChevronDown size={14} className="text-[var(--muted)]" />
           </button>
@@ -117,7 +120,7 @@ export default function Header() {
           {wsOpen && (
             <div className="absolute left-0 top-full mt-2 w-64 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg py-1 z-50">
               <div className="px-4 py-2 border-b border-[var(--border)]">
-                <p className="text-xs text-[var(--muted)]">워크스페이스</p>
+                <p className="text-xs text-[var(--muted)]">{t("workspaceLabel")}</p>
               </div>
               {workspaces.map((ws) => (
                 <button
@@ -148,7 +151,7 @@ export default function Header() {
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
                 >
                   <Plus size={16} />
-                  <span className="text-sm">새 워크스페이스</span>
+                  <span className="text-sm">{t("newWorkspace")}</span>
                 </button>
               </div>
             </div>
@@ -160,7 +163,7 @@ export default function Header() {
           <Search size={18} className="text-[var(--muted)]" />
           <input
             type="text"
-            placeholder="검색..."
+            placeholder={t("searchPlaceholder")}
             className="bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] focus:outline-none w-full"
           />
         </div>
@@ -172,7 +175,7 @@ export default function Header() {
         <button
           onClick={toggleTheme}
           className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[var(--border)] text-[var(--muted)] transition-colors"
-          title={theme === "dark" ? "라이트 모드" : "다크 모드"}
+          title={theme === "dark" ? t("themeToLight") : t("themeToDark")}
         >
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -197,14 +200,14 @@ export default function Header() {
           {notiOpen && (
             <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-lg overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-                <h3 className="text-sm font-semibold">알림</h3>
+                <h3 className="text-sm font-semibold">{t("notifications")}</h3>
                 <div className="flex items-center gap-2">
                   {unreadCount > 0 && (
                     <button
                       onClick={markAllRead}
                       className="text-xs text-[var(--green)] hover:underline"
                     >
-                      모두 읽음
+                      {t("markAllRead")}
                     </button>
                   )}
                   <button
@@ -219,7 +222,7 @@ export default function Header() {
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="py-12 text-center text-sm text-[var(--muted)]">
-                    알림이 없습니다
+                    {t("emptyNotifications")}
                   </div>
                 ) : (
                   notifications.map((noti) => {
@@ -281,7 +284,7 @@ export default function Header() {
               {user?.name?.charAt(0) || "?"}
             </div>
             <span className="text-sm hidden sm:block">
-              {user?.name || "사용자"}
+              {user?.name || t("userFallback")}
             </span>
           </button>
 
@@ -300,14 +303,14 @@ export default function Header() {
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--muted)] hover:bg-[var(--border)] transition-colors"
               >
                 <Settings size={16} />
-                설정 / 요금제
+                {t("settingsAndPlan")}
               </Link>
               <button
                 onClick={signOut}
                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--red)] hover:bg-[var(--border)] transition-colors"
               >
                 <LogOut size={16} />
-                로그아웃
+                {tAuth("logout")}
               </button>
             </div>
           )}
