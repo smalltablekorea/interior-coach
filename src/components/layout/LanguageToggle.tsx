@@ -3,7 +3,6 @@
 import { useTransition } from "react";
 import { useLocale, useTranslations } from "use-intl";
 import { Globe, Check, ChevronDown } from "lucide-react";
-import { useRouter, usePathname } from "@/i18n/navigation";
 import { SUPPORTED_LOCALES, type Locale } from "@/i18n/routing";
 import { useState, useRef, useEffect } from "react";
 import { apiFetch } from "@/lib/api-client";
@@ -29,8 +28,6 @@ const LABELS: Record<Locale, { native: string; short: string }> = {
 export default function LanguageToggle({ iconOnly = false }: Props) {
   const locale = useLocale() as Locale;
   const t = useTranslations("locale");
-  const router = useRouter();
-  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -50,16 +47,20 @@ export default function LanguageToggle({ iconOnly = false }: Props) {
       return;
     }
     setOpen(false);
-    startTransition(() => {
-      router.replace(pathname, { locale: next });
-    });
-    // 로그인 사용자라면 서버에도 알려준다. 응답을 기다리지 않음.
+    // 1) NEXT_LOCALE 쿠키를 클라이언트에서 즉시 설정 (비로그인도 동작)
+    if (typeof document !== "undefined") {
+      document.cookie = `NEXT_LOCALE=${next}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+    }
+    // 2) 로그인 사용자면 서버에도 저장 — 응답을 기다리지 않음 (실패 무시)
     apiFetch("/api/me/locale", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ locale: next }),
-    }).catch(() => {
-      // 비로그인이면 401 — 무시. 쿠키 기반 next-intl 이 다음 SSR 부터 처리.
+    }).catch(() => {});
+    // 3) 페이지 새로고침 — 다음 SSR 이 쿠키를 읽어 messages 를 교체.
+    //    폴더 [locale]/ 마이그레이션 전이라 URL 은 그대로 유지.
+    startTransition(() => {
+      window.location.reload();
     });
   };
 

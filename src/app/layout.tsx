@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono, Source_Sans_3 } from "next/font/google";
+import { IntlProvider } from "use-intl/react";
+import { getLocale, getMessages, getNow, getTimeZone } from "next-intl/server";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
 import "./globals.css";
@@ -79,13 +81,20 @@ export const metadata: Metadata = {
 
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // i18n: 미들웨어가 결정한 locale + messages 를 가져와서 클라이언트 트리에 주입.
+  // 폴더 [locale]/ 마이그레이션 전이라 root layout 에서 직접 처리.
+  const locale = await getLocale();
+  const messages = await getMessages();
+  const now = await getNow();
+  const timeZone = await getTimeZone();
+
   return (
-    <html lang="ko">
+    <html lang={locale}>
       <head>
         {META_PIXEL_ID && (
           <>
@@ -116,10 +125,12 @@ fbq('track', 'PageView');`}
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${sourceSans.variable} antialiased`}
       >
-        <ThemeProvider>
-          {children}
-          <InAppBrowserBanner />
-        </ThemeProvider>
+        <IntlProvider locale={locale} messages={messages} now={now} timeZone={timeZone}>
+          <ThemeProvider>
+            {children}
+            <InAppBrowserBanner />
+          </ThemeProvider>
+        </IntlProvider>
       </body>
     </html>
   );

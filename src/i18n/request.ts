@@ -1,18 +1,27 @@
 import { getRequestConfig } from "next-intl/server";
+import { cookies } from "next/headers";
 import { DEFAULT_LOCALE, isSupportedLocale } from "./routing";
 
 /**
  * next-intl 의 서버측 i18n 설정.
- *   - requestLocale: 미들웨어가 URL prefix 로부터 추론한 locale
- *   - 미지원 locale 은 defaultLocale("ko") 로 폴백
- *   - messages: messages/{locale}.json 동적 import
+ *   1) URL prefix 가 있으면 그 locale 사용 (/en/sites → "en")
+ *   2) 없으면 NEXT_LOCALE 쿠키 확인 (LanguageToggle 이 굽는 값)
+ *   3) 둘 다 없으면 defaultLocale("ko")
  *
- * messages 파일이 누락된 경우(예: 빌드 시 신규 locale 추가)에도
- * 빌드가 죽지 않도록 default locale 로 한 번 더 폴백한다.
+ * 폴더 [locale]/ 마이그레이션 전이라 한국어 URL 은 prefix 없이 들어옴.
+ * 영어로 전환하면 URL 은 그대로 두고 쿠키만 바꿔, 다음 SSR 부터 영어 messages.
+ *
+ * messages 파일 누락 시 default 로 폴백 — 빌드 죽지 않게.
  */
 export default getRequestConfig(async ({ requestLocale }) => {
-  const requested = await requestLocale;
-  const locale = isSupportedLocale(requested) ? requested : DEFAULT_LOCALE;
+  const fromUrl = await requestLocale;
+  let locale: string;
+  if (isSupportedLocale(fromUrl)) {
+    locale = fromUrl;
+  } else {
+    const cookieLocale = (await cookies()).get("NEXT_LOCALE")?.value;
+    locale = isSupportedLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
+  }
 
   let messages: Record<string, unknown>;
   try {

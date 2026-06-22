@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Interior Coach",
+    "appName": "InteriorCoach",
     "loading": "Loading…",
     "save": "Save",
     "cancel": "Cancel",
@@ -42,8 +42,8 @@
     "tax": "Tax & accounting",
     "customers": "Customers",
     "estimates": "Estimates",
-    "estimatesCoach": "Estimate Coach AI",
-    "specbook": "Specbook",
+    "estimatesCoach": "EstimateCoach AI",
+    "specbook": "SpecBook",
     "marketing": "Marketing",
     "settings": "Settings",
     "more": "More",
