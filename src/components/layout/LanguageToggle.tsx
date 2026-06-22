@@ -3,8 +3,10 @@
 import { useTransition } from "react";
 import { useLocale, useTranslations } from "use-intl";
 import { Globe, Check, ChevronDown } from "lucide-react";
-import { SUPPORTED_LOCALES, type Locale } from "@/i18n/routing";
+import { useRouter, usePathname } from "@/i18n/navigation";
+import { SUPPORTED_LOCALES, DEFAULT_LOCALE, type Locale } from "@/i18n/routing";
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { apiFetch } from "@/lib/api-client";
 
 interface Props {
@@ -18,16 +20,25 @@ const LABELS: Record<Locale, { native: string; short: string }> = {
 };
 
 /**
- * 로그인 전/후 공통 헤더에 들어가는 한국어/English 토글.
+ * 헤더의 한국어/English 토글.
  *
- *  - 현재 경로·쿼리·해시를 유지한 채 locale 만 바꿔 이동 (useRouter.replace).
- *  - 로그인 사용자인 경우 PATCH /api/me/locale 도 백그라운드 호출해
- *    DB 의 preferred_locale 을 갱신한다 (실패해도 UI 전환은 진행).
- *  - 토글 직후 useTransition 으로 깜빡임 최소화.
+ * 폴더 [locale]/ 마이그레이션 이후 URL prefix 가 정답. 따라서:
+ *  - i18n router.replace 로 같은 경로에서 locale 만 갈아끼움
+ *    /sites + ko → /sites  (default 라 prefix 없음 — as-needed)
+ *    /sites + en → /en/sites
+ *    /en/sites + ko → /sites
+ *  - SSR 폴백 + DB 저장을 위해 NEXT_LOCALE 쿠키 + PATCH /api/me/locale 도 호출
+ *    (실패해도 UI 전환은 진행)
+ *
+ * router.replace 가 클라이언트 사이드 라우팅으로 URL 을 갱신 — full reload 없이
+ * locale 만 바뀌어 깜빡임 최소화. useTransition 으로 그래도 남는 작은 지연 처리.
  */
 export default function LanguageToggle({ iconOnly = false }: Props) {
   const locale = useLocale() as Locale;
   const t = useTranslations("locale");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,22 +58,36 @@ export default function LanguageToggle({ iconOnly = false }: Props) {
       return;
     }
     setOpen(false);
-    // 1) NEXT_LOCALE 쿠키를 클라이언트에서 즉시 설정 (비로그인도 동작)
+    // 1) NEXT_LOCALE 쿠키 — 외부 링크로 들어왔을 때 SSR 폴백용. 클라이언트에서 set.
     if (typeof document !== "undefined") {
+      // 만료 1년. SameSite=Lax 가 OAuth 콜백 호환.
       document.cookie = `NEXT_LOCALE=${next}; Path=/; Max-Age=${60 * 60 * 24 * 365}; SameSite=Lax`;
     }
-    // 2) 로그인 사용자면 서버에도 저장 — 응답을 기다리지 않음 (실패 무시)
+    // 2) 로그인 사용자면 서버 DB(user.preferred_locale) 에도 저장. 응답 안 기다림.
     apiFetch("/api/me/locale", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ locale: next }),
     }).catch(() => {});
-    // 3) 페이지 새로고침 — 다음 SSR 이 쿠키를 읽어 messages 를 교체.
-    //    폴더 [locale]/ 마이그레이션 전이라 URL 은 그대로 유지.
+    // 3) URL 의 locale prefix 교체 — i18n router 가 as-needed 정책에 맞게 처리.
+    //    default(ko) 로 바꾸면 prefix 제거, en 으로 바꾸면 /en/ 추가.
+    //    쿼리 보존: 현재 search 가 있으면 그대로 넘김.
+    const query: Record<string, string> = {};
+    searchParams?.forEach((v, k) => {
+      query[k] = v;
+    });
     startTransition(() => {
-      window.location.reload();
+      router.replace(
+        { pathname: pathname || "/", query },
+        { locale: next },
+      );
+      // router.replace 로 RSC 다시 가져오기 위해 새로고침 트리거.
+      // (locale 만 바뀌면 같은 경로라 RSC payload 가 재요청되지 않을 수 있음)
+      router.refresh();
     });
   };
+
+  const nextLocaleForHint = locale === DEFAULT_LOCALE ? "en" : DEFAULT_LOCALE;
 
   return (
     <div ref={containerRef} className="relative">
@@ -75,7 +100,7 @@ export default function LanguageToggle({ iconOnly = false }: Props) {
         className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--border-hover)] transition-colors ${
           pending ? "opacity-60" : ""
         }`}
-        title={t("switchTo", { name: LABELS[locale === "ko" ? "en" : "ko"].native })}
+        title={t("switchTo", { name: LABELS[nextLocaleForHint].native })}
       >
         <Globe size={12} />
         {!iconOnly && (
