@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { customers } from "@/lib/db/schema";
+import { customers, customerStatusHistory } from "@/lib/db/schema";
 import { eq, and, desc, sql, isNull } from "drizzle-orm";
 import { requireWorkspaceAuth } from "@/lib/api-auth";
 import { workspaceFilter } from "@/lib/workspace/query-helpers";
@@ -80,6 +80,21 @@ export async function POST(request: NextRequest) {
         status: validation.data.status,
       })
       .returning();
+
+    // 상담이력 시작점 — fromStatus null, toStatus 는 초기 상태값.
+    // 별도 트랜잭션 아님: 신규 고객 생성은 성공, 이력 INSERT 실패는 로그만.
+    try {
+      await db.insert(customerStatusHistory).values({
+        customerId: row.id,
+        workspaceId: auth.workspaceId,
+        fromStatus: null,
+        toStatus: row.status ?? validation.data.status,
+        changedBy: auth.userId,
+        note: null,
+      });
+    } catch (logErr) {
+      console.error("[customers POST] status history insert failed", logErr);
+    }
 
     return ok(row);
   } catch (error) {

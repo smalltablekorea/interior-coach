@@ -8,6 +8,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Phone, Mail, MapPin, Building2, FileText, FileCheck,
   Pencil, Trash2, Save, X, MessageSquare, Plus, Clock, ExternalLink, Copy, Check,
+  History, ArrowRight,
 } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
 import Modal from "@/components/ui/Modal";
@@ -60,7 +61,17 @@ interface CustomerDetail {
   contracts: ContractRef[];
 }
 
-type TabKey = "info" | "comm" | "projects";
+type TabKey = "info" | "comm" | "history" | "projects";
+
+interface StatusHistoryEntry {
+  id: string;
+  fromStatus: string | null;
+  toStatus: string;
+  note: string | null;
+  changedAt: string;
+  changedBy: string | null;
+  changedByName: string | null;
+}
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -86,6 +97,40 @@ export default function CustomerDetailPage() {
   const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const [portalGenerating, setPortalGenerating] = useState(false);
   const [portalCopied, setPortalCopied] = useState(false);
+
+  // ─── 상태 이력 ───
+  const [history, setHistory] = useState<StatusHistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyNote, setHistoryNote] = useState("");
+  const [historyNoteSaving, setHistoryNoteSaving] = useState(false);
+  const fetchHistory = () => {
+    setHistoryLoading(true);
+    apiFetch(`/api/customers/${id}/history`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        setHistory(Array.isArray(data) ? data : []);
+        setHistoryLoading(false);
+      })
+      .catch(() => setHistoryLoading(false));
+  };
+  const submitHistoryNote = async () => {
+    const note = historyNote.trim();
+    if (!note) return;
+    setHistoryNoteSaving(true);
+    try {
+      const res = await apiFetch(`/api/customers/${id}/history`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note }),
+      });
+      if (res.ok) {
+        setHistoryNote("");
+        fetchHistory();
+      }
+    } finally {
+      setHistoryNoteSaving(false);
+    }
+  };
 
   const generatePortalLink = async () => {
     setPortalGenerating(true);
@@ -138,6 +183,8 @@ export default function CustomerDetailPage() {
 
   useEffect(() => {
     if (activeTab === "comm") fetchCommLogs();
+    if (activeTab === "history") fetchHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, id]);
 
   const handleSave = async () => {
@@ -216,6 +263,7 @@ export default function CustomerDetailPage() {
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     { key: "info", label: "기본정보", icon: <Phone size={16} /> },
     { key: "comm", label: "소통기록", icon: <MessageSquare size={16} /> },
+    { key: "history", label: "상담이력", icon: <History size={16} /> },
     { key: "projects", label: "현장/계약", icon: <Building2 size={16} /> },
   ];
 
@@ -507,6 +555,118 @@ export default function CustomerDetailPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "history" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">상담 이력</h2>
+            <p className="text-xs text-[var(--muted)]">
+              상태 변경 시 자동 기록 · 메모만 따로 남길 수도 있음
+            </p>
+          </div>
+
+          {/* 메모 입력 박스 */}
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 space-y-3">
+            <p className="text-xs font-semibold text-[var(--muted)]">메모 남기기</p>
+            <textarea
+              value={historyNote}
+              onChange={(e) => setHistoryNote(e.target.value)}
+              rows={2}
+              maxLength={500}
+              placeholder=""
+              className="w-full px-3 py-2.5 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none resize-none"
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-[var(--muted)]">{historyNote.length}/500</span>
+              <button
+                type="button"
+                onClick={submitHistoryNote}
+                disabled={historyNoteSaving || !historyNote.trim()}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[var(--green)] text-black text-xs font-bold disabled:opacity-50"
+              >
+                <Plus size={12} />
+                기록 추가
+              </button>
+            </div>
+          </div>
+
+          {historyLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 rounded-xl animate-shimmer" />
+              ))}
+            </div>
+          ) : history.length === 0 ? (
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 text-center">
+              <History size={32} className="mx-auto text-[var(--muted)] mb-2" />
+              <p className="text-sm text-[var(--muted)]">아직 기록된 이력이 없습니다.</p>
+              <p className="text-[11px] text-[var(--muted)] mt-1">
+                고객 상태를 변경하거나 메모를 남기면 여기에 시간 순으로 쌓입니다.
+              </p>
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="absolute left-5 top-2 bottom-2 w-px bg-[var(--border)]" />
+              <div className="space-y-3">
+                {history.map((h) => {
+                  const isStatusChange = h.fromStatus !== null && h.fromStatus !== h.toStatus;
+                  return (
+                    <div key={h.id} className="relative flex gap-4 pl-2">
+                      <div className="w-7 h-7 rounded-full bg-[var(--card)] border-2 border-[var(--green)]/40 flex items-center justify-center z-10 shrink-0">
+                        {isStatusChange ? (
+                          <ArrowRight size={12} className="text-[var(--green)]" />
+                        ) : (
+                          <MessageSquare size={12} className="text-[var(--muted)]" />
+                        )}
+                      </div>
+                      <div className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isStatusChange ? (
+                              <>
+                                <span className="text-xs text-[var(--muted)]">상태 변경</span>
+                                {h.fromStatus && <StatusBadge status={h.fromStatus} />}
+                                <ArrowRight size={11} className="text-[var(--muted)]" />
+                                <StatusBadge status={h.toStatus} />
+                              </>
+                            ) : h.fromStatus === null ? (
+                              <>
+                                <span className="text-xs text-[var(--muted)]">최초 등록</span>
+                                <StatusBadge status={h.toStatus} />
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-xs text-[var(--muted)]">메모</span>
+                                <StatusBadge status={h.toStatus} />
+                              </>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] text-[var(--muted)] whitespace-nowrap">
+                            <Clock size={10} />
+                            {new Date(h.changedAt).toLocaleString("ko-KR", {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        </div>
+                        {h.note && (
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed mt-1">{h.note}</p>
+                        )}
+                        {h.changedByName && (
+                          <p className="text-[10px] text-[var(--muted)] mt-1.5">담당: {h.changedByName}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

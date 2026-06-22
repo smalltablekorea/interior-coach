@@ -169,6 +169,26 @@ export const customers = pgTable("customers", {
   deletedAt: timestamp("deleted_at"),
 });
 
+/**
+ * 고객 진행상태 변경 이력 — 상담 이력 타임라인.
+ *  - PUT /api/customers/[id] 가 status 를 바꿀 때 자동 INSERT
+ *  - POST /api/customers/[id]/history 로 사용자가 메모만 남길 수도 있음
+ *    (이 경우 fromStatus == toStatus 인 행으로 표시)
+ *  - fromStatus null = 최초 등록 항목
+ */
+export const customerStatusHistory = pgTable("customer_status_history", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  fromStatus: text("from_status"),
+  toStatus: text("to_status").notNull(),
+  changedBy: text("changed_by").references(() => user.id),
+  note: text("note"),
+  changedAt: timestamp("changed_at").notNull().defaultNow(),
+});
+
 // ─── 현장 관리 ───
 
 export const sites = pgTable("sites", {
