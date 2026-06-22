@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   ArrowLeft, Mail, Phone, Calendar, AlertTriangle,
   Building2, Users, FileText, Sparkles, Cpu, Layers,

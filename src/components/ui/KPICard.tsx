@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { type LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 interface KPICardProps {
   title: string;

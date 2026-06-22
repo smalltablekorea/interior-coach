@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ArrowLeft, ShieldAlert, Save, Loader2 } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 import { KoreanInput, KoreanTextarea } from "@/components/ui/KoreanInput";

@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, FileText } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import EmptyState from "@/components/ui/EmptyState";
 
 export default function TaxInvoicesPage() {

@@ -4,7 +4,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useMemo } from "react";
 import { Plus, Search, Pencil, Trash2, ArrowLeft, HardHat, CheckCircle2 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Modal from "@/components/ui/Modal";
 import EmptyState from "@/components/ui/EmptyState";
 import { fmt } from "@/lib/utils";

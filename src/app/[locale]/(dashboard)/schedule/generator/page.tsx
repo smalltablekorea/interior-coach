@@ -4,7 +4,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, MapPin, Search, Plus, X, Trash2, RefreshCw, ChevronUp, ChevronDown, Save } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Modal from "@/components/ui/Modal";
 import { cn, fmtDate } from "@/lib/utils";
 import {

@@ -5,7 +5,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import PlanBadge from "@/components/subscription/PlanBadge";
 import { PLANS, formatPrice, formatLimit } from "@/lib/plans";
 import { Crown, ExternalLink, Bell, ChevronRight, Users } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 export default function SettingsPage() {
   const { user } = useAuth();

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 export const metadata = {
   title: "환불 정책 — 인테리어코치",

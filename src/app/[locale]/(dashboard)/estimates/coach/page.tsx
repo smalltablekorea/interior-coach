@@ -3,7 +3,7 @@
 
 import { apiFetch } from "@/lib/api-client";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   ArrowLeft,
   Sparkles,

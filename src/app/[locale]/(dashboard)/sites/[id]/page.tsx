@@ -4,7 +4,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   ArrowLeft, MapPin, User, Calendar, FileText, FileCheck, Hammer,
   Receipt, Camera, Plus, Send, X, ChevronLeft, ChevronRight, MessageCircle,

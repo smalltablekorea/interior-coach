@@ -11,7 +11,7 @@ import { apiFetch } from "@/lib/api-client";
 import { KoreanInput, KoreanTextarea } from "@/components/ui/KoreanInput";
 import { fmtDate } from "@/lib/utils";
 import { SITE_STATUSES, BUILDING_TYPES } from "@/lib/constants";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 interface Site {
   id: string;

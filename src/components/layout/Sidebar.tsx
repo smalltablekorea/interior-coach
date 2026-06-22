@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useTranslations } from "use-intl";
 import {
   LayoutDashboard,

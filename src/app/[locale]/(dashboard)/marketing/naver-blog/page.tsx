@@ -3,7 +3,7 @@
 
 import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import AccountConnectionBanner from "@/components/marketing/AccountConnectionBanner";
 import {
   ArrowLeft,

@@ -8,7 +8,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api-client";
 import { fmt, fmtDate } from "@/lib/utils";
 import { TRADES, ESTIMATE_STATUSES } from "@/lib/constants";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 interface Estimate {
   id: string;

@@ -4,7 +4,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ArrowLeft, Printer, Send, CheckCircle, Pencil, Save, X, Share2, Download, History, Copy } from "lucide-react";
 import StatusBadge from "@/components/ui/StatusBadge";
 import { fmt, fmtDate } from "@/lib/utils";

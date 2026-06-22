@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ArrowRight } from "lucide-react";
 import { landingCopy } from "@/content/landing";
 import FadeIn from "../FadeIn";

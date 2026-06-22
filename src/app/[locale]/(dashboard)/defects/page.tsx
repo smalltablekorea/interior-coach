@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Plus, ShieldAlert, Search, LayoutGrid, Table as TableIcon, ChevronRight } from "lucide-react";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "@/components/ui/StatusBadge";

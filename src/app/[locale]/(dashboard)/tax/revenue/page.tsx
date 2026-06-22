@@ -4,7 +4,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useMemo } from "react";
 import { Plus, Search, Pencil, Trash2, Filter, ArrowLeft, CheckCircle2, XCircle, DollarSign } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Modal from "@/components/ui/Modal";
 import StatusBadge from "@/components/ui/StatusBadge";
 import EmptyState from "@/components/ui/EmptyState";

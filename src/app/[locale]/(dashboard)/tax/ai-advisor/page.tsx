@@ -4,7 +4,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useRef } from "react";
 import { ArrowLeft, Send, Bot, User, Loader2, MessageSquare } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import EmptyState from "@/components/ui/EmptyState";
 import UpgradeModal from "@/components/subscription/UpgradeModal";
 import { useSubscription } from "@/hooks/useSubscription";

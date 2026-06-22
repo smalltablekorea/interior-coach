@@ -3,7 +3,7 @@
 
 import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   Users, FileText, AlertCircle, BarChart3, Upload, AlertTriangle, Info,
 } from "lucide-react";

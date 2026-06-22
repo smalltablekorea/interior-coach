@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   ArrowLeft, ClipboardList, Save, Loader2, Minus, Plus,
   ImagePlus, X as XIcon, Share2,

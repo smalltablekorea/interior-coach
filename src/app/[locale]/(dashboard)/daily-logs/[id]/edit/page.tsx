@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   ArrowLeft, ClipboardList, Save, Loader2, Minus, Plus,
   ImagePlus, X as XIcon, Share2, Eye, EyeOff,

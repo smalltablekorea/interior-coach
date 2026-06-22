@@ -1,7 +1,7 @@
 "use client";
 
 import { Clock, Crown, X } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useState } from "react";
 
 interface TrialBannerProps {

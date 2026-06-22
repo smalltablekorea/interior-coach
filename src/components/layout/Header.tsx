@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "@/components/theme/ThemeProvider";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 
 interface Notification {

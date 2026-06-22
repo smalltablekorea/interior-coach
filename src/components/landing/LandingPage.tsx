@@ -11,7 +11,7 @@ import FAQSection from "./sections/FAQSection";
 import FinalCTASection from "./sections/FinalCTASection";
 import FooterSection from "./sections/FooterSection";
 import { ExpiringBlock } from "@/components/util/ExpiringBlock";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 export default function LandingPage() {
   return (

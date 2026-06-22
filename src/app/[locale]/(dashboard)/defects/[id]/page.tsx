@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ArrowLeft, ShieldAlert, Trash2, Loader2, Save } from "lucide-react";
 import Modal from "@/components/ui/Modal";
 import { KoreanTextarea } from "@/components/ui/KoreanInput";

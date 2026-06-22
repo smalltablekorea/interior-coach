@@ -4,7 +4,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { ArrowLeft, Plus, Trash2, Eye, Building2 } from "lucide-react";
 import { TRADES } from "@/lib/constants";
 import { fmt } from "@/lib/utils";

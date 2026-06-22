@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 export const metadata = {
   title: "이용약관 — 인테리어코치",

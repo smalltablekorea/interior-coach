@@ -4,7 +4,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Sparkles, RefreshCw, CheckCircle2, AlertCircle, Clock, Ban } from "lucide-react";
 
 interface Job {

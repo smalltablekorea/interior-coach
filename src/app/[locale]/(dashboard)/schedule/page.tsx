@@ -7,7 +7,7 @@ import {
   CalendarDays, ChevronLeft, ChevronRight, Building2, Hammer, Package,
   LayoutGrid, TableProperties, Check, Plus, Trash2, Sparkles, GripVertical,
 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Modal from "@/components/ui/Modal";
 
 interface SiteEvent {

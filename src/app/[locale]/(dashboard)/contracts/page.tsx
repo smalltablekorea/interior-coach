@@ -8,7 +8,7 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import { apiFetch } from "@/lib/api-client";
 import { KoreanTextarea } from "@/components/ui/KoreanInput";
 import { fmt, fmtDate, fmtShort, cn } from "@/lib/utils";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 const PAYMENT_STATUSES = ["전체", "미납", "완납", "부분납"];
 

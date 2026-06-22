@@ -4,7 +4,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import {
   ArrowLeft, Phone, Mail, MapPin, Building2, FileText, FileCheck,
   Pencil, Trash2, Save, X, MessageSquare, Plus, Clock, ExternalLink, Copy, Check,

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Check, X, ChevronDown, ArrowRight, Wallet, Clock, FileText, Lightbulb, MessageSquare, CreditCard, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useRouter } from "next/navigation";
 import { formatPrice } from "@/lib/plans";
 import { ExpiringBlock } from "@/components/util/ExpiringBlock";
