@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono, Source_Sans_3 } from "next/font/google";
-import { IntlProvider } from "use-intl/react";
+import IntlClientShell from "@/components/i18n/IntlClientShell";
 import { getLocale, getMessages, getNow, getTimeZone } from "next-intl/server";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import InAppBrowserBanner from "@/components/InAppBrowserBanner";
@@ -125,12 +125,12 @@ fbq('track', 'PageView');`}
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${sourceSans.variable} antialiased`}
       >
-        <IntlProvider locale={locale} messages={messages} now={now} timeZone={timeZone}>
+        <IntlClientShell locale={locale} messages={messages} now={now} timeZone={timeZone}>
           <ThemeProvider>
             {children}
             <InAppBrowserBanner />
           </ThemeProvider>
-        </IntlProvider>
+        </IntlClientShell>
       </body>
     </html>
   );
