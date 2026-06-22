@@ -1,4 +1,9 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
+
+// next-intl 의 server config 를 src/i18n/request.ts 에서 읽도록 연결.
+// (App Router 안에서 getRequestConfig 가 적용되는 경로)
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   // Skip static prerender errors (global-error useContext bug in Next.js 16 + React 19)
@@ -37,4 +42,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

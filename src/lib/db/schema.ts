@@ -59,6 +59,8 @@ export const user = pgTable("user", {
   companyId: uuid("company_id").references(() => companies.id),
   role: text("role").default("owner"), // owner | manager | worker
   activeWorkspaceId: uuid("active_workspace_id"), // 현재 활성 워크스페이스
+  // i18n — 로그인 사용자 언어 선호. SUPPORTED_LOCALES 값만 허용 (앱 레벨 검증).
+  preferredLocale: text("preferred_locale").notNull().default("ko"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -425,13 +427,16 @@ export const materials = pgTable("materials", {
   userId: text("user_id").references(() => user.id),
   workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
+  // i18n — 영어값. 없으면 pickLocale 헬퍼가 name 으로 폴백.
+  nameEn: text("name_en"),
   category: text("category"), // 분류
-  brand: text("brand"), // 브랜드
-  grade: text("grade"), // 등급: 일반, 중급, 고급
-  unit: text("unit"), // 개, 박스, m², 롤
+  categoryEn: text("category_en"),
+  brand: text("brand"), // 브랜드 (고유명사 — 번역 대상 제외)
+  grade: text("grade"), // 등급: 일반, 중급, 고급 (코드 매핑으로 처리)
+  unit: text("unit"), // 개, 박스, m², 롤 (코드 매핑으로 처리)
   unitPrice: integer("unit_price"),
-  supplier: text("supplier"),
-  memo: text("memo"),
+  supplier: text("supplier"), // 고유명사 — 번역 대상 제외
+  memo: text("memo"),         // 자유 입력 — 번역 대상 제외
   isStandard: boolean("is_standard").notNull().default(false), // 표준 자재 여부
   createdAt: timestamp("created_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
@@ -1401,14 +1406,17 @@ export const changeRequests = pgTable("change_requests", {
 export const cwicr_items = pgTable("cwicr_items", {
   id: uuid("id").defaultRandom().primaryKey(),
   category: text("category").notNull(),
+  categoryEn: text("category_en"), // i18n
   subcategory: text("subcategory"),
+  subcategoryEn: text("subcategory_en"), // i18n
   itemName: text("item_name").notNull(),
-  unit: text("unit").default("EA"),
+  itemNameEn: text("item_name_en"), // i18n
+  unit: text("unit").default("EA"), // 코드 매핑으로 처리
   materialCost: integer("material_cost").default(0),
   laborCost: integer("labor_cost").default(0),
   expenseCost: integer("expense_cost").default(0),
   totalUnitCost: integer("total_unit_cost").default(0),
-  region: text("region").default("전국"),
+  region: text("region").default("전국"), // 코드 매핑으로 처리
   source: text("source").default("CWICR"),
   year: integer("year").default(2026),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -1420,6 +1428,7 @@ export const cwicr_items = pgTable("cwicr_items", {
 export const gyeonjeokCategoryMap = pgTable("gyeonjeok_category_map", {
   id: uuid("id").defaultRandom().primaryKey(),
   gyeonjeokCategory: text("gyeonjeok_category").notNull(),
+  gyeonjeokCategoryEn: text("gyeonjeok_category_en"), // i18n
   cwicr_category: text("cwicr_category").notNull(),
   aliases: jsonb("aliases").$type<string[]>().default([]),
   matchConfidence: real("match_confidence").default(0.85),

@@ -1,0 +1,66 @@
+{
+  "common": {
+    "appName": "InteriorCoach",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "confirm": "OK",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "add": "Add",
+    "remove": "Remove",
+    "more": "More",
+    "all": "All",
+    "empty": "No data",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "auth": {
+    "login": "Log in",
+    "logout": "Log out",
+    "signup": "Sign up",
+    "loginRequired": "Login required"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "sites": "Sites",
+    "sitesShort": "Sites",
+    "schedule": "Schedule",
+    "scheduleShort": "Schedule",
+    "construction": "Construction",
+    "dailyLogs": "Daily logs",
+    "defects": "Defects",
+    "materials": "Materials",
+    "workers": "Workers",
+    "contracts": "Contracts",
+    "expenses": "Expenses",
+    "settlement": "Settlement",
+    "tax": "Tax & accounting",
+    "customers": "Customers",
+    "estimates": "Estimates",
+    "estimatesCoach": "EstimateCoach AI",
+    "specbook": "SpecBook",
+    "marketing": "Marketing",
+    "settings": "Settings",
+    "more": "More",
+    "agencyDashboard": "Agency dashboard",
+    "agencyClients": "Clients",
+    "agencyJobs": "Content jobs",
+    "agencyAlerts": "Alerts",
+    "groups": {
+      "operations": "Site operations",
+      "money": "Finance",
+      "tools": "Tools",
+      "agency": "Marketing agency"
+    }
+  },
+  "locale": {
+    "ko": "한국어",
+    "en": "English",
+    "switchTo": "Switch to {name}"
+  }
+}
