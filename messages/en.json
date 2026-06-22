@@ -26,7 +26,87 @@
     "login": "Log in",
     "logout": "Log out",
     "signup": "Sign up",
-    "loginRequired": "Login required"
+    "loginRequired": "Login required",
+    "tagline": "All-in-one SaaS for interior contractors",
+    "homeAria": "Home",
+    "loading": "Loading...",
+    "processing": "Processing...",
+    "form": {
+      "email": "Email",
+      "emailPlaceholder": "email@company.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "passwordHint": "Password (8+ characters)",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "companyName": "Company name",
+      "companyNamePlaceholder": "",
+      "fullName": "Your name",
+      "fullNamePlaceholder": "",
+      "phone": "Phone",
+      "phonePlaceholder": "010-0000-0000"
+    },
+    "login_": {
+      "heading": "Log in",
+      "submit": "Log in",
+      "submitting": "Logging in...",
+      "orDivider": "or",
+      "google": "Continue with Google",
+      "googlePending": "Google (coming soon)",
+      "kakao": "Continue with Kakao",
+      "kakaoPending": "Kakao (coming soon)",
+      "socialDisabledLine1": "Social login is enabled after OAuth keys are registered.",
+      "socialDisabledLine2": "Please log in with email for now.",
+      "noAccount": "Don't have an account?",
+      "signupCta": "Get started for free",
+      "errors": {
+        "expired": "Your session expired. Please log in again.",
+        "generic": "Login failed. Please try again.",
+        "invalidCredentials": "Email or password is incorrect.",
+        "google": "Google login failed. Please try again.",
+        "kakao": "Kakao login failed. Please try again.",
+        "social": "Social login failed. Please try again."
+      },
+      "social": {
+        "googleTooltipReady": "Continue with Google",
+        "googleTooltipPending": "Google OAuth configuration pending",
+        "kakaoTooltipReady": "Continue with Kakao",
+        "kakaoTooltipPending": "Kakao OAuth configuration pending"
+      }
+    },
+    "signup_": {
+      "heading": "Get started for free",
+      "submit": "Create free account",
+      "submitting": "Creating account...",
+      "trialFallback": "14-day free trial · No card required",
+      "promoBadge": "🎉 Free until July 31",
+      "promoBody": "No card required · Every Pro feature unlocked",
+      "google": "Sign up with Google",
+      "googlePending": "Google (coming soon)",
+      "kakao": "Sign up with Kakao",
+      "kakaoPending": "Kakao (coming soon)",
+      "socialDisabledLine1": "Social signup is enabled after OAuth keys are registered.",
+      "socialDisabledLine2": "Please sign up with email for now.",
+      "termsConsent": "By signing up, you agree to the Terms and Privacy Policy.",
+      "hasAccount": "Already have an account?",
+      "loginCta": "Log in",
+      "successWithWorkspace": "Account and workspace created. Redirecting to the dashboard.",
+      "successNoWorkspace": "Account created. Redirecting to workspace setup.",
+      "errors": {
+        "passwordTooShort": "Password must be at least 8 characters.",
+        "emailExists": "This email is already registered. Please log in.",
+        "generic": "Signup failed. Please try again.",
+        "google": "Google signup failed. Please try again.",
+        "kakao": "Kakao signup failed. Please try again.",
+        "social": "Social signup failed. Please try again."
+      },
+      "social": {
+        "googleTooltipReady": "Sign up with Google",
+        "googleTooltipPending": "Google OAuth configuration pending",
+        "kakaoTooltipReady": "Sign up with Kakao",
+        "kakaoTooltipPending": "Kakao OAuth configuration pending"
+      }
+    }
   },
   "nav": {
     "dashboard": "Dashboard",

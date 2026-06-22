@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { signIn } from "@/lib/auth-client";
+import { useTranslations } from "use-intl";
 
 /**
  * 로그인 직후: 기존 워크스페이스가 있으면 activeWorkspaceId 세팅 + has_workspace 쿠키 + 목적지로,
@@ -58,21 +59,27 @@ async function resolveWorkspaceAndRedirect(
   router.refresh();
 }
 
+function LoginLoadingFallback() {
+  const tAuth = useTranslations("auth");
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
+      <p className="text-sm text-[var(--muted)]">{tAuth("loading")}</p>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
-          <p className="text-sm text-[var(--muted)]">로딩 중...</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<LoginLoadingFallback />}>
       <LoginForm />
     </Suspense>
   );
 }
 
 function LoginForm() {
+  const t = useTranslations("auth.login_");
+  const tAuth = useTranslations("auth");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect =
@@ -99,9 +106,9 @@ function LoginForm() {
   const [socialLoading, setSocialLoading] = useState<"google" | "kakao" | null>(null);
   const [errorMsg, setErrorMsg] = useState(
     expired
-      ? "세션이 만료되어 다시 로그인해 주세요."
+      ? t("errors.expired")
       : urlError
-        ? "로그인에 실패했습니다. 다시 시도해주세요."
+        ? t("errors.generic")
         : "",
   );
   const [form, setForm] = useState({ email: "", password: "" });
@@ -131,15 +138,15 @@ function LoginForm() {
       if (error) {
         setErrorMsg(
           error.message === "Invalid credentials"
-            ? "이메일 또는 비밀번호가 올바르지 않습니다."
-            : error.message || "로그인에 실패했습니다.",
+            ? t("errors.invalidCredentials")
+            : error.message || t("errors.generic"),
         );
         setIsLoading(false);
         return;
       }
       await resolveWorkspaceAndRedirect(redirect, router);
     } catch {
-      setErrorMsg("로그인에 실패했습니다. 다시 시도해주세요.");
+      setErrorMsg(t("errors.generic"));
       setIsLoading(false);
     }
   }
@@ -155,12 +162,12 @@ function LoginForm() {
       if (error) {
         setErrorMsg(
           provider === "google"
-            ? "Google 로그인에 실패했습니다. 다시 시도해주세요."
-            : "카카오 로그인에 실패했습니다. 다시 시도해주세요.",
+            ? t("errors.google")
+            : t("errors.kakao"),
         );
       }
     } catch {
-      setErrorMsg("소셜 로그인에 실패했습니다. 다시 시도해주세요.");
+      setErrorMsg(t("errors.social"));
     } finally {
       setSocialLoading(null);
     }
@@ -180,16 +187,16 @@ function LoginForm() {
           <Link
             href="/"
             className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--green)]/10 emerald-glow"
-            aria-label="홈으로"
+            aria-label={tAuth("homeAria")}
           >
             <Building2 className="h-6 w-6 text-[var(--green)]" />
           </Link>
           <div className="text-center">
             <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">
-              인테리어코치
+              {tCommon("appName")}
             </h1>
             <p className="mt-1 text-sm text-[var(--muted)]">
-              인테리어 업체 현장 운영 올인원 SaaS
+              {tAuth("tagline")}
             </p>
           </div>
         </div>
@@ -197,7 +204,7 @@ function LoginForm() {
         {/* 로그인 카드 */}
         <div className="glass rounded-2xl p-8">
           <h2 className="mb-6 text-lg font-semibold text-[var(--foreground)]">
-            로그인
+            {t("heading")}
           </h2>
 
           {errorMsg && (
@@ -210,14 +217,14 @@ function LoginForm() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-sm text-[var(--muted)]">
-                이메일
+                {tAuth("form.email")}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
                 <input
                   id="email"
                   type="email"
-                  placeholder="email@company.co.kr"
+                  placeholder={tAuth("form.emailPlaceholder")}
                   className="w-full pl-10 pr-3 py-2.5 rounded-xl bg-transparent border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none focus:border-[var(--green)]/60 focus:ring-2 focus:ring-[var(--green)]/20"
                   value={form.email}
                   onChange={(e) =>
@@ -230,14 +237,14 @@ function LoginForm() {
 
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-sm text-[var(--muted)]">
-                비밀번호
+                {tAuth("form.password")}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder={tAuth("form.passwordPlaceholder")}
                   className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-transparent border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none focus:border-[var(--green)]/60 focus:ring-2 focus:ring-[var(--green)]/20"
                   value={form.password}
                   onChange={(e) =>
@@ -250,7 +257,7 @@ function LoginForm() {
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--foreground)]"
-                  aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"}
+                  aria-label={showPassword ? tAuth("form.hidePassword") : tAuth("form.showPassword")}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -266,14 +273,14 @@ function LoginForm() {
               disabled={busy}
               className="mt-2 w-full py-2.5 rounded-xl bg-[var(--green)] text-black font-semibold hover:bg-[var(--green-hover)] transition-colors disabled:opacity-50"
             >
-              {isLoading ? "로그인 중..." : "로그인"}
+              {isLoading ? t("submitting") : t("submit")}
             </button>
           </form>
 
           {/* Divider */}
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-[var(--border)]" />
-            <span className="text-xs text-[var(--muted)]">또는</span>
+            <span className="text-xs text-[var(--muted)]">{t("orDivider")}</span>
             <div className="h-px flex-1 bg-[var(--border)]" />
           </div>
 
@@ -283,11 +290,11 @@ function LoginForm() {
               type="button"
               onClick={() => providers.google && handleSocial("google")}
               disabled={busy || !providers.google}
-              title={providers.google ? "Google로 계속하기" : "Google OAuth 설정 준비 중"}
+              title={providers.google ? t("social.googleTooltipReady") : t("social.googleTooltipPending")}
               className="w-full py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium text-[var(--foreground)] hover:bg-white/[0.04] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {socialLoading === "google" ? (
-                <span>처리 중...</span>
+                <span>{tAuth("processing")}</span>
               ) : (
                 <>
                   <svg width="18" height="18" viewBox="0 0 24 24">
@@ -308,7 +315,7 @@ function LoginForm() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  {providers.google ? "Google로 계속하기" : "Google (준비 중)"}
+                  {providers.google ? t("google") : t("googlePending")}
                 </>
               )}
             </button>
@@ -317,11 +324,11 @@ function LoginForm() {
               type="button"
               onClick={() => providers.kakao && handleSocial("kakao")}
               disabled={busy || !providers.kakao}
-              title={providers.kakao ? "카카오로 계속하기" : "카카오 OAuth 설정 준비 중"}
+              title={providers.kakao ? t("social.kakaoTooltipReady") : t("social.kakaoTooltipPending")}
               className="w-full py-2.5 rounded-xl bg-[#FEE500] text-[#191919] text-sm font-medium hover:bg-[#FDD835] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {socialLoading === "kakao" ? (
-                <span>처리 중...</span>
+                <span>{tAuth("processing")}</span>
               ) : (
                 <>
                   <svg width="18" height="18" viewBox="0 0 24 24">
@@ -330,27 +337,27 @@ function LoginForm() {
                       d="M12 3C6.48 3 2 6.58 2 10.94c0 2.8 1.86 5.27 4.66 6.67-.15.54-.96 3.47-1 3.64 0 0-.02.08.04.11.06.03.13 0 .13 0 .67-.1 3.87-2.54 4.48-2.97.55.08 1.12.12 1.69.12 5.52 0 10-3.58 10-7.94S17.52 3 12 3z"
                     />
                   </svg>
-                  {providers.kakao ? "카카오로 계속하기" : "카카오 (준비 중)"}
+                  {providers.kakao ? t("kakao") : t("kakaoPending")}
                 </>
               )}
             </button>
 
             {(!providers.google || !providers.kakao) && (
               <p className="text-[11px] text-[var(--muted)] text-center leading-relaxed pt-1">
-                소셜 로그인은 OAuth 키 등록 후 활성화됩니다. <br />
-                지금은 이메일로 로그인해 주세요.
+                {t("socialDisabledLine1")} <br />
+                {t("socialDisabledLine2")}
               </p>
             )}
           </div>
         </div>
 
         <p className="mt-6 text-center text-sm text-[var(--muted)]">
-          계정이 없으신가요?{" "}
+          {t("noAccount")}{" "}
           <Link
             href={`/auth/signup${redirect !== "/dashboard" ? `?callbackUrl=${encodeURIComponent(redirect)}` : ""}`}
             className="text-[var(--green)] hover:underline font-medium"
           >
-            무료로 시작하기
+            {t("signupCta")}
           </Link>
         </p>
       </div>

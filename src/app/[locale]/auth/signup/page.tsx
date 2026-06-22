@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { signIn, signUp } from "@/lib/auth-client";
 import { ExpiringBlock } from "@/components/util/ExpiringBlock";
+import { useTranslations } from "use-intl";
 
 /**
  * 회원가입 직후: 워크스페이스가 없으면 setup?tab=create 로 보내 업체명 입력.
@@ -59,21 +60,27 @@ async function resolveWorkspaceAndRedirect(
   router.push("/workspace/setup?tab=create");
 }
 
+function SignupLoadingFallback() {
+  const tAuth = useTranslations("auth");
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-sm text-[var(--muted)]">{tAuth("loading")}</p>
+    </div>
+  );
+}
+
 export default function SignupPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <p className="text-sm text-[var(--muted)]">로딩 중...</p>
-        </div>
-      }
-    >
+    <Suspense fallback={<SignupLoadingFallback />}>
       <SignupForm />
     </Suspense>
   );
 }
 
 function SignupForm() {
+  const t = useTranslations("auth.signup_");
+  const tAuth = useTranslations("auth");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect =
@@ -111,7 +118,7 @@ function SignupForm() {
     setSuccessMsg("");
 
     if (form.password.length < 8) {
-      setErrorMsg("비밀번호는 8자 이상이어야 합니다.");
+      setErrorMsg(t("errors.passwordTooShort"));
       setIsLoading(false);
       return;
     }
@@ -125,8 +132,8 @@ function SignupForm() {
       if (res.error) {
         setErrorMsg(
           res.error.message?.toLowerCase().includes("already")
-            ? "이미 등록된 이메일입니다. 로그인해 주세요."
-            : res.error.message || "회원가입에 실패했습니다. 다시 시도해주세요.",
+            ? t("errors.emailExists")
+            : res.error.message || t("errors.generic"),
         );
         setIsLoading(false);
         return;
@@ -160,14 +167,14 @@ function SignupForm() {
 
       setSuccessMsg(
         workspaceCreated
-          ? "계정과 워크스페이스가 생성되었습니다. 대시보드로 이동합니다."
-          : "계정이 생성되었습니다. 워크스페이스 설정으로 이동합니다.",
+          ? t("successWithWorkspace")
+          : t("successNoWorkspace"),
       );
       setTimeout(() => {
         resolveWorkspaceAndRedirect(redirect, router);
       }, 800);
     } catch {
-      setErrorMsg("회원가입에 실패했습니다. 다시 시도해주세요.");
+      setErrorMsg(t("errors.generic"));
       setIsLoading(false);
     }
   }
@@ -180,12 +187,12 @@ function SignupForm() {
       if (res.error) {
         setErrorMsg(
           provider === "google"
-            ? "Google 가입에 실패했습니다. 다시 시도해주세요."
-            : "카카오 가입에 실패했습니다. 다시 시도해주세요.",
+            ? t("errors.google")
+            : t("errors.kakao"),
         );
       }
     } catch {
-      setErrorMsg("소셜 가입에 실패했습니다. 다시 시도해주세요.");
+      setErrorMsg(t("errors.social"));
     } finally {
       setSocialLoading(null);
     }
@@ -196,32 +203,32 @@ function SignupForm() {
   const fields = [
     {
       id: "companyName",
-      label: "업체명",
-      placeholder: "스몰테이블디자인그룹",
+      label: tAuth("form.companyName"),
+      placeholder: tAuth("form.companyNamePlaceholder"),
       icon: Building2,
       key: "companyName" as const,
       type: "text",
     },
     {
       id: "name",
-      label: "담당자 이름",
-      placeholder: "홍길동",
+      label: tAuth("form.fullName"),
+      placeholder: tAuth("form.fullNamePlaceholder"),
       icon: User,
       key: "name" as const,
       type: "text",
     },
     {
       id: "phone",
-      label: "연락처",
-      placeholder: "010-1234-5678",
+      label: tAuth("form.phone"),
+      placeholder: tAuth("form.phonePlaceholder"),
       icon: Phone,
       key: "phone" as const,
       type: "tel",
     },
     {
       id: "email",
-      label: "이메일",
-      placeholder: "email@company.co.kr",
+      label: tAuth("form.email"),
+      placeholder: tAuth("form.emailPlaceholder"),
       icon: Mail,
       key: "email" as const,
       type: "email",
@@ -242,21 +249,21 @@ function SignupForm() {
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold tracking-tight text-[var(--foreground)]">
-              인테리어코치
+              {tCommon("appName")}
             </h1>
             <ExpiringBlock
               until="2026-08-01T00:00:00+09:00"
               fallback={
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  14일 무료 체험 · 카드 등록 불필요
+                  {t("trialFallback")}
                 </p>
               }
             >
               <p className="mt-1 text-sm text-[var(--green)] font-medium">
-                🎉 7/31까지 전체 기능 무료
+                {t("promoBadge")}
               </p>
               <p className="mt-0.5 text-xs text-[var(--muted)]">
-                카드 등록 불필요 · 모든 Pro 기능 즉시 사용
+                {t("promoBody")}
               </p>
             </ExpiringBlock>
           </div>
@@ -265,7 +272,7 @@ function SignupForm() {
         {/* 가입 카드 */}
         <div className="glass rounded-2xl p-8">
           <h2 className="mb-6 text-lg font-semibold text-[var(--foreground)]">
-            무료로 시작하기
+            {t("heading")}
           </h2>
 
           {errorMsg && (
@@ -306,14 +313,14 @@ function SignupForm() {
 
             <div className="flex flex-col gap-2">
               <label htmlFor="password" className="text-sm text-[var(--muted)]">
-                비밀번호 (8자 이상)
+                {tAuth("form.passwordHint")}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]" />
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
+                  placeholder={tAuth("form.passwordPlaceholder")}
                   className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-transparent border border-[var(--border)] text-sm text-[var(--foreground)] placeholder:text-[var(--muted)]/70 focus:outline-none focus:border-[var(--green)]/60 focus:ring-2 focus:ring-[var(--green)]/20"
                   value={form.password}
                   onChange={(e) =>
@@ -326,7 +333,7 @@ function SignupForm() {
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--muted)] hover:text-[var(--foreground)]"
-                  aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 표시"}
+                  aria-label={showPassword ? tAuth("form.hidePassword") : tAuth("form.showPassword")}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -342,14 +349,14 @@ function SignupForm() {
               disabled={busy}
               className="mt-2 w-full py-2.5 rounded-xl bg-[var(--green)] text-black font-semibold hover:bg-[var(--green-hover)] transition-colors disabled:opacity-50"
             >
-              {isLoading ? "계정 생성 중..." : "무료 회원가입"}
+              {isLoading ? t("submitting") : t("submit")}
             </button>
           </form>
 
           {/* Divider */}
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-[var(--border)]" />
-            <span className="text-xs text-[var(--muted)]">또는</span>
+            <span className="text-xs text-[var(--muted)]">{tAuth("login_.orDivider")}</span>
             <div className="h-px flex-1 bg-[var(--border)]" />
           </div>
 
@@ -359,11 +366,11 @@ function SignupForm() {
               type="button"
               onClick={() => providers.google && handleSocial("google")}
               disabled={busy || !providers.google}
-              title={providers.google ? "Google로 시작하기" : "Google OAuth 설정 준비 중"}
+              title={providers.google ? t("social.googleTooltipReady") : t("social.googleTooltipPending")}
               className="w-full py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium text-[var(--foreground)] hover:bg-white/[0.04] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {socialLoading === "google" ? (
-                <span>처리 중...</span>
+                <span>{tAuth("processing")}</span>
               ) : (
                 <>
                   <svg width="18" height="18" viewBox="0 0 24 24">
@@ -384,7 +391,7 @@ function SignupForm() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                     />
                   </svg>
-                  {providers.google ? "Google로 시작하기" : "Google (준비 중)"}
+                  {providers.google ? t("google") : t("googlePending")}
                 </>
               )}
             </button>
@@ -393,11 +400,11 @@ function SignupForm() {
               type="button"
               onClick={() => providers.kakao && handleSocial("kakao")}
               disabled={busy || !providers.kakao}
-              title={providers.kakao ? "카카오로 시작하기" : "카카오 OAuth 설정 준비 중"}
+              title={providers.kakao ? t("social.kakaoTooltipReady") : t("social.kakaoTooltipPending")}
               className="w-full py-2.5 rounded-xl bg-[#FEE500] text-[#191919] text-sm font-medium hover:bg-[#FDD835] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {socialLoading === "kakao" ? (
-                <span>처리 중...</span>
+                <span>{tAuth("processing")}</span>
               ) : (
                 <>
                   <svg width="18" height="18" viewBox="0 0 24 24">
@@ -406,31 +413,31 @@ function SignupForm() {
                       d="M12 3C6.48 3 2 6.58 2 10.94c0 2.8 1.86 5.27 4.66 6.67-.15.54-.96 3.47-1 3.64 0 0-.02.08.04.11.06.03.13 0 .13 0 .67-.1 3.87-2.54 4.48-2.97.55.08 1.12.12 1.69.12 5.52 0 10-3.58 10-7.94S17.52 3 12 3z"
                     />
                   </svg>
-                  {providers.kakao ? "카카오로 시작하기" : "카카오 (준비 중)"}
+                  {providers.kakao ? t("kakao") : t("kakaoPending")}
                 </>
               )}
             </button>
 
             {(!providers.google || !providers.kakao) && (
               <p className="text-[11px] text-[var(--muted)] text-center leading-relaxed pt-1">
-                소셜 가입은 OAuth 키 등록 후 활성화됩니다. <br />
-                지금은 이메일로 가입해 주세요.
+                {t("socialDisabledLine1")} <br />
+                {t("socialDisabledLine2")}
               </p>
             )}
           </div>
 
           <p className="mt-5 text-center text-xs text-[var(--muted)]">
-            가입 시 이용약관 및 개인정보처리방침에 동의합니다
+            {t("termsConsent")}
           </p>
         </div>
 
         <p className="mt-6 text-center text-sm text-[var(--muted)]">
-          이미 계정이 있으신가요?{" "}
+          {t("hasAccount")}{" "}
           <Link
             href={`/auth/login${redirect !== "/dashboard" ? `?callbackUrl=${encodeURIComponent(redirect)}` : ""}`}
             className="text-[var(--green)] hover:underline font-medium"
           >
-            로그인
+            {t("loginCta")}
           </Link>
         </p>
       </div>
