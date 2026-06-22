@@ -12,15 +12,17 @@ import FinalCTASection from "./sections/FinalCTASection";
 import FooterSection from "./sections/FooterSection";
 import { ExpiringBlock } from "@/components/util/ExpiringBlock";
 import { Link } from "@/i18n/navigation";
+import { getTranslations } from "next-intl/server";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const t = await getTranslations("landing");
   return (
     <div className="landing-premium min-h-screen">
       <LandingTracker />
       <ExpiringBlock until="2026-08-01T00:00:00+09:00">
         <div className="bg-[var(--green)] text-black text-center text-sm py-2 px-4 font-medium">
-          🎉 7월 31일까지 전체 기능 무료 — 카드 등록 없이 가입만 하면 모든 Pro 기능 사용 가능 ·
-          <Link href="/auth/signup" className="underline ml-1 font-semibold">지금 시작하기 →</Link>
+          {t("freePeriodBanner")}
+          <Link href="/auth/signup" className="underline ml-1 font-semibold">{t("freePeriodCta")}</Link>
         </div>
       </ExpiringBlock>
       <LandingNav />

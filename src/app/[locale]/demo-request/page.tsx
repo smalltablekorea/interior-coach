@@ -1,23 +1,25 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { ArrowLeft } from "lucide-react";
 import DemoRequestForm from "./DemoRequestForm";
 
-export const metadata: Metadata = {
-  title: "데모 신청 | 인테리어코치",
-  description:
-    "30분 라이브 데모. 현장 운영 워크플로우를 직접 보여드립니다. 카드 등록 불필요.",
-  openGraph: {
-    title: "데모 신청 | 인테리어코치",
-    description:
-      "인테리어 업체 현장 운영 올인원 SaaS. 30분 라이브 데모로 직접 확인하세요.",
-  },
-  alternates: {
-    canonical: "/demo-request",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("demoRequest.meta");
+  return {
+    title: t("title"),
+    description: t("description"),
+    openGraph: {
+      title: t("ogTitle"),
+      description: t("ogDescription"),
+    },
+    alternates: { canonical: "/demo-request" },
+  };
+}
 
-export default function DemoRequestPage() {
+export default async function DemoRequestPage() {
+  const t = await getTranslations("demoRequest");
+  const tCommon = await getTranslations("common");
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <header className="border-b border-[var(--border)]">
@@ -26,10 +28,10 @@ export default function DemoRequestPage() {
             href="/"
             className="inline-flex items-center gap-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
           >
-            <ArrowLeft size={16} /> 홈으로
+            <ArrowLeft size={16} /> {tCommon("backToHome")}
           </Link>
           <span className="text-sm font-bold text-[var(--green)]">
-            인테리어코치
+            {tCommon("appName")}
           </span>
         </div>
       </header>
@@ -37,17 +39,17 @@ export default function DemoRequestPage() {
       <main className="max-w-2xl mx-auto px-6 py-16 md:py-24">
         <div className="text-center mb-10 md:mb-12">
           <p className="text-sm font-semibold text-[var(--green)] mb-3">
-            30분 라이브 데모
+            {t("badge")}
           </p>
           <h1 className="text-3xl md:text-5xl font-black leading-tight">
-            현장에 꼭 맞는지
+            {t("headingLine1")}
             <br />
-            먼저 확인하세요
+            {t("headingLine2")}
           </h1>
           <p className="mt-5 text-[var(--muted)] leading-relaxed">
-            대표가 직접 데모를 진행합니다. 현재 운영 방식에 맞춰
+            {t("subheadingLine1")}
             <br />
-            어떻게 쓰면 되는지 30분 안에 보여드립니다.
+            {t("subheadingLine2")}
           </p>
         </div>
 

@@ -1,61 +1,62 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { getTranslations } from "next-intl/server";
 import LandingPage from "@/components/landing/LandingPage";
 
-export const metadata: Metadata = {
-  title: "인테리어코치 | 인테리어 업체 현장 운영 올인원 SaaS",
-  description:
-    "공정 매니저·견적·계약·지출·정산·세무까지 한 곳에서. 인테리어 업체 전용 통합 운영 SaaS.",
-  openGraph: {
-    title: "인테리어코치 | 인테리어 업체 현장 운영 올인원 SaaS",
-    description:
-      "공정 매니저·견적·계약·지출·정산·세무를 한 화면에서 관리하세요. 14일 무료, 카드 등록 불필요.",
-    type: "website",
-    locale: "ko_KR",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "인테리어코치",
-    description: "현장 운영 올인원 SaaS",
-  },
-  alternates: {
-    canonical: "/",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("landing.meta");
+  const tCommon = await getTranslations("common");
+  return {
+    title: t("title"),
+    description: t("description"),
+    openGraph: {
+      title: t("title"),
+      description: t("ogDescription"),
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: tCommon("appName"),
+      description: t("twitterDescription"),
+    },
+    alternates: { canonical: "/" },
+  };
+}
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || "https://www.interiorcoach.co.kr";
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "인테리어코치",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  description:
-    "인테리어 업체를 위한 현장 운영 올인원 SaaS. 공정·견적·계약·정산 통합 관리.",
-  offers: {
-    "@type": "AggregateOffer",
-    priceCurrency: "KRW",
-    lowPrice: "0",
-    highPrice: "990000",
-    offerCount: "3",
-  },
-  creator: {
-    "@type": "Organization",
-    name: "스몰테이블디자인그룹",
-    url: SITE_URL,
-  },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "4.8",
-    ratingCount: "127",
-    bestRating: "5",
-    worstRating: "1",
-  },
-};
+export default async function Page() {
+  const t = await getTranslations("landing.meta");
+  const tCommon = await getTranslations("common");
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: tCommon("appName"),
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    description: t("jsonLdDescription"),
+    offers: {
+      "@type": "AggregateOffer",
+      priceCurrency: "KRW",
+      lowPrice: "0",
+      highPrice: "990000",
+      offerCount: "3",
+    },
+    creator: {
+      "@type": "Organization",
+      name: "스몰테이블디자인그룹",
+      url: SITE_URL,
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.8",
+      ratingCount: "127",
+      bestRating: "5",
+      worstRating: "1",
+    },
+  };
 
-export default function Page() {
   return (
     <>
       <Script

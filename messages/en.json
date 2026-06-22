@@ -17,7 +17,10 @@
     "all": "All",
     "empty": "No data",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "backToHome": "Back to home",
+    "submitting": "Sending...",
+    "submit": "Submit"
   },
   "auth": {
     "login": "Log in",
@@ -62,5 +65,50 @@
     "ko": "한국어",
     "en": "English",
     "switchTo": "Switch to {name}"
+  },
+  "landing": {
+    "meta": {
+      "title": "InteriorCoach | All-in-one SaaS for interior contractors",
+      "description": "Project management, estimates, contracts, expenses, settlement, and tax — all in one place. Built for interior contractors.",
+      "ogDescription": "Run your projects, estimates, contracts, expenses, settlement, and tax on a single screen. 14-day free trial, no card required.",
+      "twitterDescription": "All-in-one SaaS for site operations",
+      "jsonLdDescription": "All-in-one SaaS for interior contractors. Manage projects, estimates, contracts, and settlement in one place."
+    },
+    "freePeriodBanner": "🎉 Free until July 31 — every Pro feature, no card required ·",
+    "freePeriodCta": "Start now →"
+  },
+  "demoRequest": {
+    "meta": {
+      "title": "Request a demo | InteriorCoach",
+      "description": "30-minute live demo. We will walk you through the on-site workflow. No card required.",
+      "ogTitle": "Request a demo | InteriorCoach",
+      "ogDescription": "All-in-one SaaS for interior contractors. See it in a 30-minute live demo."
+    },
+    "badge": "30-minute live demo",
+    "headingLine1": "See if it fits",
+    "headingLine2": "your sites first",
+    "subheadingLine1": "Our founder runs the demo. Tailored to your current workflow,",
+    "subheadingLine2": "we show you how to use it in 30 minutes.",
+    "successTitle": "Demo request received",
+    "successLine1": "Our team will reach out within a day.",
+    "successLine2": "Share a convenient time and we will work around it.",
+    "form": {
+      "name": "Name",
+      "company": "Company",
+      "phone": "Phone",
+      "phonePlaceholder": "010-0000-0000",
+      "email": "Email",
+      "sitesLabel": "Active sites",
+      "sitesOption1to3": "1–3",
+      "sitesOption4to10": "4–10",
+      "sitesOption11to30": "11–30",
+      "sitesOption30plus": "30+",
+      "messageLabel": "Something specific to solve? (optional)",
+      "messagePlaceholder": "e.g. Replace Excel schedules, automate client comms…",
+      "submit": "Submit demo request",
+      "submitting": "Sending...",
+      "submitAria": "Submit demo request",
+      "errorMessage": "Submission failed. Please try again shortly."
+    }
   }
 }

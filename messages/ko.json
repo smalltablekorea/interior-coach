@@ -17,7 +17,10 @@
     "all": "전체",
     "empty": "데이터가 없습니다",
     "yes": "예",
-    "no": "아니오"
+    "no": "아니오",
+    "backToHome": "홈으로",
+    "submitting": "전송 중...",
+    "submit": "제출"
   },
   "auth": {
     "login": "로그인",
@@ -62,5 +65,50 @@
     "ko": "한국어",
     "en": "English",
     "switchTo": "{name}(으)로 전환"
+  },
+  "landing": {
+    "meta": {
+      "title": "인테리어코치 | 인테리어 업체 현장 운영 올인원 SaaS",
+      "description": "공정 매니저·견적·계약·지출·정산·세무까지 한 곳에서. 인테리어 업체 전용 통합 운영 SaaS.",
+      "ogDescription": "공정 매니저·견적·계약·지출·정산·세무를 한 화면에서 관리하세요. 14일 무료, 카드 등록 불필요.",
+      "twitterDescription": "현장 운영 올인원 SaaS",
+      "jsonLdDescription": "인테리어 업체를 위한 현장 운영 올인원 SaaS. 공정·견적·계약·정산 통합 관리."
+    },
+    "freePeriodBanner": "🎉 7월 31일까지 전체 기능 무료 — 카드 등록 없이 가입만 하면 모든 Pro 기능 사용 가능 ·",
+    "freePeriodCta": "지금 시작하기 →"
+  },
+  "demoRequest": {
+    "meta": {
+      "title": "데모 신청 | 인테리어코치",
+      "description": "30분 라이브 데모. 현장 운영 워크플로우를 직접 보여드립니다. 카드 등록 불필요.",
+      "ogTitle": "데모 신청 | 인테리어코치",
+      "ogDescription": "인테리어 업체 현장 운영 올인원 SaaS. 30분 라이브 데모로 직접 확인하세요."
+    },
+    "badge": "30분 라이브 데모",
+    "headingLine1": "현장에 꼭 맞는지",
+    "headingLine2": "먼저 확인하세요",
+    "subheadingLine1": "대표가 직접 데모를 진행합니다. 현재 운영 방식에 맞춰",
+    "subheadingLine2": "어떻게 쓰면 되는지 30분 안에 보여드립니다.",
+    "successTitle": "데모 신청 완료",
+    "successLine1": "하루 안에 담당자가 연락드립니다.",
+    "successLine2": "편하신 시간 알려주시면 맞춰드릴게요.",
+    "form": {
+      "name": "이름",
+      "company": "업체명",
+      "phone": "연락처",
+      "phonePlaceholder": "010-0000-0000",
+      "email": "이메일",
+      "sitesLabel": "현재 운영 현장 수",
+      "sitesOption1to3": "1~3개",
+      "sitesOption4to10": "4~10개",
+      "sitesOption11to30": "11~30개",
+      "sitesOption30plus": "30개 이상",
+      "messageLabel": "특별히 해결하고 싶은 것 (선택)",
+      "messagePlaceholder": "예: 엑셀 공정표 대체, 고객 응대 자동화…",
+      "submit": "데모 신청 제출",
+      "submitting": "전송 중...",
+      "submitAria": "데모 신청 제출",
+      "errorMessage": "전송에 실패했습니다. 잠시 후 다시 시도해주세요."
+    }
   }
 }

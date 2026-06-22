@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { CheckCircle2, Send } from "lucide-react";
+import { useTranslations } from "use-intl";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
 export default function DemoRequestForm() {
+  const t = useTranslations("demoRequest");
   const [status, setStatus] = useState<Status>("idle");
   const [form, setForm] = useState({
     name: "",
@@ -38,11 +40,11 @@ export default function DemoRequestForm() {
           className="text-[var(--green)] mx-auto mb-4"
           aria-hidden
         />
-        <h2 className="text-xl md:text-2xl font-bold">데모 신청 완료</h2>
+        <h2 className="text-xl md:text-2xl font-bold">{t("successTitle")}</h2>
         <p className="mt-3 text-sm text-[var(--muted)] leading-relaxed">
-          하루 안에 담당자가 연락드립니다.
+          {t("successLine1")}
           <br />
-          편하신 시간 알려주시면 맞춰드릴게요.
+          {t("successLine2")}
         </p>
       </div>
     );
@@ -55,27 +57,27 @@ export default function DemoRequestForm() {
     >
       <div className="grid sm:grid-cols-2 gap-4">
         <Field
-          label="이름"
+          label={t("form.name")}
           required
           value={form.name}
           onChange={(v) => setForm({ ...form, name: v })}
         />
         <Field
-          label="업체명"
+          label={t("form.company")}
           required
           value={form.company}
           onChange={(v) => setForm({ ...form, company: v })}
         />
         <Field
-          label="연락처"
+          label={t("form.phone")}
           type="tel"
           required
           value={form.phone}
           onChange={(v) => setForm({ ...form, phone: v })}
-          placeholder="010-0000-0000"
+          placeholder={t("form.phonePlaceholder")}
         />
         <Field
-          label="이메일"
+          label={t("form.email")}
           type="email"
           required
           value={form.email}
@@ -85,30 +87,30 @@ export default function DemoRequestForm() {
 
       <div>
         <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
-          현재 운영 현장 수
+          {t("form.sitesLabel")}
         </label>
         <select
           value={form.sites}
           onChange={(e) => setForm({ ...form, sites: e.target.value })}
           className="w-full px-4 py-3 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none"
-          aria-label="현재 운영 현장 수"
+          aria-label={t("form.sitesLabel")}
         >
-          <option value="1-3">1~3개</option>
-          <option value="4-10">4~10개</option>
-          <option value="11-30">11~30개</option>
-          <option value="30+">30개 이상</option>
+          <option value="1-3">{t("form.sitesOption1to3")}</option>
+          <option value="4-10">{t("form.sitesOption4to10")}</option>
+          <option value="11-30">{t("form.sitesOption11to30")}</option>
+          <option value="30+">{t("form.sitesOption30plus")}</option>
         </select>
       </div>
 
       <div>
         <label className="block text-xs font-semibold text-[var(--muted)] mb-2">
-          특별히 해결하고 싶은 것 (선택)
+          {t("form.messageLabel")}
         </label>
         <textarea
           value={form.message}
           onChange={(e) => setForm({ ...form, message: e.target.value })}
           rows={4}
-          placeholder="예: 엑셀 공정표 대체, 고객 응대 자동화…"
+          placeholder={t("form.messagePlaceholder")}
           className="w-full px-4 py-3 rounded-xl bg-[var(--background)] border border-[var(--border)] text-sm focus:border-[var(--green)] outline-none resize-none"
         />
       </div>
@@ -116,21 +118,21 @@ export default function DemoRequestForm() {
       <button
         type="submit"
         disabled={status === "submitting"}
-        aria-label="데모 신청 제출"
+        aria-label={t("form.submitAria")}
         className="w-full inline-flex items-center justify-center gap-2 py-4 rounded-xl bg-[var(--green)] text-black font-bold disabled:opacity-60 hover:opacity-90 transition-opacity"
       >
         {status === "submitting" ? (
-          "전송 중..."
+          t("form.submitting")
         ) : (
           <>
-            데모 신청 제출 <Send size={16} />
+            {t("form.submit")} <Send size={16} />
           </>
         )}
       </button>
 
       {status === "error" && (
         <p className="text-sm text-red-400 text-center">
-          전송에 실패했습니다. 잠시 후 다시 시도해주세요.
+          {t("form.errorMessage")}
         </p>
       )}
     </form>
