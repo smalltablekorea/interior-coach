@@ -199,6 +199,96 @@
       "addSite": "New site",
       "addExpense": "Log expense",
       "addContract": "New contract"
+    },
+    "quickActions": {
+      "newProjectLabel": "New project",
+      "newProjectDesc": "Register a site",
+      "aiEstimateLabel": "AI estimate",
+      "aiEstimateDesc": "Estimate Coach",
+      "scheduleGenLabel": "Generate schedule",
+      "scheduleGenDesc": "AI Process Manager",
+      "expenseLabel": "Log expense",
+      "expenseDesc": "Record spending"
+    },
+    "errors": {
+      "loadFailed": "We couldn't load the data. Please refresh."
+    },
+    "money": {
+      "todayCollection": "Receivables today",
+      "weekCollection": "Receivables this week",
+      "overdueTotal": "Total overdue",
+      "monthExpense": "Spending this month",
+      "budgetBurn": "Budget burn",
+      "revenue": "Collected",
+      "expense": "Spent",
+      "profit": "Net profit",
+      "collectionRate": "Collection rate {rate}%",
+      "vsBudget": "{rate}% of budget"
+    },
+    "kpiCards": {
+      "activeProjects": "Active projects",
+      "activeProjectsTotal": "{total} total",
+      "delayedPhases": "Delayed phases",
+      "delayedPhasesCheck": "Review",
+      "delayedPhasesOk": "All on track",
+      "overdueReceivables": "Overdue",
+      "overdueCount": "{count} overdue",
+      "budgetUtilization": "Budget utilization",
+      "thisMonth": "This month {amount}"
+    },
+    "tasks": {
+      "emptyToday": "No tasks scheduled for today",
+      "doneAria": "Mark {label} done",
+      "undoAria": "Undo {label}",
+      "emptyPhaseToday": "No phases scheduled for today"
+    },
+    "siteRow": {
+      "noCustomer": "No customer linked"
+    },
+    "healthScore": {
+      "title": "Site health score",
+      "labelProgress": "Progress",
+      "labelBudget": "Budget",
+      "labelPayment": "Collection",
+      "empty": "Active sites will appear here automatically"
+    },
+    "projectProfit": {
+      "title": "Profit by project",
+      "empty": "No contracted projects yet"
+    },
+    "recentActivity": {
+      "title": "Recent activity",
+      "empty": "No recent activity"
+    },
+    "sitesSection": {
+      "title": "Sites overview",
+      "empty": "No sites registered yet"
+    },
+    "allMenu": {
+      "title": "All menu",
+      "collapse": "Collapse",
+      "expand": "Expand"
+    },
+    "drilldown": {
+      "delayedPhases": "Review delayed phases",
+      "loading": "Loading...",
+      "contractAmount": "Contract amount",
+      "actualSpent": "Actual spent",
+      "expectedProfit": "Expected profit",
+      "tradeCompareTitle": "Estimate vs actual by trade",
+      "colTrade": "Trade",
+      "colEstimate": "Estimate",
+      "colActual": "Actual",
+      "colDiff": "Diff",
+      "colBurn": "Burn",
+      "costAnalysisSuffix": "cost analysis"
+    },
+    "emptyState": {
+      "title": "Dashboard",
+      "subtitle": "Register a site to activate the dashboard",
+      "finishSetupTitle": "Finish setup",
+      "allMenuTitle": "All menu",
+      "onboardingTitle": "Get started with InteriorCoach"
     }
   },
   "nav": {

@@ -199,6 +199,96 @@
       "addSite": "현장 등록",
       "addExpense": "지출 등록",
       "addContract": "계약 등록"
+    },
+    "quickActions": {
+      "newProjectLabel": "새 프로젝트",
+      "newProjectDesc": "현장 등록",
+      "aiEstimateLabel": "AI 견적",
+      "aiEstimateDesc": "견적코치",
+      "scheduleGenLabel": "공정 생성",
+      "scheduleGenDesc": "AI 공정매니저",
+      "expenseLabel": "지출 등록",
+      "expenseDesc": "지출 기록"
+    },
+    "errors": {
+      "loadFailed": "데이터를 불러올 수 없습니다. 새로고침 해주세요."
+    },
+    "money": {
+      "todayCollection": "오늘 수금 예정",
+      "weekCollection": "이번주 수금 예정",
+      "overdueTotal": "미수금 총액",
+      "monthExpense": "이번달 지출",
+      "budgetBurn": "예산 소진률",
+      "revenue": "수금",
+      "expense": "지출",
+      "profit": "순수익",
+      "collectionRate": "수금률 {rate}%",
+      "vsBudget": "예산 대비 {rate}%"
+    },
+    "kpiCards": {
+      "activeProjects": "진행 프로젝트",
+      "activeProjectsTotal": "전체 {total}건",
+      "delayedPhases": "지연 공정",
+      "delayedPhasesCheck": "확인하기",
+      "delayedPhasesOk": "정상 운영 중",
+      "overdueReceivables": "미수금",
+      "overdueCount": "{count}건 연체",
+      "budgetUtilization": "예산 집행률",
+      "thisMonth": "이번달 {amount}"
+    },
+    "tasks": {
+      "emptyToday": "오늘 예정된 작업이 없습니다",
+      "doneAria": "{label} 완료",
+      "undoAria": "{label} 완료 취소",
+      "emptyPhaseToday": "오늘 예정된 공정이 없습니다"
+    },
+    "siteRow": {
+      "noCustomer": "고객 미지정"
+    },
+    "healthScore": {
+      "title": "현장 헬스 스코어",
+      "labelProgress": "공정",
+      "labelBudget": "예산",
+      "labelPayment": "수금",
+      "empty": "시공중인 현장이 생기면 자동으로 표시됩니다"
+    },
+    "projectProfit": {
+      "title": "프로젝트별 수익",
+      "empty": "계약된 프로젝트가 없습니다"
+    },
+    "recentActivity": {
+      "title": "최근 활동",
+      "empty": "최근 활동이 없습니다"
+    },
+    "sitesSection": {
+      "title": "현장 현황",
+      "empty": "등록된 현장이 없습니다"
+    },
+    "allMenu": {
+      "title": "전체 메뉴",
+      "collapse": "접기",
+      "expand": "펼치기"
+    },
+    "drilldown": {
+      "delayedPhases": "지연 공정 확인",
+      "loading": "로딩 중...",
+      "contractAmount": "계약금액",
+      "actualSpent": "실제 지출",
+      "expectedProfit": "예상 이익",
+      "tradeCompareTitle": "공종별 견적 vs 실행",
+      "colTrade": "공종",
+      "colEstimate": "견적가",
+      "colActual": "실행가",
+      "colDiff": "차이",
+      "colBurn": "소진율",
+      "costAnalysisSuffix": "비용 분석"
+    },
+    "emptyState": {
+      "title": "대시보드",
+      "subtitle": "현장을 등록하면 대시보드가 활성화됩니다",
+      "finishSetupTitle": "설정 마무리하기",
+      "allMenuTitle": "전체 메뉴",
+      "onboardingTitle": "인테리어코치 시작하기"
     }
   },
   "nav": {
