@@ -442,6 +442,66 @@ export default function ScheduleGeneratorPage() {
     finally { setSaving(false); }
   };
 
+  const [pushingToCalendar, setPushingToCalendar] = useState(false);
+  const [pushedToCalendar, setPushedToCalendar] = useState(false);
+
+  /**
+   * AI 공정매니저 결과를 캘린더(/schedule) 와 연동.
+   * 각 ScheduledTrade 를 construction_phases 1행으로 만들어 POST /api/construction.
+   * - 현장 선택 필수: selectedSite.id 가 있어야 phases 가 그 현장에 붙음.
+   * - startDay/endDay 는 startDate 기준 0-based 오프셋. ISO 날짜로 변환.
+   * - 같은 현장에 같은 공종이 이미 있으면 중복은 신경 X (수동 일괄삭제로 정리 가능).
+   */
+  const handlePushToCalendar = async () => {
+    if (!result || !selectedSite?.id) {
+      alert("먼저 현장을 선택해주세요.\n캘린더 연동은 현장에 공정을 붙이는 기능이라 현장이 있어야 합니다.");
+      return;
+    }
+    if (!confirm(`${selectedSite.name} 에 ${result.scheduled.length} 개 공정 일정을 캘린더에 추가합니다. 계속할까요?`)) {
+      return;
+    }
+    setPushingToCalendar(true);
+    setPushedToCalendar(false);
+    const base = new Date(startDate);
+    let okCount = 0;
+    let failCount = 0;
+    for (const trade of result.scheduled) {
+      const plannedStart = new Date(base);
+      plannedStart.setDate(plannedStart.getDate() + trade.startDay);
+      const plannedEnd = new Date(base);
+      plannedEnd.setDate(plannedEnd.getDate() + trade.endDay);
+      const toISO = (d: Date) => d.toISOString().slice(0, 10);
+      try {
+        const res = await apiFetch("/api/construction", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            siteId: selectedSite.id,
+            category: trade.name,
+            plannedStart: toISO(plannedStart),
+            plannedEnd: toISO(plannedEnd),
+            status: "예정",
+            memo: `AI 공정매니저 생성 · ${trade.days}일`,
+          }),
+        });
+        if (res.ok) okCount++;
+        else failCount++;
+      } catch {
+        failCount++;
+      }
+    }
+    setPushingToCalendar(false);
+    if (okCount > 0) {
+      setPushedToCalendar(true);
+      setTimeout(() => setPushedToCalendar(false), 4000);
+    }
+    alert(
+      failCount === 0
+        ? `${okCount}개 공정을 캘린더에 등록했습니다. /schedule 에서 확인하세요.`
+        : `${okCount}개 성공, ${failCount}개 실패. 다시 시도해주세요.`,
+    );
+  };
+
   const resetAll = () => {
     setStep(0); setResult(null); setSelected([]); setSize(null);
     setSelectedPkg(null); setBudget("");
@@ -821,6 +881,30 @@ export default function ScheduleGeneratorPage() {
                 title={saving ? "저장 중..." : saveSuccess ? "저장 완료!" : "저장하기"}
               >
                 <Save size={18} />
+              </button>
+              <button
+                onClick={handlePushToCalendar}
+                disabled={pushingToCalendar || !selectedSite?.id}
+                className={cn(
+                  "shrink-0 ml-1 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors",
+                  pushedToCalendar
+                    ? "bg-emerald-500/15 text-emerald-400"
+                    : "bg-[var(--green)] text-black hover:bg-[var(--green-hover)] disabled:opacity-50 disabled:cursor-not-allowed",
+                )}
+                title={
+                  !selectedSite?.id
+                    ? "현장을 먼저 선택하세요"
+                    : pushingToCalendar
+                      ? "등록 중..."
+                      : pushedToCalendar
+                        ? "캘린더에 등록 완료"
+                        : "이 공정표를 일정 관리 캘린더에 추가"
+                }
+              >
+                <Calendar size={14} />
+                <span className="hidden sm:inline">
+                  {pushedToCalendar ? "캘린더 등록됨" : "캘린더에 등록"}
+                </span>
               </button>
             </div>
 

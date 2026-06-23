@@ -181,12 +181,43 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
-    if (!id) return err("id 필수");
 
+    // 일괄 삭제 모드 — ?siteId=... 로 그 현장의 모든 공정 일정 제거,
+    // ?all=1 로 워크스페이스 내 본인 소유의 모든 공정 일정 제거.
+    // 기본 세팅된 공정을 한 번에 비우는 데 사용.
+    const siteId = searchParams.get("siteId");
+    const all = searchParams.get("all") === "1";
+
+    if (siteId) {
+      const rows = await db
+        .delete(constructionPhases)
+        .where(
+          and(
+            eq(constructionPhases.siteId, siteId),
+            eq(constructionPhases.userId, auth.userId),
+            eq(constructionPhases.workspaceId, auth.workspaceId),
+          ),
+        )
+        .returning({ id: constructionPhases.id });
+      return ok({ message: `${rows.length}건 삭제되었습니다`, deletedCount: rows.length });
+    }
+    if (all) {
+      const rows = await db
+        .delete(constructionPhases)
+        .where(
+          and(
+            eq(constructionPhases.userId, auth.userId),
+            eq(constructionPhases.workspaceId, auth.workspaceId),
+          ),
+        )
+        .returning({ id: constructionPhases.id });
+      return ok({ message: `${rows.length}건 삭제되었습니다`, deletedCount: rows.length });
+    }
+
+    if (!id) return err("id 필수");
     await db
       .delete(constructionPhases)
       .where(and(eq(constructionPhases.id, id), eq(constructionPhases.userId, auth.userId), eq(constructionPhases.workspaceId, auth.workspaceId)));
-
     return ok({ message: "삭제되었습니다" });
   } catch (error) {
     return serverError(error);

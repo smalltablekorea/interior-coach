@@ -345,6 +345,32 @@ export default function SchedulePage() {
     await apiFetch(`/api/schedule?id=${phaseId}`, { method: "DELETE" });
     fetchData(currentMonth);
   };
+  /**
+   * 일괄 삭제 — siteId 가 주어지면 그 현장의 공정 일정만, 아니면 워크스페이스 전체.
+   * 자동 세팅(AI 공정매니저·현장 등록 시 자동 생성)된 일정을 한 번에 비우는 용도.
+   */
+  const handleBulkDelete = async (siteId?: string) => {
+    const target = siteId
+      ? sites.find((s) => s.id === siteId)?.name || "선택한 현장"
+      : "모든 현장";
+    if (
+      !confirm(
+        `${target} 의 공정 일정을 일괄 삭제할까요?\n현장·계약·자재 발주는 영향 없음.`,
+      )
+    )
+      return;
+    const url = siteId
+      ? `/api/schedule?siteId=${siteId}`
+      : `/api/schedule?all=1`;
+    const res = await apiFetch(url, { method: "DELETE" });
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      fetchData(currentMonth);
+      alert(data?.data?.message || data?.message || "삭제되었습니다");
+    } else {
+      alert("일괄 삭제에 실패했습니다.");
+    }
+  };
   const handleTogglePhase = async (phaseId: string, currentlyDone: boolean) => {
     const newStatus = currentlyDone ? "진행중" : "완료";
     const newProgress = currentlyDone ? 50 : 100;
@@ -529,6 +555,14 @@ export default function SchedulePage() {
           >
             <Plus size={14} />
             <span>공정 추가</span>
+          </button>
+          <button
+            onClick={() => handleBulkDelete()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--red)]/30 text-[var(--red)] text-xs font-medium hover:bg-[var(--red)]/10 transition-colors"
+            title="기본 세팅된 공정 일정을 한 번에 비웁니다 (현장·계약·발주는 그대로)"
+          >
+            <Trash2 size={14} />
+            <span>일괄 삭제</span>
           </button>
           <div className="flex items-center gap-0.5 p-1 rounded-xl bg-white/[0.04] border border-[var(--border)]">
             <button
