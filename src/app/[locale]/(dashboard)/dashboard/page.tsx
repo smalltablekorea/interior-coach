@@ -44,6 +44,7 @@ import OnboardingModal from "@/components/onboarding/OnboardingModal";
 import TrialBanner from "@/components/onboarding/TrialBanner";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Link } from "@/i18n/navigation";
+import { useTranslations } from "use-intl";
 
 const MonthlyTrendChart = dynamic(
   () => import("@/components/charts/MonthlyTrendChart"),
@@ -190,20 +191,21 @@ const QUICK_ACTIONS = [
 
 // ── Full Menu Grid ──
 
+/** 환영 화면 전체 메뉴. label 은 messages 의 dashboard.menu.* 키. */
 const MENU_ITEMS = [
-  { href: "/customers", icon: Users, label: "고객", color: "var(--blue)" },
-  { href: "/sites", icon: Building2, label: "현장", color: "var(--green)" },
-  { href: "/estimates", icon: FileText, label: "견적", color: "var(--orange)" },
-  { href: "/contracts", icon: FileCheck, label: "계약", color: "var(--blue)" },
-  { href: "/construction", icon: Hammer, label: "시공", color: "var(--orange)" },
-  { href: "/schedule", icon: CalendarDays, label: "일정", color: "var(--green)" },
-  { href: "/materials", icon: Package, label: "자재", color: "#06b6d4" },
-  { href: "/workers", icon: HardHat, label: "작업자", color: "#f59e0b" },
-  { href: "/expenses", icon: Receipt, label: "지출", color: "var(--red)" },
-  { href: "/settlement", icon: BarChart3, label: "정산", color: "var(--blue)" },
-  { href: "/tax", icon: Calculator, label: "세무", color: "#64748b" },
-  { href: "/settings", icon: Settings, label: "설정", color: "var(--muted)" },
-];
+  { href: "/customers", icon: Users, labelKey: "customers", color: "var(--blue)" },
+  { href: "/sites", icon: Building2, labelKey: "sites", color: "var(--green)" },
+  { href: "/estimates", icon: FileText, labelKey: "estimates", color: "var(--orange)" },
+  { href: "/contracts", icon: FileCheck, labelKey: "contracts", color: "var(--blue)" },
+  { href: "/construction", icon: Hammer, labelKey: "construction", color: "var(--orange)" },
+  { href: "/schedule", icon: CalendarDays, labelKey: "schedule", color: "var(--green)" },
+  { href: "/materials", icon: Package, labelKey: "materials", color: "#06b6d4" },
+  { href: "/workers", icon: HardHat, labelKey: "workers", color: "#f59e0b" },
+  { href: "/expenses", icon: Receipt, labelKey: "expenses", color: "var(--red)" },
+  { href: "/settlement", icon: BarChart3, labelKey: "settlement", color: "var(--blue)" },
+  { href: "/tax", icon: Calculator, labelKey: "tax", color: "#64748b" },
+  { href: "/settings", icon: Settings, labelKey: "settings", color: "var(--muted)" },
+] as const;
 
 // ── Mock trend generator ──
 
@@ -285,6 +287,7 @@ function ProgressBar({ value, color = "var(--green)", height = 6 }: { value: num
 }
 
 export default function DashboardPage() {
+  const t = useTranslations("dashboard");
   const [sites, setSites] = useState<Site[]>([]);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [todayData, setTodayData] = useState<{
@@ -465,11 +468,15 @@ export default function DashboardPage() {
   const today = new Date();
   const greeting =
     today.getHours() < 12
-      ? "좋은 아침이에요"
+      ? t("page.greetingMorning")
       : today.getHours() < 18
-        ? "오늘도 화이팅"
-        : "수고하셨습니다";
-  const dateStr = `${today.getMonth() + 1}월 ${today.getDate()}일 ${"일월화수목금토"[today.getDay()]}요일`;
+        ? t("page.greetingDay")
+        : t("page.greetingEvening");
+  const dateStr = t("page.dateFormat", {
+    month: today.getMonth() + 1,
+    day: today.getDate(),
+    weekday: t("page.weekdays").charAt(today.getDay()),
+  });
 
   const monthlyTrend = dashboard.monthlyTrend ?? generateMockTrend(kpi);
 
@@ -505,7 +512,7 @@ export default function DashboardPage() {
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)] transition-colors"
           >
             <Plus size={16} />
-            새 프로젝트
+            {t("page.newProject")}
           </Link>
         </div>
       </div>
@@ -539,9 +546,9 @@ export default function DashboardPage() {
       ) : todayData && todayData.alerts.length === 0 ? (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--green)]/5 border border-[var(--green)]/20 animate-fade-up stagger-2">
           <CircleCheck size={16} style={{ color: "var(--green)" }} />
-          <span className="text-sm text-[var(--green)]">모든 항목이 정상입니다</span>
+          <span className="text-sm text-[var(--green)]">{t("page.allClear")}</span>
           <Link href="/schedule" className="ml-auto text-sm text-[var(--green)] hover:underline flex items-center gap-1 shrink-0">
-            일정 확인 <ArrowRight size={14} />
+            {t("page.checkSchedule")} <ArrowRight size={14} />
           </Link>
         </div>
       ) : null}
@@ -1204,7 +1211,7 @@ export default function DashboardPage() {
                 href="/sites/new"
                 className="inline-flex items-center gap-1 mt-3 text-sm text-[var(--green)] hover:underline"
               >
-                현장을 등록하면 활동이 기록됩니다 <ArrowUpRight size={14} />
+                {t("page.siteActivityHint")} <ArrowUpRight size={14} />
               </Link>
             </div>
           ) : (
@@ -1327,7 +1334,7 @@ export default function DashboardPage() {
                   <item.icon size={18} style={{ color: item.color }} />
                 </div>
                 <span className="text-[11px] text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">
-                  {item.label}
+                  {t(`menu.${item.labelKey}`)}
                 </span>
               </Link>
             ))}
@@ -1547,15 +1554,17 @@ function ScoreBar({
 
 // ── 온보딩 가이드 (5단계) ──
 
+/** 온보딩 단계 — title/desc 은 messages 의 dashboard.onboarding.step{N}{Title|Desc} 키. */
 const ONBOARDING_STEPS = [
-  { step: 1, title: "첫 고객을 등록해보세요", desc: "고객 정보를 등록하면 현장과 계약을 연결할 수 있습니다", href: "/customers", icon: Users, color: "var(--blue)" },
-  { step: 2, title: "현장을 등록하고 고객과 연결하세요", desc: "현장 정보를 입력하면 공정·지출·수금을 한눈에 관리합니다", href: "/sites/new", icon: Building2, color: "var(--green)" },
-  { step: 3, title: "AI로 견적을 시뮬레이션해보세요", desc: "평수와 공종만 입력하면 AI가 등급별 견적서를 생성합니다", href: "/estimates/coach", icon: Sparkles, color: "#a855f7" },
-  { step: 4, title: "계약을 등록하면 수금 일정이 자동 생성됩니다", desc: "계약금·중도금·잔금 일정을 등록하고 수금 현황을 추적하세요", href: "/contracts", icon: FileCheck, color: "var(--orange)" },
-  { step: 5, title: "공정을 추가하면 일정이 자동으로 잡힙니다", desc: "AI 공정매니저가 평수 기반으로 최적 일정을 생성합니다", href: "/schedule/generator", icon: Zap, color: "#ec4899" },
-];
+  { step: 1, titleKey: "step1Title", descKey: "step1Desc", href: "/customers", icon: Users, color: "var(--blue)" },
+  { step: 2, titleKey: "step2Title", descKey: "step2Desc", href: "/sites/new", icon: Building2, color: "var(--green)" },
+  { step: 3, titleKey: "step3Title", descKey: "step3Desc", href: "/estimates/coach", icon: Sparkles, color: "#a855f7" },
+  { step: 4, titleKey: "step4Title", descKey: "step4Desc", href: "/contracts", icon: FileCheck, color: "var(--orange)" },
+  { step: 5, titleKey: "step5Title", descKey: "step5Desc", href: "/schedule/generator", icon: Zap, color: "#ec4899" },
+] as const;
 
 function OnboardingGuide() {
+  const t = useTranslations("dashboard");
   const [currentStep, setCurrentStep] = useState(() => {
     if (typeof window === "undefined") return 0;
     const stored = localStorage.getItem("onboarding-step");
@@ -1610,7 +1619,7 @@ function OnboardingGuide() {
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110" style={{ backgroundColor: `${item.color}15` }}>
                   <item.icon size={20} style={{ color: item.color }} />
                 </div>
-                <span className="text-xs text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">{item.label}</span>
+                <span className="text-xs text-[var(--muted)] group-hover:text-[var(--foreground)] transition-colors">{t(`menu.${item.labelKey}`)}</span>
               </Link>
             ))}
           </div>
@@ -1643,9 +1652,9 @@ function OnboardingGuide() {
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: `${step.color}15` }}>
           <step.icon size={32} style={{ color: step.color }} />
         </div>
-        <p className="text-xs text-[var(--muted)] mb-2">STEP {step.step}</p>
-        <h2 className="text-xl font-bold mb-2">{step.title}</h2>
-        <p className="text-sm text-[var(--muted)] mb-6">{step.desc}</p>
+        <p className="text-xs text-[var(--muted)] mb-2">{t("onboarding.stepLabel", { step: step.step })}</p>
+        <h2 className="text-xl font-bold mb-2">{t(`onboarding.${step.titleKey}`)}</h2>
+        <p className="text-sm text-[var(--muted)] mb-6">{t(`onboarding.${step.descKey}`)}</p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link
             href={step.href}
@@ -1653,10 +1662,10 @@ function OnboardingGuide() {
             className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-black transition-colors"
             style={{ backgroundColor: step.color }}
           >
-            시작하기 <ArrowRight size={16} />
+            {t("onboarding.startStep")} <ArrowRight size={16} />
           </Link>
           <button onClick={handleSkipStep} className="flex items-center gap-1.5 px-4 py-3 rounded-xl text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
-            <SkipForward size={14} /> 건너뛰기
+            <SkipForward size={14} /> {t("onboarding.skipStep")}
           </button>
         </div>
       </div>
@@ -1664,29 +1673,29 @@ function OnboardingGuide() {
       {/* 완료/남은 단계 */}
       {currentStep > 0 && (
         <div className="space-y-2">
-          <p className="text-xs text-[var(--muted)]">완료한 단계</p>
+          <p className="text-xs text-[var(--muted)]">{t("onboarding.completedSteps")}</p>
           {ONBOARDING_STEPS.slice(0, currentStep).map((s) => (
             <div key={s.step} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.03]">
               <Check size={14} style={{ color: "var(--green)" }} />
-              <span className="text-sm text-[var(--muted)]">{s.title}</span>
+              <span className="text-sm text-[var(--muted)]">{t(`onboarding.${s.titleKey}`)}</span>
             </div>
           ))}
         </div>
       )}
       {currentStep < ONBOARDING_STEPS.length - 1 && (
         <div className="space-y-2">
-          <p className="text-xs text-[var(--muted)]">남은 단계</p>
+          <p className="text-xs text-[var(--muted)]">{t("onboarding.remainingSteps")}</p>
           {ONBOARDING_STEPS.slice(currentStep + 1).map((s) => (
             <div key={s.step} className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.02] opacity-50">
               <div className="w-3.5 h-3.5 rounded-full border border-[var(--border)]" />
-              <span className="text-sm text-[var(--muted)]">{s.title}</span>
+              <span className="text-sm text-[var(--muted)]">{t(`onboarding.${s.titleKey}`)}</span>
             </div>
           ))}
         </div>
       )}
 
       <div className="text-center pb-8">
-        <button onClick={handleDismiss} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] underline transition-colors">나중에 하기</button>
+        <button onClick={handleDismiss} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] underline transition-colors">{t("onboarding.doLater")}</button>
       </div>
     </div>
   );

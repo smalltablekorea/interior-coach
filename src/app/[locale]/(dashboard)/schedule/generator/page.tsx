@@ -4,6 +4,7 @@
 import { apiFetch } from "@/lib/api-client";
 import { useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { ArrowLeft, Sparkles, Lock, AlertTriangle, CheckCircle2, Calendar, MapPin, Search, Plus, X, Trash2, RefreshCw, ChevronUp, ChevronDown, Save } from "lucide-react";
+import { isFreePeriodActive } from "@/lib/subscription/free-period";
 import { Link } from "@/i18n/navigation";
 import Modal from "@/components/ui/Modal";
 import { cn, fmtDate } from "@/lib/utils";
@@ -98,7 +99,11 @@ export default function ScheduleGeneratorPage() {
   const [selectedPkg, setSelectedPkg] = useState<string | null>(saved.current?.selectedPkg ?? null);
   const [season] = useState(getSeason());
   const [showModal, setShowModal] = useState(false);
-  const [unlocked, setUnlocked] = useState(saved.current?.unlocked ?? false);
+  // 7/31 무료기간 동안은 BlurLock 우회 — 모든 사용자에게 비용분석/발주준비/품질체크/패키지 풀공개.
+  // 기간 끝나면 자동으로 false 로 폴백돼 기존 스타터+ 게이트 복귀.
+  const [unlocked, setUnlocked] = useState(
+    isFreePeriodActive() || (saved.current?.unlocked ?? false),
+  );
   const [startDate, setStartDate] = useState(() => {
     if (saved.current?.startDate) return saved.current.startDate;
     const d = new Date();
@@ -440,7 +445,7 @@ export default function ScheduleGeneratorPage() {
   const resetAll = () => {
     setStep(0); setResult(null); setSelected([]); setSize(null);
     setSelectedPkg(null); setBudget("");
-    setTab("schedule"); setUnlocked(false); setSelectedSite(null);
+    setTab("schedule"); setUnlocked(isFreePeriodActive()); setSelectedSite(null);
     setBlocks([]); setShowAddTrade(false); setShowAddBlock(false);
     setEndDate("");
     try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
