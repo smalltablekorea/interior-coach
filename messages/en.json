@@ -291,6 +291,56 @@
       "onboardingTitle": "Get started with InteriorCoach"
     }
   },
+  "sites": {
+    "list": {
+      "title": "Sites",
+      "newSite": "New site",
+      "newSiteTitle": "Customer, processes, contract, schedule — all at once",
+      "quickAdd": "Quick add",
+      "quickAddTitle": "Quickly add basic info only",
+      "searchPlaceholder": "Search by site, address, or customer name...",
+      "filterAll": "All",
+      "emptyTitle": "No sites registered yet",
+      "emptyNoMatch": "No sites match the filter",
+      "emptyDescription": "Register sites to start managing projects.",
+      "emptyAction": "Register your first site",
+      "row": {
+        "noCustomer": "No customer linked",
+        "startLabel": "Start {date}",
+        "endLabel": "End {date}",
+        "tbd": "TBD",
+        "noSchedule": "Schedule not set"
+      },
+      "modal": {
+        "title": "Register a site",
+        "siteName": "Site name",
+        "siteNameRequired": "Site name *",
+        "siteNamePlaceholder": "",
+        "customer": "Customer",
+        "selectNone": "None",
+        "buildingType": "Building type",
+        "select": "Select",
+        "address": "Address",
+        "addressPlaceholder": "Site address",
+        "areaPyeong": "Floor area",
+        "areaPyeongPlaceholder": "py",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "memo": "Memo",
+        "memoPlaceholder": "Notes",
+        "submit": "Save",
+        "submitting": "Saving..."
+      },
+      "errors": {
+        "noWorkspace": "No workspace permission. Check the workspace in the header or sign in again.",
+        "invalidInput": "Please check your input — site name is required.",
+        "sessionExpired": "Your session expired. Please log in again.",
+        "network": "We couldn't save due to a network error. Please try again shortly.",
+        "generic": "Failed to save (HTTP {status})."
+      },
+      "featureLabel": "Sites"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "sites": "Sites",

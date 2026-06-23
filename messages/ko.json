@@ -291,6 +291,56 @@
       "onboardingTitle": "인테리어코치 시작하기"
     }
   },
+  "sites": {
+    "list": {
+      "title": "현장 관리",
+      "newSite": "새 현장 등록",
+      "newSiteTitle": "고객·공정·계약·일정 한 번에",
+      "quickAdd": "간이 등록",
+      "quickAddTitle": "기본 정보만 빠르게 추가",
+      "searchPlaceholder": "현장명, 주소, 고객명으로 검색...",
+      "filterAll": "전체",
+      "emptyTitle": "등록된 현장이 없습니다",
+      "emptyNoMatch": "조건에 맞는 현장이 없습니다",
+      "emptyDescription": "현장을 등록하고 프로젝트를 관리해보세요.",
+      "emptyAction": "첫 현장 등록하기",
+      "row": {
+        "noCustomer": "고객 미지정",
+        "startLabel": "시작 {date}",
+        "endLabel": "종료 {date}",
+        "tbd": "미정",
+        "noSchedule": "일정 미입력"
+      },
+      "modal": {
+        "title": "현장 등록",
+        "siteName": "현장명",
+        "siteNameRequired": "현장명 *",
+        "siteNamePlaceholder": "",
+        "customer": "고객",
+        "selectNone": "선택 안함",
+        "buildingType": "건물유형",
+        "select": "선택",
+        "address": "주소",
+        "addressPlaceholder": "현장 주소",
+        "areaPyeong": "평수",
+        "areaPyeongPlaceholder": "평",
+        "startDate": "시작일",
+        "endDate": "종료일",
+        "memo": "메모",
+        "memoPlaceholder": "참고사항",
+        "submit": "저장",
+        "submitting": "저장 중..."
+      },
+      "errors": {
+        "noWorkspace": "워크스페이스 권한이 없습니다. 헤더에서 워크스페이스를 확인하거나 다시 로그인해주세요.",
+        "invalidInput": "입력값을 확인해주세요. 현장명은 필수입니다.",
+        "sessionExpired": "세션이 만료되었습니다. 다시 로그인해주세요.",
+        "network": "네트워크 오류로 저장하지 못했습니다. 잠시 후 다시 시도해주세요.",
+        "generic": "저장에 실패했습니다 (HTTP {status})."
+      },
+      "featureLabel": "현장"
+    }
+  },
   "nav": {
     "dashboard": "대시보드",
     "sites": "현장 관리",

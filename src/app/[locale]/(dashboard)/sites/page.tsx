@@ -12,6 +12,7 @@ import { KoreanInput, KoreanTextarea } from "@/components/ui/KoreanInput";
 import { fmtDate } from "@/lib/utils";
 import { SITE_STATUSES, BUILDING_TYPES } from "@/lib/constants";
 import { Link } from "@/i18n/navigation";
+import { useTranslations } from "use-intl";
 
 interface Site {
   id: string;
@@ -33,6 +34,7 @@ interface Customer {
 }
 
 export default function SitesPage() {
+  const t = useTranslations("sites.list");
   const [sites, setSites] = useState<Site[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,17 +121,17 @@ export default function SitesPage() {
           /* body 파싱 실패 시 status만 안내 */
         }
         if (res.status === 403) {
-          setSaveError(detail || "워크스페이스 권한이 없습니다. 헤더에서 워크스페이스를 확인하거나 다시 로그인해주세요.");
+          setSaveError(detail || t("errors.noWorkspace"));
         } else if (res.status === 400) {
-          setSaveError(detail || "입력값을 확인해주세요. 현장명은 필수입니다.");
+          setSaveError(detail || t("errors.invalidInput"));
         } else if (res.status === 401) {
-          setSaveError("세션이 만료되었습니다. 다시 로그인해주세요.");
+          setSaveError(t("errors.sessionExpired"));
         } else {
-          setSaveError(detail || `저장에 실패했습니다 (HTTP ${res.status}).`);
+          setSaveError(detail || t("errors.generic", { status: res.status }));
         }
       }
     } catch {
-      setSaveError("네트워크 오류로 저장하지 못했습니다. 잠시 후 다시 시도해주세요.");
+      setSaveError(t("errors.network"));
     } finally {
       setSaving(false);
     }
@@ -149,7 +151,7 @@ export default function SitesPage() {
     <div className="space-y-6 animate-fade-up">
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">현장 관리</h1>
+        <h1 className="text-2xl font-bold">{t("title")}</h1>
         <div className="flex items-center gap-2">
           <Link
             href="/sites/quick-new"
@@ -161,10 +163,10 @@ export default function SitesPage() {
               }
             }}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--green)] text-black font-medium text-sm hover:bg-[var(--green-hover)] transition-colors"
-            title="고객·공정·계약·일정 한 번에"
+            title={t("newSiteTitle")}
           >
             <Plus size={18} />
-            새 현장 등록
+            {t("newSite")}
           </Link>
           <button
             onClick={() => {
@@ -173,9 +175,9 @@ export default function SitesPage() {
               setShowModal(true);
             }}
             className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[var(--border)] text-[var(--muted)] text-xs hover:border-[var(--green)]/40 hover:text-[var(--foreground)] transition-colors"
-            title="기본 정보만 빠르게 추가"
+            title={t("quickAddTitle")}
           >
-            간이 등록
+            {t("quickAdd")}
           </button>
         </div>
       </div>
@@ -186,7 +188,7 @@ export default function SitesPage() {
           <Search size={18} className="text-[var(--muted)]" />
           <input
             type="text"
-            placeholder="현장명, 주소, 고객명으로 검색..."
+            placeholder={t("searchPlaceholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="bg-transparent text-sm flex-1 focus:outline-none placeholder:text-[var(--muted)]"
@@ -201,7 +203,7 @@ export default function SitesPage() {
                 : "bg-white/[0.04] text-[var(--muted)] hover:text-[var(--foreground)]"
             }`}
           >
-            전체
+            {t("filterAll")}
           </button>
           {SITE_STATUSES.map((s) => (
             <button
@@ -229,10 +231,10 @@ export default function SitesPage() {
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={Building2}
-          title={search || filterStatus ? "조건에 맞는 현장이 없습니다" : "등록된 현장이 없습니다"}
+          title={search || filterStatus ? t("emptyNoMatch") : t("emptyTitle")}
           description={
             !search && !filterStatus
-              ? "현장을 등록하고 프로젝트를 관리해보세요."
+              ? t("emptyDescription")
               : undefined
           }
           action={
@@ -242,7 +244,7 @@ export default function SitesPage() {
                 onClick={() => setShowModal(true)}
                 className="px-4 py-2 rounded-xl bg-[var(--green)] text-black text-sm font-medium"
               >
-                첫 현장 등록하기
+                {t("emptyAction")}
               </button>
             )
           }
@@ -261,7 +263,7 @@ export default function SitesPage() {
                   <StatusBadge status={s.status} />
                 </div>
                 <p className="text-sm text-[var(--muted)]">
-                  {s.customerName || "고객 미지정"}
+                  {s.customerName || t("row.noCustomer")}
                   {s.address && ` · ${s.address}`}
                   {s.buildingType && ` · ${s.buildingType}`}
                   {s.areaPyeong && ` · ${s.areaPyeong}평`}
@@ -270,11 +272,11 @@ export default function SitesPage() {
               <div className="text-right text-xs text-[var(--muted)]">
                 {s.startDate || s.endDate ? (
                   <>
-                    <p>시작 {s.startDate ? fmtDate(s.startDate) : "미정"}</p>
-                    <p>종료 {s.endDate ? fmtDate(s.endDate) : "미정"}</p>
+                    <p>{t("row.startLabel", { date: s.startDate ? fmtDate(s.startDate) : t("row.tbd") })}</p>
+                    <p>{t("row.endLabel", { date: s.endDate ? fmtDate(s.endDate) : t("row.tbd") })}</p>
                   </>
                 ) : (
-                  <p className="opacity-70">일정 미입력</p>
+                  <p className="opacity-70">{t("row.noSchedule")}</p>
                 )}
               </div>
             </Link>
@@ -286,7 +288,7 @@ export default function SitesPage() {
       <Modal
         open={showModal}
         onClose={() => { setShowModal(false); setSaveError(null); }}
-        title="현장 등록"
+        title={t("modal.title")}
         maxWidth="max-w-xl"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -296,25 +298,25 @@ export default function SitesPage() {
             </div>
           )}
           <div>
-            <label className="block text-sm text-[var(--muted)] mb-1">현장명 *</label>
+            <label className="block text-sm text-[var(--muted)] mb-1">{t("modal.siteNameRequired")}</label>
             <KoreanInput
               type="text"
               required
               value={form.name}
               onChange={(v) => setForm({ ...form, name: v })}
               className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
-              placeholder="예: 강남 래미안 32평 리모델링"
+              placeholder={t("modal.siteNamePlaceholder")}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm text-[var(--muted)] mb-1">고객</label>
+              <label className="block text-sm text-[var(--muted)] mb-1">{t("modal.customer")}</label>
               <select
                 value={form.customerId}
                 onChange={(e) => setForm({ ...form, customerId: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
               >
-                <option value="">선택 안함</option>
+                <option value="">{t("modal.selectNone")}</option>
                 {customers.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -340,13 +342,13 @@ export default function SitesPage() {
               </p>
             </div>
             <div>
-              <label className="block text-sm text-[var(--muted)] mb-1">건물유형</label>
+              <label className="block text-sm text-[var(--muted)] mb-1">{t("modal.buildingType")}</label>
               <select
                 value={form.buildingType}
                 onChange={(e) => setForm({ ...form, buildingType: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] focus:border-[var(--green)] focus:outline-none transition-colors"
               >
-                <option value="">선택</option>
+                <option value="">{t("modal.select")}</option>
                 {BUILDING_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {t}
@@ -356,28 +358,28 @@ export default function SitesPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm text-[var(--muted)] mb-1">주소</label>
+            <label className="block text-sm text-[var(--muted)] mb-1">{t("modal.address")}</label>
             <KoreanInput
               type="text"
               value={form.address}
               onChange={(v) => setForm({ ...form, address: v })}
               className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
-              placeholder="현장 주소"
+              placeholder={t("modal.addressPlaceholder")}
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-sm text-[var(--muted)] mb-1">평수</label>
+              <label className="block text-sm text-[var(--muted)] mb-1">{t("modal.areaPyeong")}</label>
               <input
                 type="number"
                 value={form.areaPyeong}
                 onChange={(e) => setForm({ ...form, areaPyeong: e.target.value })}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors"
-                placeholder="평"
+                placeholder={t("modal.areaPyeongPlaceholder")}
               />
             </div>
             <div>
-              <label className="block text-sm text-[var(--muted)] mb-1">시작일</label>
+              <label className="block text-sm text-[var(--muted)] mb-1">{t("modal.startDate")}</label>
               <input
                 type="date"
                 value={form.startDate}
@@ -386,7 +388,7 @@ export default function SitesPage() {
               />
             </div>
             <div>
-              <label className="block text-sm text-[var(--muted)] mb-1">종료일</label>
+              <label className="block text-sm text-[var(--muted)] mb-1">{t("modal.endDate")}</label>
               <input
                 type="date"
                 value={form.endDate}
@@ -396,12 +398,12 @@ export default function SitesPage() {
             </div>
           </div>
           <div>
-            <label className="block text-sm text-[var(--muted)] mb-1">메모</label>
+            <label className="block text-sm text-[var(--muted)] mb-1">{t("modal.memo")}</label>
             <KoreanTextarea
               value={form.memo}
               onChange={(v) => setForm({ ...form, memo: v })}
               className="w-full px-4 py-3 rounded-xl bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] placeholder:text-[var(--muted)] focus:border-[var(--green)] focus:outline-none transition-colors resize-none h-20"
-              placeholder="참고사항"
+              placeholder={t("modal.memoPlaceholder")}
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">
@@ -417,7 +419,7 @@ export default function SitesPage() {
               disabled={saving}
               className="px-4 py-2.5 rounded-xl bg-[var(--green)] text-black text-sm font-medium hover:bg-[var(--green-hover)] transition-colors disabled:opacity-50"
             >
-              {saving ? "저장 중..." : "저장"}
+              {saving ? t("modal.submitting") : t("modal.submit")}
             </button>
           </div>
         </form>
@@ -427,7 +429,7 @@ export default function SitesPage() {
         open={showUpgrade}
         onClose={() => setShowUpgrade(false)}
         requiredPlan={checkFeature("sites").requiredPlan || "starter"}
-        featureLabel="현장"
+        featureLabel={t("featureLabel")}
         currentUsage={checkFeature("sites").current}
         limit={checkFeature("sites").limit}
       />
