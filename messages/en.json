@@ -371,8 +371,10 @@
       "operations": "Site operations",
       "money": "Finance",
       "tools": "Tools",
-      "agency": "Marketing agency"
-    }
+      "agency": "Marketing agency",
+      "platform": "InteriorCoach Platform"
+    },
+    "platformApplication": "Platform application"
   },
   "locale": {
     "ko": "한국어",

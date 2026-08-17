@@ -371,8 +371,10 @@
       "operations": "현장 운영",
       "money": "돈 관리",
       "tools": "도구",
-      "agency": "마케팅 대행"
-    }
+      "agency": "마케팅 대행",
+      "platform": "인테리어코치 플랫폼"
+    },
+    "platformApplication": "플랫폼 입점 신청"
   },
   "locale": {
     "ko": "한국어",

@@ -91,6 +91,15 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    key: "platform",
+    labelKey: "groups.platform",
+    icon: Megaphone,
+    defaultOpen: true,
+    items: [
+      { href: "/platform-application", icon: Megaphone, labelKey: "platformApplication" },
+    ],
+  },
+  {
     key: "tools",
     labelKey: "groups.tools",
     icon: Wrench,
