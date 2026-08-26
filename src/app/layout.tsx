@@ -77,6 +77,11 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "/",
   },
+  verification: {
+    other: {
+      "naver-site-verification": "67190533eaaac86493cd33d399382ac0eeaa0dcf",
+    },
+  },
 };
 
 const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
