@@ -383,7 +383,8 @@
   },
   "landing": {
     "meta": {
-      "title": "InteriorCoach | All-in-one SaaS for interior contractors",
+      "productName": "InteriorCoach Biz",
+      "title": "InteriorCoach Biz | All-in-one SaaS for interior contractors",
       "description": "Project management, estimates, contracts, expenses, settlement, and tax — all in one place. Built for interior contractors.",
       "ogDescription": "Run your projects, estimates, contracts, expenses, settlement, and tax on a single screen. 14-day free trial, no card required.",
       "twitterDescription": "All-in-one SaaS for site operations",

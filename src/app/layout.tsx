@@ -31,8 +31,8 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL || "https://www.interiorcoach.co.kr",
   ),
   title: {
-    default: "인테리어코치 — 인테리어 업체 현장 운영 올인원 SaaS",
-    template: "%s | 인테리어코치",
+    default: "인테리어코치 비즈 — 인테리어 업체 현장 운영 올인원 SaaS",
+    template: "%s | 인테리어코치 비즈",
   },
   description:
     "공정·견적·계약·정산·세무를 한 화면에서. 인테리어 업체 전용 통합 관리 SaaS. 14일 무료 체험.",
@@ -53,14 +53,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "ko_KR",
-    siteName: "인테리어코치",
-    title: "인테리어코치 — 인테리어 업체 현장 운영 올인원 SaaS",
+    siteName: "인테리어코치 비즈",
+    title: "인테리어코치 비즈 — 인테리어 업체 현장 운영 올인원 SaaS",
     description:
       "공정 매니저·견적·계약·정산·세무를 한 화면에서 관리하세요. 14일 무료, 카드 등록 불필요.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "인테리어코치",
+    title: "인테리어코치 비즈",
     description: "인테리어 업체 현장 운영 올인원 SaaS",
   },
   robots: {

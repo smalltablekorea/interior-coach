@@ -383,7 +383,8 @@
   },
   "landing": {
     "meta": {
-      "title": "인테리어코치 | 인테리어 업체 현장 운영 올인원 SaaS",
+      "productName": "인테리어코치 비즈",
+      "title": "인테리어코치 비즈 | 인테리어 업체 현장관리 SaaS",
       "description": "공정 매니저·견적·계약·지출·정산·세무까지 한 곳에서. 인테리어 업체 전용 통합 운영 SaaS.",
       "ogDescription": "공정 매니저·견적·계약·지출·정산·세무를 한 화면에서 관리하세요. 14일 무료, 카드 등록 불필요.",
       "twitterDescription": "현장 운영 올인원 SaaS",

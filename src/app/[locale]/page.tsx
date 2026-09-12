@@ -5,7 +5,6 @@ import LandingPage from "@/components/landing/LandingPage";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("landing.meta");
-  const tCommon = await getTranslations("common");
   return {
     title: t("title"),
     description: t("description"),
@@ -16,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: "summary_large_image",
-      title: tCommon("appName"),
+      title: t("productName"),
       description: t("twitterDescription"),
     },
     alternates: { canonical: "/" },
@@ -28,11 +27,10 @@ const SITE_URL =
 
 export default async function Page() {
   const t = await getTranslations("landing.meta");
-  const tCommon = await getTranslations("common");
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: tCommon("appName"),
+    name: t("productName"),
     applicationCategory: "BusinessApplication",
     operatingSystem: "Web",
     description: t("jsonLdDescription"),
