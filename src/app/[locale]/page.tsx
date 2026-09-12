@@ -6,7 +6,7 @@ import LandingPage from "@/components/landing/LandingPage";
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("landing.meta");
   return {
-    title: t("title"),
+    title: { absolute: t("title") },
     description: t("description"),
     openGraph: {
       title: t("title"),
